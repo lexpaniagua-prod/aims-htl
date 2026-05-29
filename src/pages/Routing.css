@@ -1,0 +1,159 @@
+/* ─── Routing Rules ─────────────────────────────────────────────────────────── */
+
+.routing-top-row {
+  display: flex;
+  gap: 24px;
+  align-items: start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* ─── Health Widget ──────────────────────────────────────────────────────────── */
+.routing-health-widget {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 22px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.routing-health-chart {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.routing-health-pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'DM Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.routing-health-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.routing-health-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 220px;
+}
+
+.routing-health-warn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--accent-amber);
+  margin-top: 6px;
+}
+
+/* ─── KPI section ────────────────────────────────────────────────────────────── */
+.routing-kpis {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+/* ─── Rules Table ────────────────────────────────────────────────────────────── */
+.rules-table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.rules-table-header {
+  display: grid;
+  grid-template-columns: 180px 1fr 120px 1fr 1fr 70px 100px;
+  padding: 9px 16px;
+  background: var(--bg-card-elevated);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+
+.rule-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 120px 1fr 1fr 70px 100px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+  align-items: center;
+  gap: 12px;
+}
+
+.rule-row:last-child {
+  border-bottom: none;
+}
+
+.rule-row:hover {
+  background: var(--bg-row-hover);
+}
+
+/* ─── Cell styles ────────────────────────────────────────────────────────────── */
+.rule-pack {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-condition {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-dest {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-fallback {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rule-timeout {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rule-lasttriggered {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}

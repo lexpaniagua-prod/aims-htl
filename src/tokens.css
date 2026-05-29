@@ -1,0 +1,126 @@
+/* ─── AIMS OS Design System — HTL Tokens ─────────────────────────────────── */
+
+:root,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --bg-app:            #111318;
+  --bg-sidebar:        #0d0f14;
+  --bg-card:           #181c24;
+  --bg-card-elevated:  #1e2230;
+  --bg-row:            #191d28;
+  --bg-row-hover:      #222636;
+  --bg-input:          #1a1f2e;
+
+  /* Borders */
+  --border:            rgba(255,255,255,0.07);
+  --border-strong:     rgba(255,255,255,0.12);
+  --border-focus:      rgba(79,156,240,0.4);
+
+  /* Text */
+  --text-primary:      #e4e6f0;
+  --text-secondary:    #8b90a7;
+  --text-tertiary:     #4e5368;
+
+  /* Blue */
+  --accent-blue:        #4f9cf0;
+  --accent-blue-dim:    rgba(79,156,240,0.12);
+  --accent-blue-border: rgba(79,156,240,0.25);
+
+  /* Purple */
+  --accent-purple:        #a78bfa;
+  --accent-purple-dim:    rgba(167,139,250,0.12);
+  --accent-purple-border: rgba(167,139,250,0.25);
+
+  /* Teal */
+  --accent-teal:        #34d399;
+  --accent-teal-dim:    rgba(52,211,153,0.10);
+  --accent-teal-border: rgba(52,211,153,0.25);
+
+  /* Amber */
+  --accent-amber:        #fbbf24;
+  --accent-amber-dim:    rgba(251,191,36,0.10);
+  --accent-amber-border: rgba(251,191,36,0.25);
+
+  /* Coral */
+  --accent-coral:        #fb7185;
+  --accent-coral-dim:    rgba(251,113,133,0.10);
+  --accent-coral-border: rgba(251,113,133,0.25);
+
+  /* Green */
+  --accent-green:        #86efac;
+  --accent-green-dim:    rgba(134,239,172,0.10);
+  --accent-green-border: rgba(134,239,172,0.25);
+
+  /* Gray (neutral badge) */
+  --accent-gray:        #8b90a7;
+  --accent-gray-dim:    rgba(139,144,167,0.12);
+  --accent-gray-border: rgba(139,144,167,0.20);
+
+  /* KPI tints */
+  --kpi-purple-bg: #1a1535;
+  --kpi-blue-bg:   #0d1a2d;
+  --kpi-amber-bg:  #1a1408;
+  --kpi-green-bg:  #0d1f14;
+  --kpi-coral-bg:  #1f0d14;
+
+  /* Shadows */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-modal:  0 24px 64px rgba(0,0,0,0.6);
+  --shadow-drop:   0 8px 24px rgba(0,0,0,0.4);
+}
+
+[data-theme="light"] {
+  --bg-app:            #f4f5f8;
+  --bg-sidebar:        #ffffff;
+  --bg-card:           #ffffff;
+  --bg-card-elevated:  #f9fafb;
+  --bg-row:            #ffffff;
+  --bg-row-hover:      #f4f5f8;
+  --bg-input:          #ffffff;
+
+  --border:            rgba(0,0,0,0.08);
+  --border-strong:     rgba(0,0,0,0.14);
+  --border-focus:      rgba(79,156,240,0.4);
+
+  --text-primary:      #111318;
+  --text-secondary:    #5a6074;
+  --text-tertiary:     #9ca3af;
+
+  --accent-blue:        #2563eb;
+  --accent-blue-dim:    rgba(37,99,235,0.08);
+  --accent-blue-border: rgba(37,99,235,0.20);
+
+  --accent-purple:        #7c3aed;
+  --accent-purple-dim:    rgba(124,58,237,0.08);
+  --accent-purple-border: rgba(124,58,237,0.20);
+
+  --accent-teal:        #059669;
+  --accent-teal-dim:    rgba(5,150,105,0.08);
+  --accent-teal-border: rgba(5,150,105,0.20);
+
+  --accent-amber:        #d97706;
+  --accent-amber-dim:    rgba(217,119,6,0.08);
+  --accent-amber-border: rgba(217,119,6,0.20);
+
+  --accent-coral:        #e11d48;
+  --accent-coral-dim:    rgba(225,29,72,0.08);
+  --accent-coral-border: rgba(225,29,72,0.20);
+
+  --accent-green:        #16a34a;
+  --accent-green-dim:    rgba(22,163,74,0.08);
+  --accent-green-border: rgba(22,163,74,0.20);
+
+  --accent-gray:        #6b7280;
+  --accent-gray-dim:    rgba(107,114,128,0.10);
+  --accent-gray-border: rgba(107,114,128,0.18);
+
+  --kpi-purple-bg: #f5f3ff;
+  --kpi-blue-bg:   #eff6ff;
+  --kpi-amber-bg:  #fffbeb;
+  --kpi-green-bg:  #f0fdf4;
+  --kpi-coral-bg:  #fff1f2;
+
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-modal:  0 24px 64px rgba(0,0,0,0.15);
+  --shadow-drop:   0 8px 24px rgba(0,0,0,0.10);
+}

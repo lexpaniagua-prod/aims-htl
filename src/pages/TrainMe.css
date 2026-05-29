@@ -1,0 +1,38 @@
+/* ─── Train Me & Quality Loop ───────────────────────────────────────────────── */
+
+.tm-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.tm-corrections {
+  margin-top: 10px;
+}
+
+.tm-correction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.tm-correction-row:last-child { border-bottom: none; }
+
+.tm-correction-topic {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.tm-correction-meta {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 900px) {
+  .tm-chart-grid { grid-template-columns: 1fr; }
+}

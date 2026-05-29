@@ -1,0 +1,379 @@
+/* ─── Sensitive Signals — Roster Management ──────────────────────────────── */
+
+/* Mandatory banner */
+.ss-mandatory-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--accent-amber-dim);
+  border: 1px solid var(--accent-amber-border);
+  border-radius: 8px;
+  color: var(--accent-amber);
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+/* Summary chips row */
+.ss-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.ss-summary-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.ss-summary-chip--complete {
+  background: var(--accent-teal-dim);
+  border: 1px solid var(--accent-teal-border);
+  color: var(--accent-teal);
+}
+
+.ss-summary-chip--incomplete {
+  background: var(--accent-coral-dim);
+  border: 1px solid var(--accent-coral-border);
+  color: var(--accent-coral);
+}
+
+/* Signal class card */
+.ss-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: border-color 0.15s;
+}
+
+.ss-card--incomplete {
+  border-left: 3px solid var(--accent-coral);
+}
+
+/* Card header */
+.ss-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  cursor: pointer;
+  background: var(--bg-card);
+  gap: 12px;
+}
+
+.ss-card-header:hover {
+  background: var(--bg-row-hover);
+}
+
+.ss-card-header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Signal icon */
+.ss-signal-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ss-signal-icon--coral {
+  background: var(--accent-coral-dim);
+  color: var(--accent-coral);
+  border: 1px solid var(--accent-coral-border);
+}
+
+.ss-signal-icon--amber {
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+  border: 1px solid var(--accent-amber-border);
+}
+
+.ss-signal-icon--purple {
+  background: var(--accent-purple-dim);
+  color: var(--accent-purple);
+  border: 1px solid var(--accent-purple-border);
+}
+
+.ss-signal-icon--blue {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  border: 1px solid var(--accent-blue-border);
+}
+
+.ss-signal-icon--teal {
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+  border: 1px solid var(--accent-teal-border);
+}
+
+.ss-card-title {
+  font-family: Syne, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.ss-card-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.ss-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ss-member-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+/* Status pill */
+.ss-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.ss-status-pill--complete {
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+  border: 1px solid var(--accent-teal-border);
+}
+
+.ss-status-pill--incomplete {
+  background: var(--accent-coral-dim);
+  color: var(--accent-coral);
+  border: 1px solid var(--accent-coral-border);
+}
+
+/* Card body (expanded) */
+.ss-card-body {
+  padding: 20px 20px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+/* Incomplete banner inside card */
+.ss-incomplete-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--accent-coral-dim);
+  border: 1px solid var(--accent-coral-border);
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--accent-coral);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* Section label */
+.ss-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+/* Member table */
+.ss-member-table {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.ss-member-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 200px 90px 32px;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.ss-member-row:last-child {
+  border-bottom: none;
+}
+
+.ss-member-row--header {
+  background: var(--bg-card-elevated);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.ss-member-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-member-role {
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-member-email {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ss-member-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.ss-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  padding: 0;
+}
+
+.ss-remove-btn:hover {
+  background: var(--accent-coral-dim);
+  color: var(--accent-coral);
+}
+
+/* Add member form */
+.ss-add-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.ss-input {
+  flex: 1;
+  min-width: 140px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input, var(--bg-card));
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+
+.ss-input:focus {
+  border-color: var(--border-focus, var(--accent-blue));
+}
+
+/* Policy block */
+.ss-policy-block {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 12px 14px;
+}
+
+/* Escalation path */
+.ss-escalation-path {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ss-escalation-step {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+/* Mandatory ack row */
+.ss-ack-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 20px;
+  gap: 12px;
+}
+
+.ss-ack-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.ss-ack-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}

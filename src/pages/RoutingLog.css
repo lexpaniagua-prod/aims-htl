@@ -1,0 +1,135 @@
+/* ─── Routing Decisions Log ─────────────────────────────────────────────────── */
+
+.rl-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+.rl-summary-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  flex: 1;
+}
+
+.rl-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rl-stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.rl-stat-value--blue   { color: var(--accent-blue);   }
+.rl-stat-value--amber  { color: var(--accent-amber);  }
+.rl-stat-value--purple { color: var(--accent-purple); }
+.rl-stat-value--teal   { color: var(--accent-teal);   }
+
+.rl-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.rl-donut-card {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+/* Table toolbar */
+.rl-table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.rl-count {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.rl-table-wrap {
+  overflow-x: auto;
+}
+
+.rl-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.rl-table th {
+  text-align: left;
+  padding: 7px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  background: var(--bg-card-elevated);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.rl-table td {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.rl-table tbody tr:last-child td { border-bottom: none; }
+.rl-table tbody tr:hover { background: var(--bg-row-hover); }
+
+.rl-row--fallback { background: var(--accent-amber-dim); }
+.rl-row--fallback:hover { background: var(--accent-amber-dim); filter: brightness(0.97); }
+
+.rl-mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+}
+
+.rl-pack {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  max-width: 200px;
+}
+
+.rl-rule {
+  color: var(--text-tertiary);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rl-dest {
+  font-size: 12px;
+  color: var(--accent-blue);
+  font-weight: 500;
+}
+
+.rl-ts { color: var(--text-tertiary); white-space: nowrap; }
+
+@media (max-width: 900px) {
+  .rl-summary { flex-direction: column; }
+  .rl-donut-card { width: 100%; }
+}

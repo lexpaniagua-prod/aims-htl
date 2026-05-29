@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/alexa/OneDrive/Desktop/Prototypes/**)",
+      "Bash(npm create *)",
+      "Bash(npm run *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(ls /mnt/c/Users/alexa/OneDrive/Desktop/Prototypes/HTL/.claude/skills/ 2>/dev/null || echo \"no skills dir\")",
+      "Bash(cat /mnt/c/Users/alexa/OneDrive/Desktop/Prototypes/HTL/package.json 2>/dev/null | head -20)",
+      "Bash(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\PackBuilder.css\")",
+      "Bash(Measure-Object -Line)",
+      "Bash(Select-Object -ExpandProperty Lines)",
+      "Bash(npm install *)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:5173/inbox/queue)"
+    ]
+  }
+}

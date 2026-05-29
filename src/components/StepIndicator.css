@@ -1,0 +1,67 @@
+.step-indicator {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: 16px 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.step-line {
+  position: absolute;
+  top: 13px;
+  right: 50%;
+  left: -50%;
+  height: 2px;
+  background: var(--border-strong);
+  transition: background 0.2s;
+}
+.step-line--filled { background: var(--accent-blue); }
+
+.step-node {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: 'DM Mono', monospace;
+  border: 2px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-tertiary);
+  z-index: 1;
+  position: relative;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.step--active .step-node {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+}
+
+.step--done .step-node {
+  border-color: var(--accent-teal);
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+}
+
+.step-label {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-align: center;
+  transition: color 0.15s;
+}
+
+.step--active .step-label { color: var(--text-primary); }
+.step--done .step-label   { color: var(--text-secondary); }

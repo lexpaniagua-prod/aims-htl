@@ -1,0 +1,403 @@
+/* ─── OOO & Coverage Planner ─────────────────────────────────────────────── */
+
+/* ── V1.5 banner ──────────────────────────────────────────────────────────── */
+.ooo-v15-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--accent-amber-dim);
+  border: 1px solid var(--accent-amber-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ooo-v15-banner > svg {
+  color: var(--accent-amber);
+  flex-shrink: 0;
+}
+
+.ooo-v15-chip {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: var(--accent-amber);
+  color: #111;
+  flex-shrink: 0;
+}
+
+/* ── Alert banner ─────────────────────────────────────────────────────────── */
+.ooo-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--accent-coral-dim);
+  border: 1px solid var(--accent-coral-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.ooo-alert > svg { color: var(--accent-coral); flex-shrink: 0; }
+.ooo-alert-body { flex: 1; line-height: 1.5; }
+.ooo-alert-body span { color: var(--text-secondary); }
+
+/* ── OOO table ────────────────────────────────────────────────────────────── */
+.ooo-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.ooo-table th {
+  text-align: left;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.ooo-table td {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.ooo-table tbody tr:last-child td { border-bottom: none; }
+.ooo-table tbody tr:hover { background: var(--bg-row-hover); }
+
+.ooo-emp-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.ooo-emp-role { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
+
+.ooo-date-cell {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.ooo-date-arrow {
+  color: var(--text-tertiary);
+  margin: 0 4px;
+}
+
+.ooo-covering {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ooo-covering-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ooo-covering-name { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.ooo-covering-role { font-size: 10px; color: var(--text-tertiary); }
+
+.ooo-uncovered {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent-coral);
+}
+
+.ooo-packs {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ooo-pack-chip {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ooo-items-count {
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center !important;
+}
+
+/* ── Coverage rules ───────────────────────────────────────────────────────── */
+.ooo-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ooo-rule-card {
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.ooo-rule-card--warning {
+  background: var(--accent-coral-dim);
+  border-color: var(--accent-coral-border);
+}
+
+.ooo-rule-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.ooo-rule-if {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+.ooo-rule-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+/* Rule chain pills */
+.ooo-chain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.ooo-chain-arrow {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.ooo-chain-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.ooo-chain-pill--employee {
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  border-color: var(--accent-blue-border);
+}
+
+.ooo-chain-pill--route {
+  background: var(--accent-teal-dim);
+  color: var(--accent-teal);
+  border-color: var(--accent-teal-border);
+}
+
+.ooo-chain-pill--timeout {
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+  border-color: var(--accent-amber-border);
+}
+
+.ooo-chain-pill--fallback {
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+.ooo-chain-pill--fallback-warn {
+  background: var(--accent-coral-dim);
+  color: var(--accent-coral);
+  border-color: var(--accent-coral-border);
+}
+
+/* ── Re-entry briefing ────────────────────────────────────────────────────── */
+.ooo-reentry {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.ooo-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--bg-row);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.ooo-toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.ooo-toggle-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.45;
+  max-width: 360px;
+}
+
+/* Toggle switch */
+.ooo-toggle-btn {
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--bg-card-elevated);
+  border: 1.5px solid var(--border-strong);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.ooo-toggle-btn--on {
+  background: var(--accent-teal);
+  border-color: var(--accent-teal);
+}
+
+.ooo-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  transition: transform 0.2s, background 0.2s;
+  display: block;
+}
+
+.ooo-toggle-btn--on .ooo-toggle-thumb {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.ooo-reentry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.ooo-reentry-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.ooo-scope-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ooo-scope-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-row);
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ooo-scope-option--selected {
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-dim);
+}
+
+.ooo-scope-option input[type="radio"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--accent-blue);
+}
+
+.ooo-scope-opt-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 1px;
+}
+
+.ooo-scope-opt-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.ooo-delivery-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.ooo-delivery-check { color: var(--accent-teal); flex-shrink: 0; margin-top: 1px; }
+.ooo-delivery-info  { color: var(--text-tertiary); flex-shrink: 0; margin-top: 1px; }
+
+/* ── Drawer toggle row ────────────────────────────────────────────────────── */
+.ooo-drawer-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.ooo-drawer-toggle-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ooo-drawer-toggle-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}

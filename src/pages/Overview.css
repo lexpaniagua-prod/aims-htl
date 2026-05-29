@@ -1,0 +1,80 @@
+/* ─── Operations Overview ────────────────────────────────────────────────────── */
+
+.ov-date-select {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.12s;
+}
+.ov-date-select:hover { border-color: var(--border-strong); }
+
+/* 2×2 chart grid */
+.ov-chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ov-chart-body {
+  height: 196px;
+}
+
+/* Sensitive signals table */
+.ov-sig-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.ov-sig-table th {
+  text-align: left;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+
+.ov-sig-table td {
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+
+.ov-sig-table tbody tr:last-child td { border-bottom: none; }
+.ov-sig-table tbody tr:hover { background: var(--bg-row-hover); }
+
+.ov-sig-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.ov-sig-dot--purple { background: var(--accent-purple); }
+.ov-sig-dot--amber  { background: var(--accent-amber);  }
+.ov-sig-dot--blue   { background: var(--accent-blue);   }
+.ov-sig-dot--coral  { background: var(--accent-coral);  }
+.ov-sig-dot--teal   { background: var(--accent-teal);   }
+
+.ov-mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .ov-chart-grid { grid-template-columns: 1fr; }
+}
