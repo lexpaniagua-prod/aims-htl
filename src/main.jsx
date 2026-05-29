@@ -12,7 +12,7 @@ document.documentElement.setAttribute('data-theme', saved || system)
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/aims-htl/">
       <App />
     </BrowserRouter>
   </React.StrictMode>

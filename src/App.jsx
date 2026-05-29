@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
+import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import {
   SlidersHorizontal, Plug, Inbox, BarChart2, Settings,
@@ -42,6 +42,7 @@ const NAV = [
   {
     section: null, icon: SlidersHorizontal,
     items: [
+      { label: 'Overview', path: '/reports/overview', icon: LayoutDashboard },
       { label: 'Queue', path: '/inbox/queue', icon: List, badge: 12 },
       { label: 'Pack Library', path: '/configure/packs', icon: Library },
     ]
@@ -65,7 +66,6 @@ const NAV = [
   {
     section: 'Reports', icon: BarChart2,
     items: [
-      { label: 'Overview', path: '/reports/overview', icon: LayoutDashboard },
       { label: 'SLA', path: '/reports/sla', icon: Clock },
       { label: 'Routing Log', path: '/reports/routing-log', icon: RouteIcon },
       { label: 'Signals', path: '/reports/signals', icon: Activity },
@@ -290,7 +290,7 @@ export default function App() {
         {/* Page content */}
         <main className="page-content">
           <Routes>
-            <Route path="/" element={<Overview />} />
+            <Route path="/" element={<Navigate to="/reports/overview" replace />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/configure/packs" element={<PackLibrary />} />
             <Route path="/configure/packs/new" element={<PackBuilder />} />
