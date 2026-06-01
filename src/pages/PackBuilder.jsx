@@ -26,7 +26,7 @@ const STEPS = [
   { id: 9,  label: 'Sensitive Signals' },
   { id: 10, label: 'Notifications'     },
   { id: 11, label: 'SLA'               },
-  { id: 12, label: 'Availability'      },
+  { id: 12, label: 'Availability', note: 'Optional' },
   { id: 13, label: 'Jurisdiction'      },
   { id: 14, label: 'Test & Preview'    },
   { id: 15, label: 'Review & Publish'  },
@@ -43,14 +43,38 @@ const PACKET_FIELDS = [
 ]
 
 const MOCK_MACROS = [
-  { id: 'm1', name: 'Apologize & Escalate',     category: 'replies',  trigger: 'frustration signal',    scope: 'Full',    attached: true  },
-  { id: 'm2', name: 'Request Order Number',      category: 'replies',  trigger: 'order inquiry',         scope: 'Full',    attached: true  },
-  { id: 'm3', name: 'Transfer to Billing',       category: 'actions',  trigger: 'billing keyword',       scope: 'Full',    attached: true  },
-  { id: 'm4', name: 'Log CSAT Drop',             category: 'actions',  trigger: 'csat < 3',              scope: 'Minimal', attached: false },
-  { id: 'm5', name: 'Schedule Callback',         category: 'replies',  trigger: 'callback request',      scope: 'Full',    attached: false },
-  { id: 'm6', name: 'Account Cancellation Flow', category: 'actions',  trigger: '"cancel account"',      scope: 'Full',    attached: true  },
-  { id: 'm7', name: 'Express Empathy',           category: 'replies',  trigger: 'any escalation',        scope: 'Minimal', attached: true  },
-  { id: 'm8', name: 'Close & CSAT Request',      category: 'replies',  trigger: 'resolution confirmed',  scope: 'Full',    attached: true  },
+  {
+    id: 'm1', name: 'Apologize & Escalate', category: 'replies', trigger: 'frustration signal', scope: 'Full', attached: true,
+    template: "I'm really sorry you've been experiencing this. I completely understand how frustrating this must be, and I want to make sure we get this resolved for you quickly.\n\nI'm escalating your case to our senior support team right now — you'll hear back within [X] hours with a resolution.",
+  },
+  {
+    id: 'm2', name: 'Request Order Number', category: 'replies', trigger: 'order inquiry', scope: 'Full', attached: true,
+    template: "Thanks for reaching out! To look into this quickly, could you share your order number? You'll find it in your confirmation email or under Orders in your account.",
+  },
+  {
+    id: 'm3', name: 'Transfer to Billing', category: 'actions', trigger: 'billing keyword', scope: 'Full', attached: true,
+    template: '→ Transfer conversation to Billing queue\n→ Apply tag: billing-escalation\n→ Notify: billing@company.com\n→ Set priority: High',
+  },
+  {
+    id: 'm4', name: 'Log CSAT Drop', category: 'actions', trigger: 'csat < 3', scope: 'Minimal', attached: false,
+    template: '→ Log CSAT drop event to analytics\n→ Tag conversation: low-csat\n→ Notify support lead\n→ Flag for quality review queue',
+  },
+  {
+    id: 'm5', name: 'Schedule Callback', category: 'replies', trigger: 'callback request', scope: 'Full', attached: false,
+    template: "I'd be happy to set up a callback. Our team is available Monday–Friday, 9am–6pm EST.\n\nPlease share your preferred time and best number to reach you — I'll get that booked straight away.",
+  },
+  {
+    id: 'm6', name: 'Account Cancellation Flow', category: 'actions', trigger: '"cancel account"', scope: 'Full', attached: true,
+    template: '→ Open cancellation retention flow\n→ Offer: Pause account for 1–3 months\n→ Offer: Downgrade to free tier\n→ Escalate to retention specialist if declined\n→ Log cancellation reason to CRM',
+  },
+  {
+    id: 'm7', name: 'Express Empathy', category: 'replies', trigger: 'any escalation', scope: 'Minimal', attached: true,
+    template: "Thank you for sharing this with us. I can hear how frustrating this experience has been, and I want you to know your experience truly matters to us.\n\nI'm personally making sure this is handled properly.",
+  },
+  {
+    id: 'm8', name: 'Close & CSAT Request', category: 'replies', trigger: 'resolution confirmed', scope: 'Full', attached: true,
+    template: "Great — looks like we got that sorted! So glad we could help. 😊\n\nBefore I close this out, would you mind rating your experience today? Your feedback helps us keep improving. A short survey is on its way to your inbox.",
+  },
 ]
 
 const SIGNAL_CLASSES = [
@@ -100,6 +124,14 @@ function initDraft(pack) {
       compliance: false,
     },
     fallbackChain: ['Tier 1 Support', 'Tier 2 Support', 'Support Manager'],
+    routingPrimary:       'tier1',
+    routingPrimaryCustom: '',
+    routingCondition:     'always',
+    routingConditionValue:'',
+    routingFallbacks: [
+      { id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 },
+    ],
+    routingFinalAction: 'requeue',
     requireAck:    false,
     allowReassign: true,
     coverageZone:  'US-East',
@@ -197,140 +229,629 @@ function Step1Pattern({ draft, update }) {
   )
 }
 
-// ─── Step 2: Triggers ────────────────────────────────────────────────────────
-function Step2Triggers({ draft, update }) {
-  const [newVal, setNewVal] = useState('')
+// ─── Routing recipient display names (shared between Step 3 and Review) ──────
+const ROUTING_RECIPIENT_NAMES = {
+  tier1:    'Tier 1 Support',
+  tier2:    'Tier 2 Support',
+  assigned: 'assigned agent',
+}
 
-  const addTrigger = () => {
-    if (!newVal.trim()) return
-    update('triggers', [...draft.triggers, { id: Date.now(), value: newVal.trim() }])
-    setNewVal('')
+// ─── Step 2: Triggers ────────────────────────────────────────────────────────
+const TRIGGER_CATEGORIES = [
+  {
+    id: 'behavior', emoji: '💬', title: 'Customer behavior',
+    desc: 'A customer does something specific — like asking to cancel, expressing frustration, or going silent for too long.',
+    accent: 'var(--accent-blue)', dim: 'var(--accent-blue-dim)', border: 'var(--accent-blue-border)',
+  },
+  {
+    id: 'confidence', emoji: '🤖', title: 'AI confidence',
+    desc: "The AI isn't sure what to do and needs a human to decide. Set the confidence level at which it hands off.",
+    accent: 'var(--accent-purple)', dim: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)',
+  },
+  {
+    id: 'score', emoji: '📊', title: 'Score or threshold',
+    desc: 'A number goes above or below a limit — like a satisfaction score dropping, a deal value exceeding your approval threshold, or a risk score spiking.',
+    accent: 'var(--accent-amber)', dim: 'var(--accent-amber-dim)', border: 'var(--accent-amber-border)',
+  },
+  {
+    id: 'event', emoji: '⚡', title: 'A specific event happens',
+    desc: 'Something concrete occurs — a form is submitted, a status changes, or an agent manually decides to escalate.',
+    accent: 'var(--accent-teal)', dim: 'var(--accent-teal-dim)', border: 'var(--accent-teal-border)',
+  },
+]
+
+const BEHAVIOR_OPTS = [
+  { id: 'cancel',      label: 'Asks to cancel' },
+  { id: 'frustration', label: 'Expresses frustration' },
+  { id: 'manager',     label: 'Requests a manager' },
+  { id: 'silence',     label: 'Goes silent (no reply)' },
+  { id: 'keywords',    label: 'Uses specific words →' },
+  { id: 'other',       label: 'Something else →' },
+]
+const SCORE_TYPES = [
+  { id: 'csat',   label: 'Customer satisfaction (CSAT)' },
+  { id: 'deal',   label: 'Deal value' },
+  { id: 'risk',   label: 'Risk score' },
+  { id: 'custom', label: 'Custom score' },
+]
+const EVENT_OPTS = [
+  { id: 'escalate', label: 'Agent clicks "Escalate" button' },
+  { id: 'form',     label: 'Customer submits a form' },
+  { id: 'status',   label: 'Status changes to' },
+  { id: 'tag',      label: 'Ticket tag is applied:' },
+  { id: 'custom',   label: 'Something else:' },
+]
+
+function Step2Triggers({ draft, update }) {
+  const [expanded,      setExpanded]      = useState({})
+  const [behaviorSel,   setBehaviorSel]   = useState('')
+  const [behaviorCustom,setBehaviorCustom]= useState('')
+  const [confidence,    setConfidence]    = useState(60)
+  const [scoreType,     setScoreType]     = useState('csat')
+  const [scoreDir,      setScoreDir]      = useState('below')
+  const [scoreVal,      setScoreVal]      = useState('')
+  const [selEvents,     setSelEvents]     = useState([])
+  const [evStatus,      setEvStatus]      = useState('Escalated')
+  const [evTag,         setEvTag]         = useState('')
+  const [evCustom,      setEvCustom]      = useState('')
+  const [advMode,       setAdvMode]       = useState(false)
+  const [advText,       setAdvText]       = useState('')
+
+  const toggleExpand    = id => setExpanded(e => ({ ...e, [id]: !e[id] }))
+  const toggleEvent     = id => setSelEvents(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
+  const removeTrigger   = id => update('triggers', draft.triggers.filter(t => t.id !== id))
+  const hasByType       = type => draft.triggers.some(t => t.type === type)
+
+  // ── Label generators ───────────────────────────────────────────────────────
+  const behaviorLabel = (sel, custom) => ({
+    cancel:      'a customer asks to cancel',
+    frustration: 'a customer expresses frustration',
+    manager:     'a customer requests a manager',
+    silence:     'a customer goes silent (no reply)',
+    keywords:    `a customer uses specific words: "${custom}"`,
+    other:       custom || 'a custom customer behavior',
+  }[sel] || sel)
+
+  const confidenceLabel = v => `AI hands off when less than ${v}% confident`
+
+  const scoreLabel = (type, dir, val) => {
+    const t = { csat: 'CSAT', deal: 'Deal value', risk: 'Risk score', custom: 'Custom score' }[type] || type
+    return `${t} goes ${dir} ${val}`
   }
 
-  const removeTrigger = (id) => update('triggers', draft.triggers.filter(t => t.id !== id))
+  const eventLabel = (evs, status, tag, custom) => {
+    const parts = []
+    if (evs.includes('escalate')) parts.push('Agent escalates')
+    if (evs.includes('form'))     parts.push('Customer submits a form')
+    if (evs.includes('status'))   parts.push(`Status changes to "${status}"`)
+    if (evs.includes('tag') && tag)    parts.push(`Tag applied: "${tag}"`)
+    if (evs.includes('custom') && custom) parts.push(custom)
+    return parts.join(' · ') || 'Event trigger'
+  }
 
-  const TRIGGER_TYPES = [
-    { id: 'signal',  label: 'Signal',  desc: 'Intent score, CSAT, sentiment' },
-    { id: 'keyword', label: 'Keyword', desc: 'Phrase match in conversation' },
-    { id: 'event',   label: 'Event',   desc: 'Form submit, status change' },
-    { id: 'manual',  label: 'Manual',  desc: 'Agent-initiated escalation' },
-  ]
+  // ── Add trigger ────────────────────────────────────────────────────────────
+  const addTrigger = (type) => {
+    let label = '', config = {}
+    if (type === 'behavior') {
+      if (!behaviorSel) return
+      if ((behaviorSel === 'keywords' || behaviorSel === 'other') && !behaviorCustom.trim()) return
+      label  = behaviorLabel(behaviorSel, behaviorCustom)
+      config = { behavior: behaviorSel, behaviorCustom }
+    } else if (type === 'confidence') {
+      label  = confidenceLabel(confidence)
+      config = { confidenceThreshold: confidence }
+    } else if (type === 'score') {
+      if (!scoreVal.trim()) return
+      label  = scoreLabel(scoreType, scoreDir, scoreVal)
+      config = { scoreType, scoreDir, scoreVal }
+    } else if (type === 'event') {
+      if (selEvents.length === 0) return
+      label  = eventLabel(selEvents, evStatus, evTag, evCustom)
+      config = { events: [...selEvents], evStatus, evTag, evCustom }
+    }
+    update('triggers', [...draft.triggers, { id: Date.now(), type, label, value: label, ...config }])
+  }
 
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Configure Triggers</div>
+        <div className="pb-step-title">When should this Pack fire?</div>
         <div className="pb-step-desc">
-          Define when this pack fires. Triggers are evaluated in order — any match activates the pack.
+          Choose the conditions that activate this Pack. Any matching condition will trigger it — you can add as many as you need.
         </div>
       </div>
 
-      <div className="trigger-list">
-        {draft.triggers.map(t => (
-          <div key={t.id} className="trigger-chip">
-            <span className="trigger-chip-type">signal</span>
-            <span className="trigger-chip-value">{t.value}</span>
-            <button
-              style={{ color: 'var(--text-tertiary)', marginLeft: 'auto', display: 'flex', alignItems: 'center' }}
-              onClick={() => removeTrigger(t.id)}
+      {/* ── 2×2 category cards ─────────────────────────────────────────── */}
+      <div className="trig-cat-grid">
+        {TRIGGER_CATEGORIES.map(cat => {
+          const isOpen = !!expanded[cat.id]
+          const hasTrig = hasByType(cat.id)
+          return (
+            <div
+              key={cat.id}
+              className={`trig-cat-card${isOpen ? ' trig-cat-card--open' : ''}${hasTrig ? ' trig-cat-card--done' : ''}`}
+              style={{ '--ca': cat.accent, '--cd': cat.dim, '--cb': cat.border }}
+              onClick={() => toggleExpand(cat.id)}
             >
-              <X size={13} />
-            </button>
-          </div>
-        ))}
+              <div className="trig-cat-top">
+                <span className="trig-cat-emoji">{cat.emoji}</span>
+                {(isOpen || hasTrig) && <span className="trig-cat-dot" style={{ background: cat.accent }} />}
+              </div>
+              <div className="trig-cat-name">{cat.title}</div>
+              <div className="trig-cat-desc">{cat.desc}</div>
+              <div className="trig-cat-foot">
+                {hasTrig && <span className="trig-cat-added" style={{ color: cat.accent }}>✓ Added</span>}
+                <span className="trig-cat-cta" style={{ color: isOpen ? cat.accent : 'var(--text-tertiary)' }}>
+                  {isOpen ? 'Collapse' : 'Configure'}&nbsp;
+                  {isOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        <div style={{ flex: 1 }}>
-          <Input
-            placeholder="e.g. CSAT signal < 3 or 'cancel account'"
-            value={newVal}
-            onChange={e => setNewVal(e.target.value)}
-          />
-        </div>
-        <Button variant="secondary" size="sm" icon={Plus} onClick={addTrigger}>Add</Button>
-      </div>
+      {/* ── Accordion panels ───────────────────────────────────────────── */}
+      {TRIGGER_CATEGORIES.map(cat => {
+        const isOpen = !!expanded[cat.id]
+        return (
+          <div
+            key={cat.id}
+            className={`trig-accordion${isOpen ? ' trig-accordion--open' : ''}`}
+            style={{ '--ca': cat.accent, '--cd': cat.dim }}
+          >
+            <div className="trig-acc-inner">
+              {/* panel header */}
+              <div className="trig-acc-hdr">
+                <span className="trig-acc-emoji">{cat.emoji}</span>
+                <span className="trig-acc-label" style={{ color: cat.accent }}>{cat.title}</span>
+              </div>
 
-      <div className="pb-section-label">Trigger Type Reference</div>
-      <div className="trigger-type-grid">
-        {TRIGGER_TYPES.map(tt => (
-          <div key={tt.id} className="trigger-type-option">
-            <Zap size={14} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 1 }} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', marginBottom: 2 }}>{tt.label}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{tt.desc}</div>
+              {/* ─ Customer behavior ─ */}
+              {cat.id === 'behavior' && (
+                <div className="trig-acc-body">
+                  <div className="trig-field-label">When a customer says or does…</div>
+                  <div className="trig-beh-opts">
+                    {BEHAVIOR_OPTS.map(opt => (
+                      <button
+                        key={opt.id}
+                        className={`trig-beh-btn${behaviorSel === opt.id ? ' trig-beh-btn--sel' : ''}`}
+                        style={behaviorSel === opt.id
+                          ? { borderColor: cat.accent, background: cat.dim, color: cat.accent }
+                          : {}}
+                        onClick={() => setBehaviorSel(opt.id)}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  {(behaviorSel === 'keywords' || behaviorSel === 'other') && (
+                    <input
+                      className="trig-text-input"
+                      placeholder={behaviorSel === 'keywords'
+                        ? 'e.g. cancel, refund, speak to someone'
+                        : 'Describe the behavior…'}
+                      value={behaviorCustom}
+                      onChange={e => setBehaviorCustom(e.target.value)}
+                    />
+                  )}
+                  {behaviorSel && (
+                    <div className="trig-preview">
+                      This Pack fires when {behaviorLabel(behaviorSel, behaviorCustom)}.
+                    </div>
+                  )}
+                  <Button
+                    variant="secondary" size="sm" icon={Plus}
+                    onClick={() => addTrigger('behavior')}
+                    disabled={!behaviorSel ||
+                      ((behaviorSel === 'keywords' || behaviorSel === 'other') && !behaviorCustom.trim())}
+                  >Add this trigger</Button>
+                </div>
+              )}
+
+              {/* ─ AI confidence ─ */}
+              {cat.id === 'confidence' && (
+                <div className="trig-acc-body">
+                  <div className="trig-field-label">
+                    Hand off when AI is less than{' '}
+                    <strong style={{ color: cat.accent, fontSize: 15 }}>{confidence}%</strong> confident
+                  </div>
+                  <div className="trig-slider-row">
+                    <span className="trig-slider-edge">30%</span>
+                    <input
+                      type="range" min={30} max={90} step={5}
+                      value={confidence}
+                      className="trig-slider"
+                      style={{ accentColor: cat.accent }}
+                      onChange={e => setConfidence(Number(e.target.value))}
+                    />
+                    <span className="trig-slider-edge">90%</span>
+                    <div
+                      className="trig-slider-val"
+                      style={{ color: cat.accent, background: cat.dim, borderColor: cat.accent + '55' }}
+                    >{confidence}%</div>
+                  </div>
+                  <div className="trig-preview">
+                    The AI will hand off when it's less than {confidence}% sure about the right response.
+                  </div>
+                  <Button variant="secondary" size="sm" icon={Plus} onClick={() => addTrigger('confidence')}>
+                    Add this trigger
+                  </Button>
+                </div>
+              )}
+
+              {/* ─ Score or threshold ─ */}
+              {cat.id === 'score' && (
+                <div className="trig-acc-body">
+                  <div className="trig-field-label">When…</div>
+                  <div className="trig-score-row">
+                    <select className="trig-sel" value={scoreType} onChange={e => setScoreType(e.target.value)}>
+                      {SCORE_TYPES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                    </select>
+                    <span className="trig-score-is">is</span>
+                    <select className="trig-sel" value={scoreDir} onChange={e => setScoreDir(e.target.value)}>
+                      <option value="below">below</option>
+                      <option value="above">above</option>
+                    </select>
+                    <input
+                      type="text"
+                      className="trig-score-num"
+                      placeholder="e.g. 3"
+                      value={scoreVal}
+                      onChange={e => setScoreVal(e.target.value)}
+                    />
+                  </div>
+                  {scoreVal && (
+                    <div className="trig-preview">
+                      This Pack fires when {scoreLabel(scoreType, scoreDir, scoreVal).toLowerCase()}.
+                    </div>
+                  )}
+                  <Button
+                    variant="secondary" size="sm" icon={Plus}
+                    onClick={() => addTrigger('score')}
+                    disabled={!scoreVal.trim()}
+                  >Add this trigger</Button>
+                </div>
+              )}
+
+              {/* ─ Specific event ─ */}
+              {cat.id === 'event' && (
+                <div className="trig-acc-body">
+                  <div className="trig-field-label">Select all that apply:</div>
+                  <div className="trig-event-list">
+                    {EVENT_OPTS.map(ev => (
+                      <label key={ev.id} className="trig-event-row">
+                        <div
+                          className={`trig-ev-box${selEvents.includes(ev.id) ? ' trig-ev-box--on' : ''}`}
+                          style={selEvents.includes(ev.id)
+                            ? { borderColor: cat.accent, background: cat.dim }
+                            : {}}
+                          onClick={() => toggleEvent(ev.id)}
+                        >
+                          {selEvents.includes(ev.id) &&
+                            <Check size={10} style={{ color: cat.accent }} strokeWidth={3} />}
+                        </div>
+                        <span className="trig-ev-label">{ev.label}</span>
+                        {ev.id === 'status' && selEvents.includes('status') && (
+                          <select
+                            className="trig-sel trig-sel--sm"
+                            value={evStatus}
+                            onChange={e => setEvStatus(e.target.value)}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            {['Escalated','Resolved','On Hold','Closed','Pending'].map(s =>
+                              <option key={s}>{s}</option>)}
+                          </select>
+                        )}
+                        {ev.id === 'tag' && selEvents.includes('tag') && (
+                          <input className="trig-text-input trig-text-input--sm"
+                            placeholder="tag name" value={evTag}
+                            onChange={e => setEvTag(e.target.value)} />
+                        )}
+                        {ev.id === 'custom' && selEvents.includes('custom') && (
+                          <input className="trig-text-input trig-text-input--sm"
+                            placeholder="Describe the event…" value={evCustom}
+                            onChange={e => setEvCustom(e.target.value)} />
+                        )}
+                      </label>
+                    ))}
+                  </div>
+                  {selEvents.length > 0 && (
+                    <div className="trig-preview">
+                      This Pack fires when: {eventLabel(selEvents, evStatus, evTag, evCustom)}.
+                    </div>
+                  )}
+                  <Button
+                    variant="secondary" size="sm" icon={Plus}
+                    onClick={() => addTrigger('event')}
+                    disabled={selEvents.length === 0}
+                  >Add this trigger</Button>
+                </div>
+              )}
             </div>
           </div>
-        ))}
+        )
+      })}
+
+      {/* ── Active triggers summary ────────────────────────────────────── */}
+      <div className="trig-summary">
+        {draft.triggers.length > 0 ? (
+          <>
+            <div className="trig-summary-lbl">This Pack fires when any of these are true:</div>
+            <div className="trig-pills">
+              {draft.triggers.map(t => (
+                <div key={t.id} className="trig-pill">
+                  <span className="trig-pill-txt">{t.label || t.value}</span>
+                  <button className="trig-pill-x" onClick={() => removeTrigger(t.id)}>
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="trig-empty">Add at least one trigger above to continue.</div>
+        )}
       </div>
+
+      {/* ── Advanced mode ─────────────────────────────────────────────── */}
+      <div className="trig-adv-row">
+        <button className="trig-adv-link" onClick={() => setAdvMode(a => !a)}>
+          {advMode ? '↑ Hide advanced mode' : 'Advanced mode'}
+        </button>
+      </div>
+      {advMode && (
+        <div className="trig-adv-panel">
+          <div className="trig-field-label" style={{ marginBottom: 8 }}>Enter trigger expressions directly</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              className="trig-text-input"
+              style={{ flex: 1 }}
+              placeholder="e.g. CSAT signal < 3 or 'cancel account'"
+              value={advText}
+              onChange={e => setAdvText(e.target.value)}
+            />
+            <Button
+              variant="secondary" size="sm" icon={Plus}
+              onClick={() => {
+                if (!advText.trim()) return
+                update('triggers', [...draft.triggers,
+                  { id: Date.now(), type: 'advanced', label: advText.trim(), value: advText.trim() }])
+                setAdvText('')
+              }}
+            >Add</Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── Step 3: Routing Logic ────────────────────────────────────────────────────
+const RT_RECIPIENTS = [
+  { id: 'tier1',    label: 'Tier 1 Support Queue' },
+  { id: 'tier2',    label: 'Tier 2 Support Queue' },
+  { id: 'team',     label: 'A specific team',           needsInput: true },
+  { id: 'person',   label: 'A specific person',         needsInput: true },
+  { id: 'assigned', label: 'The person who triggered this' },
+]
+
+const RT_CONDITIONS = [
+  { id: 'always',    label: 'Always (no condition)' },
+  { id: 'available', label: 'They are available right now' },
+  { id: 'plan',      label: "The customer's plan is", needsInput: true },
+  { id: 'priority',  label: 'The item priority is',   needsSelect: ['High', 'Medium', 'Low'] },
+]
+
+const RT_TIMEOUTS     = [5, 10, 15, 30, 60]
+
+const RT_FINAL_ACTIONS = [
+  { id: 'requeue', label: 'Re-queue for the next available agent' },
+  { id: 'notify',  label: 'Notify the team manager' },
+  { id: 'slack',   label: 'Send a lightweight notification via Slack / email' },
+  { id: 'wait',    label: 'Keep waiting (item stays open)' },
+]
+
 function Step3Routing({ draft, update }) {
-  const moveChain = (i, dir) => {
-    const arr = [...draft.fallbackChain]
-    const j = i + dir
-    if (j < 0 || j >= arr.length) return
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
-    update('fallbackChain', arr)
+  const [advMode, setAdvMode] = useState(false)
+
+  const primary       = draft.routingPrimary        || 'tier1'
+  const primaryCustom = draft.routingPrimaryCustom  || ''
+  const condition     = draft.routingCondition      || 'always'
+  const condValue     = draft.routingConditionValue || ''
+  const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 }]
+  const finalAction   = draft.routingFinalAction    || 'requeue'
+
+  const rName = (id, custom) =>
+    ROUTING_RECIPIENT_NAMES[id] || custom || RT_RECIPIENTS.find(r => r.id === id)?.label || id
+
+  // Sync draft.routing (string) so review step stays accurate
+  const sync = (pri, priC, cond, condV) => {
+    const name    = rName(pri, priC)
+    const condOpt = RT_CONDITIONS.find(c => c.id === cond)
+    const condStr = cond === 'always' ? '' : `, when ${condOpt?.label || cond}${condV ? ` ${condV}` : ''}`
+    update('routing', `Send to ${name}${condStr}`)
   }
 
-  const SAMPLE_RULES = [
-    { condition: 'queue.tier1.available == true', action: 'Route to Tier 1 Support' },
-    { condition: 'agent.oo == true',              action: 'Route to Fallback Queue'  },
+  const setPrimary       = v => { update('routingPrimary',       v); sync(v, primaryCustom, condition, condValue) }
+  const setPrimaryCustom = v => { update('routingPrimaryCustom', v); sync(primary, v, condition, condValue) }
+  const setCondition     = v => { update('routingCondition',     v); sync(primary, primaryCustom, v, condValue) }
+  const setCondValue     = v => { update('routingConditionValue',v); sync(primary, primaryCustom, condition, v) }
+  const setFinalAction   = v =>   update('routingFinalAction',   v)
+
+  const setFallbacks = fbs => {
+    update('routingFallbacks', fbs)
+    update('fallbackChain', fbs.map(f => rName(f.recipient, f.customRecipient)))
+  }
+
+  const moveFallback    = (i, dir) => {
+    const arr = [...fallbacks]; const j = i + dir
+    if (j < 0 || j >= arr.length) return
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]; setFallbacks(arr)
+  }
+  const addFallback     = () => setFallbacks([...fallbacks, { id: Date.now(), recipient: 'tier2', customRecipient: '', afterMin: 30 }])
+  const removeFallback  = id => setFallbacks(fallbacks.filter(f => f.id !== id))
+  const updateFallback  = (id, key, val) => setFallbacks(fallbacks.map(f => f.id === id ? { ...f, [key]: val } : f))
+
+  const buildSummary = () => {
+    let s = `This item will go to ${rName(primary, primaryCustom)} first.`
+    for (const fb of fallbacks)
+      s += ` If no one responds in ${fb.afterMin} minutes, it moves to ${rName(fb.recipient, fb.customRecipient)}.`
+    const endings = {
+      requeue: 'the next available agent handles it.',
+      notify:  'the team manager is notified.',
+      slack:   'a notification is sent via Slack or email.',
+      wait:    'the item stays open indefinitely.',
+    }
+    s += ` If still unhandled, ${endings[finalAction] || 'the item remains open.'}`
+    return s
+  }
+
+  const primaryOpt  = RT_RECIPIENTS.find(r => r.id === primary)
+  const condOpt     = RT_CONDITIONS.find(c => c.id === condition)
+
+  // Machine-readable IF/THEN for advanced view
+  const advRules = [
+    { cond: `queue.${primary}.available == true`,   action: `Route to ${rName(primary, primaryCustom)}` },
+    ...fallbacks.map(fb => ({
+      cond: `queue.${fb.recipient}.available == true`,
+      action: `Route to ${rName(fb.recipient, fb.customRecipient)} after ${fb.afterMin}m`,
+    })),
+    { cond: `fallback.all_exhausted == true`, action: `${finalAction}` },
   ]
 
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Routing Logic</div>
+        <div className="pb-step-note">Routing Logic controls how the item is delivered</div>
+        <div className="pb-step-title">Who should receive this item?</div>
         <div className="pb-step-desc">
-          Define the primary routing rule and fallback chain. If the primary queue is unavailable, items cascade in order.
+          Define who gets this item first, and who takes over if they're unavailable.
         </div>
       </div>
 
-      <div className="pb-section-label">Primary Rule</div>
-      <div style={{ marginBottom: 24 }}>
-        <Textarea
-          value={draft.routing}
-          onChange={e => update('routing', e.target.value)}
-          placeholder="e.g. Round-robin across Tier 1 Support queue, fallback to Tier 2 after 15 min"
-          rows={2}
-        />
+      {/* ── Primary recipient ─────────────────────────────────────────── */}
+      <div className="rt-block">
+        <div className="rt-block-label">Send this item to</div>
+        <div className="rt-primary-row">
+          <select className="rt-sel rt-sel--lg" value={primary} onChange={e => setPrimary(e.target.value)}>
+            {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+          </select>
+          {primaryOpt?.needsInput && (
+            <input
+              className="rt-text-input"
+              placeholder={primary === 'team' ? 'Team name…' : 'Person name or email…'}
+              value={primaryCustom}
+              onChange={e => setPrimaryCustom(e.target.value)}
+            />
+          )}
+        </div>
+        <div className="rt-condition-row">
+          <span className="rt-cond-prefix">Only if</span>
+          <select className="rt-sel" value={condition} onChange={e => setCondition(e.target.value)}>
+            {RT_CONDITIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+          {condOpt?.needsInput && (
+            <input
+              className="rt-text-input rt-text-input--sm"
+              placeholder="value…"
+              value={condValue}
+              onChange={e => setCondValue(e.target.value)}
+            />
+          )}
+          {condOpt?.needsSelect && (
+            <select className="rt-sel" value={condValue || condOpt.needsSelect[0]} onChange={e => setCondValue(e.target.value)}>
+              {condOpt.needsSelect.map(v => <option key={v}>{v}</option>)}
+            </select>
+          )}
+        </div>
       </div>
 
-      <div className="pb-section-label">IF / THEN Conditions</div>
-      {SAMPLE_RULES.map((rule, i) => (
-        <div key={i} className="routing-rule">
-          <span className="routing-label">IF</span>
-          <div style={{ flex: 1, fontFamily: 'DM Mono', fontSize: 12, padding: '6px 10px', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)' }}>
-            {rule.condition}
-          </div>
-          <span className="routing-then-arrow">→</span>
-          <span className="routing-label">THEN</span>
-          <div style={{ flex: 1, fontSize: 13, padding: '6px 10px', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 6, color: 'var(--text-secondary)' }}>
-            {rule.action}
-          </div>
-        </div>
-      ))}
-      <Button variant="secondary" size="sm" icon={Plus} style={{ marginTop: 8 }}>Add Rule</Button>
-
-      <div className="pb-section-label" style={{ marginTop: 24 }}>Fallback Chain</div>
-      <div style={{ marginBottom: 10, fontSize: 12, color: 'var(--text-tertiary)' }}>
-        Items cascade through this order when agents are unavailable.
+      {/* ── Fallback chain ────────────────────────────────────────────── */}
+      <div className="rt-section-hd">If they're unavailable, try next:</div>
+      <div className="rt-fallbacks">
+        {fallbacks.map((fb, i) => {
+          const fbOpt = RT_RECIPIENTS.find(r => r.id === fb.recipient)
+          return (
+            <div key={fb.id} className="rt-fb-card">
+              <div className="rt-fb-num">{i + 1}</div>
+              <div className="rt-fb-reorder">
+                <button className="rt-reorder-btn" onClick={() => moveFallback(i, -1)} disabled={i === 0}><ArrowUp size={11} /></button>
+                <button className="rt-reorder-btn" onClick={() => moveFallback(i, 1)}  disabled={i === fallbacks.length - 1}><ArrowDown size={11} /></button>
+              </div>
+              <div className="rt-fb-body">
+                <select className="rt-sel" value={fb.recipient} onChange={e => updateFallback(fb.id, 'recipient', e.target.value)}>
+                  {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                </select>
+                {fbOpt?.needsInput && (
+                  <input
+                    className="rt-text-input rt-text-input--sm"
+                    placeholder={fb.recipient === 'team' ? 'Team name…' : 'Person…'}
+                    value={fb.customRecipient}
+                    onChange={e => updateFallback(fb.id, 'customRecipient', e.target.value)}
+                  />
+                )}
+                <span className="rt-after-lbl">then try next after</span>
+                <select className="rt-sel" value={fb.afterMin} onChange={e => updateFallback(fb.id, 'afterMin', Number(e.target.value))}>
+                  {RT_TIMEOUTS.map(t => <option key={t} value={t}>{t} min</option>)}
+                </select>
+              </div>
+              <button className="rt-remove-btn" onClick={() => removeFallback(fb.id)} title="Remove">
+                <X size={13} />
+              </button>
+            </div>
+          )
+        })}
+        <button className="rt-add-fb" onClick={addFallback}>
+          <Plus size={13} /> Add another fallback
+        </button>
       </div>
-      {draft.fallbackChain.map((item, i) => (
-        <div key={i} className="fallback-item">
-          <span className="fallback-order">{i + 1}.</span>
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--text-primary)' }}>{item}</span>
-          <div className="fallback-reorder">
-            <button onClick={() => moveChain(i, -1)} disabled={i === 0}><ArrowUp size={10} /></button>
-            <button onClick={() => moveChain(i, 1)} disabled={i === draft.fallbackChain.length - 1}><ArrowDown size={10} /></button>
+
+      {/* ── Final action ──────────────────────────────────────────────── */}
+      <div className="rt-section-hd">If nobody responds after all fallbacks:</div>
+      <div className="rt-final-opts">
+        {RT_FINAL_ACTIONS.map(a => (
+          <label key={a.id} className="rt-final-row" onClick={() => setFinalAction(a.id)}>
+            <div className={`rt-radio${finalAction === a.id ? ' rt-radio--on' : ''}`}>
+              {finalAction === a.id && <div className="rt-radio-dot" />}
+            </div>
+            <span className="rt-final-lbl">{a.label}</span>
+          </label>
+        ))}
+      </div>
+
+      {/* ── Live summary ──────────────────────────────────────────────── */}
+      <div className="rt-summary">
+        <Info size={13} className="rt-summary-icon" />
+        <span className="rt-summary-txt">{buildSummary()}</span>
+      </div>
+
+      {/* ── Advanced mode ─────────────────────────────────────────────── */}
+      <div className="trig-adv-row">
+        <button className="trig-adv-link" onClick={() => setAdvMode(a => !a)}>
+          {advMode ? '↑ Hide advanced mode' : 'Advanced mode (IF/THEN)'}
+        </button>
+      </div>
+      {advMode && (
+        <div className="trig-adv-panel">
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+            Machine-readable conditions generated from your routing configuration:
           </div>
+          {advRules.map((rule, i) => (
+            <div key={i} className="routing-rule">
+              <span className="routing-label">IF</span>
+              <div style={{ flex: 1, fontFamily: 'DM Mono', fontSize: 11, padding: '5px 9px', background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-secondary)' }}>
+                {rule.cond}
+              </div>
+              <span className="routing-then-arrow">→</span>
+              <span className="routing-label">THEN</span>
+              <div style={{ flex: 1, fontSize: 12, padding: '5px 9px', background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 5, color: 'var(--text-secondary)' }}>
+                {rule.action}
+              </div>
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
   )
 }
@@ -447,6 +968,126 @@ const SCOPE_OPTIONS = [
   { id: 'Full',     desc: 'Reply, next-step, CRM notes, and close actions' },
 ]
 
+// ── Composer live preview mock ─────────────────────────────────────────────
+function ComposerPreview({ scope }) {
+  const MOCK_REPLY = {
+    Standard: "Hi Maria,\n\nI've reviewed your account and I can see the payment has been failing at the 3DS step. I'm going to resolve this manually right now and ensure your service continues without interruption.",
+    Full:     "Hi Maria,\n\nI've reviewed your account and I can see the recurring error (422 — 3DS timeout). I'll manually update your payment method via the admin panel and apply a 1-month service credit as a goodwill gesture for the inconvenience.\n\nYou should be all set within 5 minutes.",
+  }
+
+  return (
+    <div className="cs-preview" key={scope}>
+      {/* Header */}
+      <div className="cs-preview-hdr">
+        <span className="cs-preview-title">AI Composer</span>
+        <span className="cs-preview-badge">Live Preview</span>
+      </div>
+
+      {/* Disabled */}
+      {scope === 'None' && (
+        <div className="cs-disabled">
+          <div className="cs-disabled-icon">🚫</div>
+          <div className="cs-disabled-title">Composer disabled</div>
+          <div className="cs-disabled-sub">
+            Agents handle items from this Pack without any AI suggestions or reply drafts.
+          </div>
+        </div>
+      )}
+
+      {/* Context strip (all scopes except None) */}
+      {scope !== 'None' && (
+        <>
+          <div className="cs-ctx">
+            <div className="cs-ctx-name">Maria Chen</div>
+            <div className="cs-ctx-issue">Payment processing error — 4 failed attempts</div>
+          </div>
+
+          {/* Minimal — approve/reject only */}
+          {scope === 'Minimal' && (
+            <div className="cs-section">
+              <div className="cs-label">Action required</div>
+              <div className="cs-approve-row">
+                <span className="cs-approve-btn cs-approve-btn--yes">✓ Approve</span>
+                <span className="cs-approve-btn cs-approve-btn--no">✗ Reject</span>
+              </div>
+              <div className="cs-muted-note">No reply drafts at this scope level.</div>
+            </div>
+          )}
+
+          {/* Suggested reply — Standard + Full */}
+          {(scope === 'Standard' || scope === 'Full') && (
+            <div className="cs-section">
+              <div className="cs-label">Suggested reply</div>
+              <div className="cs-reply-block">
+                <div className="cs-reply-text">{MOCK_REPLY[scope]}</div>
+              </div>
+              <div className="cs-reply-btns">
+                <span className="cs-btn cs-btn--primary">Use reply</span>
+                <span className="cs-btn cs-btn--ghost">Edit</span>
+              </div>
+            </div>
+          )}
+
+          {/* Next step — Full only */}
+          {scope === 'Full' && (
+            <div className="cs-section">
+              <div className="cs-label">Next step</div>
+              <div className="cs-nextstep">
+                {[
+                  { color: 'var(--accent-blue)',  text: 'Update payment method via admin panel' },
+                  { color: 'var(--accent-teal)',  text: 'Apply 1-month service credit ($350)' },
+                  { color: 'var(--accent-amber)', text: 'Log error 422 to engineering backlog' },
+                ].map(({ color, text }) => (
+                  <div key={text} className="cs-ns-row">
+                    <span className="cs-ns-dot" style={{ background: color }} />
+                    <span>{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CRM notes — Full only */}
+          {scope === 'Full' && (
+            <div className="cs-section">
+              <div className="cs-label">CRM notes (auto-filled)</div>
+              <div className="cs-crm">
+                <div className="cs-crm-row">Escalation: Payment error 422 — 3DS timeout</div>
+                <div className="cs-crm-row">Action: Manual payment update via admin</div>
+                <div className="cs-crm-row">Credit applied: 1 month ($350 goodwill)</div>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="cs-section">
+            <div className="cs-label">Actions</div>
+            <div className="cs-actions">
+              <span className="cs-action-chip">Close conversation</span>
+              {scope === 'Full' && <>
+                <span className="cs-action-chip">Escalate</span>
+                <span className="cs-action-chip">Reassign</span>
+              </>}
+            </div>
+          </div>
+
+          {/* Macros — Full only */}
+          {scope === 'Full' && (
+            <div className="cs-section">
+              <div className="cs-label">Macros</div>
+              <div className="cs-macros">
+                {['Apologize & Escalate', 'Express Empathy', 'Close & CSAT'].map(m => (
+                  <span key={m} className="cs-macro-chip">{m}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function Step6ComposerScope({ draft, update }) {
   return (
     <div>
@@ -457,58 +1098,102 @@ function Step6ComposerScope({ draft, update }) {
         </div>
       </div>
 
-      <div className="composer-scope-cards">
-        {SCOPE_OPTIONS.map(s => (
-          <div
-            key={s.id}
-            className={`scope-card${draft.composerScope === s.id ? ' scope-card--selected' : ''}`}
-            onClick={() => update('composerScope', s.id)}
-          >
-            <div className="scope-card-name">{s.id}</div>
-            <div className="scope-card-desc">{s.desc}</div>
+      <div className="cs-layout">
+        {/* Left: option cards + banners */}
+        <div className="cs-left">
+          <div className="composer-scope-cards">
+            {SCOPE_OPTIONS.map(s => (
+              <div
+                key={s.id}
+                className={`scope-card${draft.composerScope === s.id ? ' scope-card--selected' : ''}`}
+                onClick={() => update('composerScope', s.id)}
+              >
+                <div className="scope-card-name">{s.id}</div>
+                <div className="scope-card-desc">{s.desc}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {draft.composerScope === 'None' && (
-        <div className="pb-banner pb-banner--warning">
-          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>Disabling the composer means agents receive no AI assistance on these items. Only recommended for compliance-sensitive packs.</span>
+          {draft.composerScope === 'None' && (
+            <div className="pb-banner pb-banner--warning">
+              <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>Disabling the composer means agents receive no AI assistance on these items. Only recommended for compliance-sensitive packs.</span>
+            </div>
+          )}
+          {draft.composerScope === 'Full' && (
+            <div className="pb-banner pb-banner--info">
+              <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>Full scope activates macro suggestions. Configure attached macros in Step 7.</span>
+            </div>
+          )}
         </div>
-      )}
-      {draft.composerScope === 'Full' && (
-        <div className="pb-banner pb-banner--info">
-          <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>Full scope activates macro suggestions. Configure attached macros in Step 7.</span>
-        </div>
-      )}
+
+        {/* Right: live preview panel */}
+        <ComposerPreview key={draft.composerScope} scope={draft.composerScope} />
+      </div>
     </div>
   )
 }
 
 // ─── Step 7: Macros ───────────────────────────────────────────────────────────
 function Step7Macros() {
-  const [tab, setTab] = useState('attached')
-  const [macros, setMacros] = useState(MOCK_MACROS)
+  const [tab,        setTab]        = useState('attached')
+  const [macros,     setMacros]     = useState(MOCK_MACROS)
+  const [selectedId, setSelectedId] = useState(null)
+  const [bannerDone, setBannerDone] = useState(false)
 
-  const toggleMacro = (id) => setMacros(ms => ms.map(m => m.id === id ? { ...m, attached: !m.attached } : m))
+  const toggleMacro   = id => setMacros(ms => ms.map(m => m.id === id ? { ...m, attached: !m.attached } : m))
+  const attachedCount = macros.filter(m => m.attached).length
+  const visible       = tab === 'attached' ? macros.filter(m => m.attached) : macros
+  const selected      = macros.find(m => m.id === selectedId) ?? null
 
   const tabs = [
-    { id: 'attached', label: 'Attached', count: macros.filter(m => m.attached).length },
-    { id: 'all',      label: 'All Macros', count: macros.length },
+    { id: 'attached', label: 'Active for this Pack',   count: attachedCount },
+    { id: 'all',      label: 'All available macros',   count: macros.length },
   ]
-
-  const visible = tab === 'attached' ? macros.filter(m => m.attached) : macros
 
   return (
     <div>
+      {/* ── Header ───────────────────────────────────────────── */}
       <div className="pb-step-header">
-        <div className="pb-step-title">Macros</div>
+        <div className="pb-step-title">Shortcuts for your team</div>
         <div className="pb-step-desc">
-          Attach pre-built reply and action macros that the AI Composer will suggest when this pack fires.
+          Macros are pre-written replies and actions your team can use with one click when working
+          items from this Pack. Attach the relevant ones — they appear in the AI Composer
+          suggestions panel when an agent opens an item.
+        </div>
+
+        {/* Inline flow diagram */}
+        <div className="macro-flow">
+          {[
+            'Agent opens item',
+            'Composer suggests "Apologize & Escalate"',
+            'Agent clicks → reply inserted',
+          ].map((node, i, arr) => (
+            <span key={i} className="macro-flow-step">
+              <span className="macro-flow-node">{node}</span>
+              {i < arr.length - 1 && <span className="macro-flow-arrow">›</span>}
+            </span>
+          ))}
         </div>
       </div>
 
+      {/* ── Info banner ──────────────────────────────────────── */}
+      {!bannerDone && (
+        <div className="macro-banner">
+          <span className="macro-banner-icon">💡</span>
+          <div className="macro-banner-txt">
+            Attached macros appear as suggestions in the AI Composer when agents handle items from
+            this Pack. Agents insert them with one click — they don't fire automatically. Attach as
+            many as you want.
+          </div>
+          <button className="macro-banner-dismiss" onClick={() => setBannerDone(true)}>
+            Got it — hide this
+          </button>
+        </div>
+      )}
+
+      {/* ── Tabs ─────────────────────────────────────────────── */}
       <div className="macro-tabs">
         {tabs.map(t => (
           <div
@@ -517,35 +1202,84 @@ function Step7Macros() {
             onClick={() => setTab(t.id)}
           >
             {t.label}
-            <span style={{ marginLeft: 6, padding: '1px 6px', borderRadius: 10, background: 'var(--bg-card-elevated)', fontSize: 11, color: 'var(--text-tertiary)' }}>
-              {t.count}
-            </span>
+            <span className="macro-tab-count">{t.count}</span>
           </div>
         ))}
       </div>
 
-      <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-        <div className="macro-row macro-row-header">
-          <span>Name</span>
-          <span>Trigger phrase</span>
-          <span>Category</span>
-          <span>Scope</span>
-          <span>Attached</span>
-        </div>
-        {visible.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
-            No macros attached. Switch to All Macros to add some.
+      {/* ── Table ─────────────────────────────────────────────── */}
+      <div className="macro-table">
+        {tab === 'attached' && visible.length === 0 ? (
+          <div className="macro-empty">
+            <div className="macro-empty-icon"><MessageSquare size={28} /></div>
+            <div className="macro-empty-title">No macros attached yet</div>
+            <div className="macro-empty-sub">
+              Switch to "All available macros" to attach the ones your team will find useful.
+            </div>
+            <Button variant="secondary" size="sm" icon={ArrowRight} onClick={() => setTab('all')}>
+              Browse macros
+            </Button>
           </div>
         ) : (
-          visible.map(m => (
-            <div key={m.id} className="macro-row">
-              <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</span>
-              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-secondary)' }}>{m.trigger}</span>
-              <Badge label={m.category} variant={m.category === 'replies' ? 'blue' : 'purple'} size="sm" />
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{m.scope}</span>
-              <Toggle on={m.attached} onChange={() => toggleMacro(m.id)} />
+          <>
+            {/* Header */}
+            <div className="macro-row macro-row--hdr">
+              <span>Name</span>
+              <span>Trigger phrase</span>
+              <span>Category</span>
+              <span>Scope</span>
+              <span>Active for this Pack</span>
+              <span />
             </div>
-          ))
+            {/* Rows + inline expand */}
+            {visible.map(m => (
+              <div key={m.id}>
+                <div
+                  className={`macro-row${m.attached ? ' macro-row--on' : ''}${selectedId === m.id ? ' macro-row--sel' : ''}`}
+                  onClick={() => setSelectedId(selectedId === m.id ? null : m.id)}
+                >
+                  <span className="macro-name">{m.name}</span>
+                  <span className="macro-trigger">{m.trigger}</span>
+                  <Badge label={m.category} variant={m.category === 'replies' ? 'blue' : 'purple'} size="sm" />
+                  <span className="macro-scope">{m.scope}</span>
+                  <div onClick={e => e.stopPropagation()}>
+                    <Toggle on={m.attached} onChange={() => toggleMacro(m.id)} />
+                  </div>
+                  <button
+                    className={`macro-eye-btn${selectedId === m.id ? ' macro-eye-btn--on' : ''}`}
+                    title="Preview"
+                    onClick={e => { e.stopPropagation(); setSelectedId(selectedId === m.id ? null : m.id) }}
+                  >
+                    <Eye size={13} />
+                  </button>
+                </div>
+
+                {/* Inline expand panel */}
+                <div className={`macro-expand${selectedId === m.id ? ' macro-expand--open' : ''}`}>
+                  <div className="macro-expand-inner">
+                    <div className="macro-expand-body">
+                      <div className="macro-expand-badges">
+                        <span className="macro-pv-badge">{m.trigger}</span>
+                        <Badge label={m.category} variant={m.category === 'replies' ? 'blue' : 'purple'} size="sm" />
+                        <Badge label={`Scope: ${m.scope}`} variant={m.scope === 'Full' ? 'teal' : 'amber'} size="sm" />
+                      </div>
+                      <div className="macro-expand-label">Template</div>
+                      <pre className="macro-pv-template">{m.template}</pre>
+                      <div className="macro-expand-footer">
+                        <Toggle on={m.attached} onChange={() => toggleMacro(m.id)} />
+                        <span style={{ fontSize: 12, fontWeight: 500, color: m.attached ? 'var(--accent-teal)' : 'var(--text-tertiary)' }}>
+                          {m.attached ? '✓ Active for this Pack' : 'Not attached'}
+                        </span>
+                        <button className="macro-expand-close" onClick={() => setSelectedId(null)}>
+                          <X size={12} /> Collapse
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
         )}
       </div>
     </div>
@@ -554,52 +1288,125 @@ function Step7Macros() {
 
 // ─── Step 8: Escalation Policy ────────────────────────────────────────────────
 const ESCALATION_POLICIES = [
-  { id: 'reassign',     name: 'Auto-reassign on timeout',    meta: 'Reassign to next agent in queue after SLA breach' },
-  { id: 'escalate-mgr', name: 'Escalate to manager',         meta: 'Flag to team lead after 2× SLA breach' },
-  { id: 'hold-notify',  name: 'Hold & notify',               meta: 'Keep assigned, send breach alert to agent + supervisor' },
-  { id: 'manual',       name: 'Manual review only',          meta: 'Do not auto-escalate; queue for next available' },
+  {
+    id: 'reassign',
+    emoji: '🔄',
+    title: 'Move it to the next agent automatically',
+    desc: 'When time runs out, the item is reassigned to the next available person in the queue. The original agent no longer sees it.',
+    consequence: 'the item will be automatically moved to the next available agent.',
+  },
+  {
+    id: 'escalate-mgr',
+    emoji: '👆',
+    title: 'Flag it to the team manager',
+    desc: 'After the SLA window expires, the item is flagged to the team lead. It stays with the original agent but the manager now sees it.',
+    consequence: 'the team manager will be flagged and can see the overdue item.',
+  },
+  {
+    id: 'hold-notify',
+    emoji: '🔔',
+    title: 'Keep it assigned, but alert everyone',
+    desc: 'The item stays where it is. Both the agent and their supervisor get an alert. No reassignment — someone just gets nudged.',
+    consequence: 'an alert will be sent to both the agent and their supervisor — no reassignment.',
+  },
+  {
+    id: 'manual',
+    emoji: '📋',
+    title: 'Do nothing automatically — queue it for review',
+    desc: 'No automatic action. The item is marked as breached and waits in the queue until someone manually picks it up. Choose this only if your team monitors the queue actively.',
+    consequence: 'the item will be marked as breached and wait in the queue for manual pickup.',
+  },
 ]
 
 function Step8EscalationPolicy({ draft, update }) {
+  const fmtSLA = m => m >= 1440 ? `${(m/1440).toFixed(1)}d` : m >= 60 ? `${(m/60).toFixed(1)}h` : `${m}m`
+  const selected = ESCALATION_POLICIES.find(p => p.id === draft.escalationPolicy)
+
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Escalation Policy</div>
+        <div className="pb-step-title">What happens automatically if nobody responds in time?</div>
         <div className="pb-step-desc">
-          What should happen when a human agent doesn't act on this item within the SLA window?
+          These rules fire on their own — no one needs to do anything. They protect your team from
+          items going unanswered when the SLA clock runs out.
         </div>
       </div>
 
-      {ESCALATION_POLICIES.map(p => (
-        <div
-          key={p.id}
-          className={`policy-option${draft.escalationPolicy === p.id ? ' policy-option--selected' : ''}`}
-          onClick={() => update('escalationPolicy', p.id)}
-        >
-          <div>
-            <div className="policy-option-name">{p.name}</div>
-            <div className="policy-option-meta">{p.meta}</div>
-          </div>
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-            border: `2px solid ${draft.escalationPolicy === p.id ? 'var(--accent-blue)' : 'var(--border-strong)'}`,
-            background: draft.escalationPolicy === p.id ? 'var(--accent-blue)' : 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {draft.escalationPolicy === p.id && <Check size={10} color="#fff" strokeWidth={3} />}
+      {/* ── Timeline visualization ────────────────────────────── */}
+      <div className="ep-timeline">
+        <div className="ep-node ep-node--start">
+          <div className="ep-node-icon">📥</div>
+          <div className="ep-node-label">Item arrives</div>
+        </div>
+        <div className="ep-track">
+          <div className="ep-track-label">SLA window · {fmtSLA(draft.slaMinutes)}</div>
+          <div className="ep-track-bar">
+            <div className="ep-track-fill" />
           </div>
         </div>
-      ))}
+        <div className="ep-node ep-node--breach">
+          <div className="ep-node-icon">⏰</div>
+          <div className="ep-node-label">SLA breaches</div>
+        </div>
+        <div className="ep-track-arrow">›</div>
+        <div className="ep-node ep-node--fires">
+          <div className="ep-node-icon">⚡</div>
+          <div className="ep-node-label">This fires automatically</div>
+        </div>
+      </div>
 
-      <div className="pb-section-label" style={{ marginTop: 20 }}>Additional Options</div>
+      {/* ── Policy cards ─────────────────────────────────────── */}
+      <div className="ep-cards">
+        {ESCALATION_POLICIES.map(p => {
+          const sel = draft.escalationPolicy === p.id
+          return (
+            <div
+              key={p.id}
+              className={`ep-card${sel ? ' ep-card--selected' : ''}`}
+              onClick={() => update('escalationPolicy', p.id)}
+            >
+              <div className="ep-card-top">
+                <span className="ep-card-emoji">{p.emoji}</span>
+                <div className={`ep-card-radio${sel ? ' ep-card-radio--on' : ''}`}>
+                  {sel && <Check size={9} color="#fff" strokeWidth={3} />}
+                </div>
+              </div>
+              <div className="ep-card-title">{p.title}</div>
+              <div className="ep-card-desc">{p.desc}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Consequence preview ───────────────────────────────── */}
+      {selected && (
+        <div className="ep-consequence">
+          <Info size={13} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 1 }} />
+          <span className="ep-consequence-txt">
+            With this policy: if no agent acts on an item from this Pack within the configured
+            SLA window, <strong>{selected.consequence}</strong>
+          </span>
+        </div>
+      )}
+
+      {/* ── Additional options ────────────────────────────────── */}
+      <div className="pb-section-label" style={{ marginTop: 24 }}>Additional behaviour</div>
       {[
-        { key: 'requireAck',    label: 'Require acknowledgment',    hint: 'SLA clock starts when agent explicitly accepts the item' },
-        { key: 'allowReassign', label: 'Allow agent self-reassign', hint: 'Agents can pass the item to a colleague' },
+        {
+          key:   'requireAck',
+          label: 'Start the SLA clock only after the agent accepts the item',
+          hint:  'Useful when agents need time to review before the clock starts.',
+        },
+        {
+          key:   'allowReassign',
+          label: 'Let agents pass this item to a colleague themselves',
+          hint:  'Agents can transfer without waiting for a manager.',
+        },
       ].map(opt => (
-        <div key={opt.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', background: 'var(--bg-row)', border: '1px solid var(--border)', borderRadius: 8, marginBottom: 8 }}>
+        <div key={opt.key} className="ep-toggle-row">
           <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{opt.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{opt.hint}</div>
+            <div className="ep-toggle-label">{opt.label}</div>
+            <div className="ep-toggle-hint">{opt.hint}</div>
           </div>
           <Toggle on={!!draft[opt.key]} onChange={val => update(opt.key, val)} />
         </div>
@@ -674,11 +1481,25 @@ function Step9SensitiveSignals({ draft, update }) {
 
 // ─── Step 10: Notifications ───────────────────────────────────────────────────
 function Step10Notifications({ draft, update }) {
+  const [channels, setChannels] = useState({ email: true, slack: false, inApp: true, sms: false })
+
+  const toggleChannel = key =>
+    setChannels(prev => ({ ...prev, [key]: !prev[key] }))
+
   const NOTIFS = [
-    { key: 'notifyOnAssign',    label: 'On assignment',   hint: 'Notify the agent when an item is assigned to them',             Icon: Bell         },
-    { key: 'notifyOnSlaBreach', label: 'On SLA breach',   hint: 'Alert agent and supervisor when the SLA window expires',        Icon: Clock        },
-    { key: 'notifyOnResolve',   label: 'On resolution',   hint: 'Confirm to the originating agent when the item is closed',      Icon: CheckCircle  },
+    { key: 'notifyOnAssign',    label: 'On assignment',  hint: 'Notify the agent when an item is assigned to them',         Icon: Bell        },
+    { key: 'notifyOnSlaBreach', label: 'On SLA breach',  hint: 'Alert agent and supervisor when the SLA window expires',    Icon: Clock       },
+    { key: 'notifyOnResolve',   label: 'On resolution',  hint: 'Confirm to the originating agent when the item is closed',  Icon: CheckCircle },
   ]
+
+  const CHANNEL_DEFS = [
+    { key: 'email',  label: 'Email'   },
+    { key: 'slack',  label: 'Slack'   },
+    { key: 'inApp',  label: 'In-app'  },
+    { key: 'sms',    label: 'SMS'     },
+  ]
+
+  const activeChannels = CHANNEL_DEFS.filter(c => channels[c.key])
 
   return (
     <div>
@@ -689,6 +1510,7 @@ function Step10Notifications({ draft, update }) {
         </div>
       </div>
 
+      {/* ── Event toggles ─────────────────────────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28 }}>
         {NOTIFS.map(({ key, label, hint, Icon }) => (
           <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'var(--bg-row)', border: '1px solid var(--border)', borderRadius: 8 }}>
@@ -706,122 +1528,341 @@ function Step10Notifications({ draft, update }) {
         ))}
       </div>
 
+      {/* ── Channel toggles ───────────────────────────────────── */}
       <div className="pb-section-label">Notification Channels</div>
-      <div className="pb-2col">
-        {[
-          { label: 'Email',  on: true  },
-          { label: 'Slack',  on: false },
-          { label: 'In-app', on: true  },
-          { label: 'SMS',    on: false },
-        ].map(ch => (
-          <div key={ch.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--bg-row)', border: '1px solid var(--border)', borderRadius: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{ch.label}</span>
-            <Toggle on={ch.on} onChange={() => {}} />
+      <div className="pb-2col" style={{ marginBottom: 12 }}>
+        {CHANNEL_DEFS.map(ch => (
+          <div
+            key={ch.key}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: channels[ch.key] ? 'var(--accent-teal-dim)' : 'var(--bg-row)',
+              border: `1px solid ${channels[ch.key] ? 'var(--accent-teal-border)' : 'var(--border)'}`,
+              borderRadius: 8,
+              transition: 'background 0.15s, border-color 0.15s',
+            }}
+          >
+            <span style={{
+              fontSize: 13,
+              fontWeight: channels[ch.key] ? 500 : 400,
+              color: channels[ch.key] ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              display: 'flex', alignItems: 'center', gap: 7,
+            }}>
+              {ch.label}
+              {channels[ch.key] && (
+                <span style={{
+                  fontSize: 10, fontWeight: 600,
+                  color: 'var(--accent-teal)',
+                  background: 'var(--accent-teal-dim)',
+                  border: '1px solid var(--accent-teal-border)',
+                  borderRadius: 10, padding: '1px 6px',
+                }}>✓ ON</span>
+              )}
+            </span>
+            <Toggle on={channels[ch.key]} onChange={() => toggleChannel(ch.key)} />
           </div>
         ))}
+      </div>
+
+      {/* ── Active channel summary ────────────────────────────── */}
+      {activeChannels.length > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+          <span>Notifications will be sent via:</span>
+          {activeChannels.map(c => (
+            <span key={c.key} style={{
+              padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500,
+              background: 'var(--accent-teal-dim)', color: 'var(--accent-teal)',
+              border: '1px solid var(--accent-teal-border)',
+            }}>{c.label}</span>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-amber)', marginBottom: 8 }}>
+          <AlertTriangle size={12} />
+          No channels selected — agents won't receive notifications for this Pack.
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 24 }}>
+        These channels apply to all notification types above.
       </div>
     </div>
   )
 }
 
 // ─── Step 11: SLA ─────────────────────────────────────────────────────────────
-const SLA_BREACH_ACTIONS = [
-  { id: 'escalate-tier2', label: 'Escalate to Tier 2',       desc: 'Move item to next support tier automatically' },
-  { id: 'notify-mgr',     label: 'Notify manager',           desc: 'Send breach alert to team lead; keep item in queue' },
-  { id: 'auto-close',     label: 'Auto-close with template', desc: 'Send a closing message and archive the item' },
-  { id: 'hold',           label: 'Hold open indefinitely',   desc: 'Mark as breached; leave open for manual review' },
+const SLA_ACTIONS = [
+  { id: 'escalate_next',  label: 'Move to the next available agent' },
+  { id: 'escalate_tier2', label: 'Move to Tier 2 Support' },
+  { id: 'escalate_team',  label: 'Move to a specific team', needsInput: true },
+  { id: 'notify_manager', label: 'Notify the team manager (item stays assigned)' },
+  { id: 'mark_breached',  label: 'Do nothing — just mark as breached' },
+  { id: 'notify_senior',  label: 'Notify senior management' },
+]
+
+const SLA_STAGE_COLORS = [
+  'var(--accent-teal)',
+  'var(--accent-amber)',
+  'var(--accent-coral)',
+  'var(--accent-purple)',
 ]
 
 function Step11SLA({ draft, update }) {
   const hours = Math.floor(draft.slaMinutes / 60)
   const mins  = draft.slaMinutes % 60
-
   const setHours = h => update('slaMinutes', Math.max(0, parseInt(h) || 0) * 60 + mins)
   const setMins  = m => update('slaMinutes', hours * 60 + Math.min(59, Math.max(0, parseInt(m) || 0)))
 
-  const fmtSLA = (total) => {
-    if (total >= 1440) return `${(total / 1440).toFixed(1)}d`
-    if (total >= 60)   return `${(total / 60).toFixed(1)}h`
-    return `${total}m`
+  const [hasResTarget, setHasResTarget] = useState(false)
+  const [resHours,     setResHours]     = useState(4)
+  const [resMins_,     setResMins_]     = useState(0)
+
+  const [stages, setStages] = useState([
+    { id: 1, delayAmt: 0,  delayUnit: 'minutes', action: 'escalate_tier2', customTeam: '' },
+    { id: 2, delayAmt: 30, delayUnit: 'minutes', action: 'notify_manager', customTeam: '' },
+  ])
+
+  const addStage    = () => setStages(p => [...p, { id: Date.now(), delayAmt: 60, delayUnit: 'minutes', action: 'notify_senior', customTeam: '' }])
+  const removeStage = id => setStages(p => p.filter(s => s.id !== id))
+  const updateStage = (id, key, val) => setStages(p => p.map(s => s.id === id ? { ...s, [key]: val } : s))
+
+  const toMin  = s => s.delayUnit === 'hours' ? s.delayAmt * 60 : s.delayAmt
+  const fmtMin = m => m >= 1440 ? `${(m/1440).toFixed(1)}d` : m >= 60 ? `${(m/60).toFixed(1)}h` : `${m}m`
+
+  const humanWindow = totalMins => {
+    if (totalMins === 0) return 'no time (immediate)'
+    const h = Math.floor(totalMins / 60), m = totalMins % 60
+    return [h > 0 && `${h} hour${h !== 1 ? 's' : ''}`, m > 0 && `${m} minute${m !== 1 ? 's' : ''}`]
+      .filter(Boolean).join(' and ')
   }
+
+  // Cumulative times for timeline
+  const stageTimes = stages.reduce((acc, s, i) => {
+    const cumMin = i === 0 ? draft.slaMinutes : acc[i - 1].cumMin + toMin(s)
+    return [...acc, { ...s, cumMin }]
+  }, [])
+
+  const inputSty = { width: 64, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'DM Mono', textAlign: 'center' }
 
   return (
     <div>
       <div className="pb-step-header">
+        <div className="pb-step-note">This step controls what happens automatically if the assigned agent doesn't respond in time.</div>
         <div className="pb-step-title">SLA Configuration</div>
         <div className="pb-step-desc">
-          Set the maximum time a human agent has to act on items from this pack.
+          Set the time window and what happens automatically at each stage if the item isn't resolved.
         </div>
       </div>
 
+      {/* ── Response Window ─────────────────────────────────────── */}
       <div className="pb-section-label">Response Window</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="number"
-            value={hours}
-            min={0}
-            max={168}
-            onChange={e => setHours(e.target.value)}
-            style={{ width: 64, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'DM Mono', textAlign: 'center' }}
-          />
+          <input type="number" value={hours} min={0} max={168} onChange={e => setHours(e.target.value)} style={inputSty} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>h</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="number"
-            value={mins}
-            min={0}
-            max={59}
-            onChange={e => setMins(e.target.value)}
-            style={{ width: 64, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 14, fontFamily: 'DM Mono', textAlign: 'center' }}
-          />
+          <input type="number" value={mins} min={0} max={59} onChange={e => setMins(e.target.value)} style={inputSty} />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>min</span>
         </div>
         <span style={{ fontSize: 12, color: 'var(--accent-blue)', fontFamily: 'DM Mono', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 4, padding: '3px 8px' }}>
-          = {fmtSLA(draft.slaMinutes)}
+          = {fmtMin(draft.slaMinutes)}
         </span>
       </div>
 
-      <div className="pb-section-label">On SLA Breach</div>
-      {SLA_BREACH_ACTIONS.map(a => (
-        <div
-          key={a.id}
-          className={`sla-breach-option${draft.slaBreachAction === a.id ? ' sla-breach-option--selected' : ''}`}
-          onClick={() => update('slaBreachAction', a.id)}
-        >
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%', flexShrink: 0, marginTop: 1,
-            border: `2px solid ${draft.slaBreachAction === a.id ? 'var(--accent-blue)' : 'var(--border-strong)'}`,
-            background: draft.slaBreachAction === a.id ? 'var(--accent-blue)' : 'transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {draft.slaBreachAction === a.id && <Check size={10} color="#fff" strokeWidth={3} />}
+      {/* Plain-language echo */}
+      <div className="sla-echo">
+        Agents have <strong>{humanWindow(draft.slaMinutes)}</strong> to respond to items from this Pack.
+      </div>
+
+      {/* Optional resolution target */}
+      <label className="sla-res-toggle">
+        <input type="checkbox" checked={hasResTarget} onChange={e => setHasResTarget(e.target.checked)} style={{ accentColor: 'var(--accent-blue)', marginRight: 6 }} />
+        Set a resolution target (optional)
+      </label>
+      {hasResTarget && (
+        <div className="sla-res-target">
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+            How long can the full interaction take before it's considered overdue?
           </div>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{a.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{a.desc}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="number" value={resHours} min={0} max={168} onChange={e => setResHours(Math.max(0, parseInt(e.target.value) || 0))} style={inputSty} />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>h</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="number" value={resMins_} min={0} max={59} onChange={e => setResMins_(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))} style={inputSty} />
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>min</span>
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--accent-purple)', fontFamily: 'DM Mono', background: 'var(--accent-purple-dim)', border: '1px solid var(--accent-purple-border)', borderRadius: 4, padding: '3px 8px' }}>
+              = {fmtMin(resHours * 60 + resMins_)}
+            </span>
           </div>
         </div>
-      ))}
+      )}
+
+      {/* ── Escalation cadence ─────────────────────────────────── */}
+      <div className="pb-section-label" style={{ marginTop: 28 }}>Escalation stages — what happens automatically over time</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16, lineHeight: 1.5 }}>
+        Build a chain of automatic actions. Each stage fires after the previous one hasn't resolved the item.
+      </div>
+
+      <div className="sla-stages">
+        {stages.map((stage, i) => {
+          const isFirst  = i === 0
+          const isLast   = i === stages.length - 1
+          const color    = SLA_STAGE_COLORS[Math.min(i, SLA_STAGE_COLORS.length - 1)]
+          const actionOpt = SLA_ACTIONS.find(a => a.id === stage.action)
+          return (
+            <div key={stage.id} className="sla-stage">
+              {!isLast && <div className="sla-stage-line" />}
+              <div className="sla-stage-card">
+                {/* Header */}
+                <div className="sla-stage-hdr">
+                  <div className="sla-stage-badge" style={{ background: color }}>
+                    {i + 1}
+                  </div>
+                  <div className="sla-stage-hdr-txt">
+                    {isFirst ? (
+                      <span style={{ fontSize: 13 }}>
+                        <strong style={{ color: 'var(--text-primary)' }}>At SLA breach</strong>
+                        <span style={{ color: 'var(--text-tertiary)' }}> — when the response window expires</span>
+                      </span>
+                    ) : (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', fontSize: 13, color: 'var(--text-secondary)' }}>
+                        If still unresolved after
+                        <input
+                          type="number" value={stage.delayAmt} min={1} max={10080}
+                          onChange={e => updateStage(stage.id, 'delayAmt', Math.max(1, parseInt(e.target.value) || 1))}
+                          style={{ ...inputSty, width: 52, fontSize: 13, padding: '4px 8px' }}
+                        />
+                        <select className="rt-sel rt-sel--sm" value={stage.delayUnit} onChange={e => updateStage(stage.id, 'delayUnit', e.target.value)}>
+                          <option value="minutes">minutes</option>
+                          <option value="hours">hours</option>
+                        </select>
+                        from Stage {i}:
+                      </span>
+                    )}
+                  </div>
+                  {!isFirst && (
+                    <button className="sla-stage-rm" onClick={() => removeStage(stage.id)} title="Remove stage">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Action */}
+                <div className="sla-stage-action">
+                  <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flexShrink: 0 }}>Action:</span>
+                  <select className="rt-sel" value={stage.action} onChange={e => updateStage(stage.id, 'action', e.target.value)} style={{ flex: 1 }}>
+                    {SLA_ACTIONS
+                      .filter(a => i > 0 || a.id !== 'notify_senior')
+                      .map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
+                  </select>
+                  {actionOpt?.needsInput && (
+                    <input className="trig-text-input trig-text-input--sm" placeholder="Team name…"
+                      value={stage.customTeam} onChange={e => updateStage(stage.id, 'customTeam', e.target.value)} />
+                  )}
+                </div>
+
+                {/* Final badge */}
+                {isLast && stages.length > 1 && (
+                  <div className="sla-stage-final">
+                    ⚠ Final action — if this fires, the item is critically overdue
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+
+        <button className="sla-add-stage" onClick={addStage}>
+          <Plus size={13} /> Add another stage
+        </button>
+      </div>
+
+      {/* ── Live timeline preview ──────────────────────────────── */}
+      <div className="sla-tl-preview">
+        {/* Item arrives */}
+        <div className="sla-tl-item">
+          <div className="sla-tl-dot" style={{ borderColor: 'var(--border-strong)', color: 'var(--text-tertiary)' }}>0:00</div>
+          <div className="sla-tl-lbl">Item arrives</div>
+        </div>
+        {/* Stage nodes */}
+        {stageTimes.map((s, i) => {
+          const color = SLA_STAGE_COLORS[Math.min(i, SLA_STAGE_COLORS.length - 1)]
+          return (
+            <span key={s.id} style={{ display: 'contents' }}>
+              <div className="sla-tl-track" style={{ background: color + '44' }} />
+              <div className="sla-tl-item">
+                <div className="sla-tl-dot" style={{ borderColor: color, background: color + '22', color }}>
+                  {i === 0 ? fmtMin(s.cumMin) : `+${fmtMin(toMin(s))}`}
+                </div>
+                <div className="sla-tl-lbl" style={{ color }}>{i === 0 ? 'SLA window' : `Stage ${i + 1}`}</div>
+              </div>
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
 // ─── Step 12: Availability ────────────────────────────────────────────────────
-function Step12Availability({ draft, update }) {
+const AV_OOO_OPTIONS = [
+  {
+    id:       'queue',
+    label:    'Queue for the next available agent',
+    sub:      'SLA clock pauses outside your coverage hours',
+    srcNote:  'Uses default queue behavior',
+  },
+  {
+    id:       'reroute',
+    label:    'Re-route to your on-call team',
+    sub:      'Uses the on-call rotation configured in OOO & Coverage',
+    srcNote:  'Uses the on-call rotation configured in OOO & Coverage',
+    warning:  'No on-call rotation set up yet.',
+    warnPath: '/settings/ooo',
+    warnCta:  'Set one up →',
+  },
+  {
+    id:       'auto-ack',
+    label:    'Send an automatic acknowledgment to the customer',
+    sub:      'Uses the acknowledgment template from Settings → Templates',
+    srcNote:  'Uses the acknowledgment template from Settings → Templates',
+    warning:  'No acknowledgment template found.',
+    warnPath: '/settings/templates',
+    warnCta:  'Create one →',
+  },
+]
+
+function Step12Availability({ draft, update, onSkip }) {
   return (
     <div>
+      {/* ── Optional banner ──────────────────────────────────── */}
+      <div className="av-skip-banner">
+        <div className="av-skip-text">
+          <strong>This step is optional.</strong> If you skip it, items from this Pack will route
+          based on your default availability settings. Come back anytime to customise for this Pack.
+        </div>
+        <button className="av-skip-btn" onClick={onSkip}>
+          Skip this step →
+        </button>
+      </div>
+
       <div className="pb-step-header">
         <div className="pb-step-title">Availability & Coverage</div>
         <div className="pb-step-desc">
-          Define when human agents are available to handle items from this pack. Out-of-hours items are queued or rerouted per your policy.
+          Define when human agents are available to handle items from this Pack. Out-of-hours items
+          are queued or rerouted per your policy.
         </div>
       </div>
 
+      {/* ── Coverage zone + hours ────────────────────────────── */}
       <div className="pb-2col" style={{ marginBottom: 24 }}>
         <div>
-          <div className="pb-section-label">Coverage Zone</div>
+          <div className="pb-section-label">Where is your team based?</div>
           <Select
             value={draft.coverageZone}
             onChange={e => update('coverageZone', e.target.value)}
@@ -829,7 +1870,7 @@ function Step12Availability({ draft, update }) {
           />
         </div>
         <div>
-          <div className="pb-section-label">Active Hours</div>
+          <div className="pb-section-label">When are they available?</div>
           <Select
             value={draft.coverageHours}
             onChange={e => update('coverageHours', e.target.value)}
@@ -838,22 +1879,52 @@ function Step12Availability({ draft, update }) {
         </div>
       </div>
 
+      {/* ── OOO handling ─────────────────────────────────────── */}
       <div className="pb-section-label">Out-of-Hours Handling</div>
-      {[
-        { id: 'queue',    label: 'Queue for next available agent', desc: 'Item waits; SLA clock paused outside coverage hours' },
-        { id: 'reroute',  label: 'Re-route to on-call team',       desc: 'Forward to designated on-call queue outside hours' },
-        { id: 'auto-ack', label: 'Send auto-acknowledgment',       desc: 'Reply with an ETA template; agent picks up when available' },
-      ].map(opt => (
+      <div className="av-ooo-source">
+        These options use the OOO rules your admin team has already set up in{' '}
+        <strong>Settings → OOO & Coverage</strong>. If you need to create new coverage rules first,{' '}
+        <a
+          href="/aims-htl/settings/ooo"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="av-link"
+        >
+          open OOO settings ↗
+        </a>
+      </div>
+
+      {AV_OOO_OPTIONS.map(opt => (
         <div
           key={opt.id}
           className={`policy-option${draft.oooHandling === opt.id ? ' policy-option--selected' : ''}`}
           onClick={() => update('oooHandling', opt.id)}
         >
-          <div>
+          <div style={{ flex: 1 }}>
             <div className="policy-option-name">{opt.label}</div>
-            <div className="policy-option-meta">{opt.desc}</div>
+            <div className="policy-option-meta">{opt.srcNote}</div>
+            {opt.warning && draft.oooHandling === opt.id && (
+              <div className="av-ooo-warning">
+                <AlertTriangle size={11} style={{ flexShrink: 0 }} />
+                {opt.warning}{' '}
+                <a
+                  href={`/aims-htl${opt.warnPath}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="av-link"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {opt.warnCta}
+                </a>
+              </div>
+            )}
           </div>
-          <div style={{ width: 18, height: 18, borderRadius: '50%', flexShrink: 0, border: `2px solid ${draft.oooHandling === opt.id ? 'var(--accent-blue)' : 'var(--border-strong)'}`, background: draft.oooHandling === opt.id ? 'var(--accent-blue)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+            border: `2px solid ${draft.oooHandling === opt.id ? 'var(--accent-blue)' : 'var(--border-strong)'}`,
+            background: draft.oooHandling === opt.id ? 'var(--accent-blue)' : 'transparent',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
             {draft.oooHandling === opt.id && <Check size={10} color="#fff" strokeWidth={3} />}
           </div>
         </div>
@@ -910,40 +1981,60 @@ function Step13Jurisdiction() {
 
 // ─── Step 14: Test & Preview ──────────────────────────────────────────────────
 function Step14TestPreview({ draft }) {
-  const [selected, setSelected] = useState(draft.triggers[0]?.value ?? '')
+  const [selected, setSelected] = useState(draft.triggers[0]?.label ?? draft.triggers[0]?.value ?? '')
   const [simulated, setSimulated] = useState(false)
+  const [techOpen, setTechOpen]   = useState(false)
+
+  const fmtSLA = m => m >= 1440 ? `${(m / 1440).toFixed(1)}d` : m >= 60 ? `${(m / 60).toFixed(1)}h` : `${m}m`
+
+  const STORY_STEPS = [
+    { icon: '✅', text: `Pack fires — ${draft.name}` },
+    { icon: '📦', text: 'Handoff packet assembled — Summary, AI Reasoning, Suggested Action' },
+    { icon: '📬', text: `Routed to: ${draft.fallbackChain?.[0] ?? 'Tier 1 Support'}` },
+    { icon: '⏱',  text: `SLA timer starts: ${fmtSLA(draft.slaMinutes)}` },
+    { icon: '👤', text: 'Agent opens item in Inbox' },
+    { icon: '🤖', text: `Composer Assistant available — ${draft.composerScope} scope` },
+  ]
 
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Test & Preview</div>
+        <div className="pb-step-title">See it in action</div>
         <div className="pb-step-desc">
-          Simulate a trigger to preview the inbox item the human agent will receive.
+          Run a simulation to preview exactly what your team will see when this Pack fires.
         </div>
       </div>
 
       <div className="pb-section-label">Simulate a Trigger</div>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        <div style={{ flex: 1 }}>
-          <Select
-            value={selected}
-            onChange={e => { setSelected(e.target.value); setSimulated(false) }}
-            options={
-              draft.triggers.length > 0
-                ? draft.triggers.map(t => ({ value: t.value, label: t.value }))
-                : [{ value: '', label: 'No triggers configured' }]
-            }
-          />
+
+      {draft.triggers.length === 0 ? (
+        <div style={{ padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-card-elevated)', marginBottom: 24 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 6 }}>
+            You haven't configured any triggers yet.
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)', cursor: 'default', textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            Go back to Step 2 to add triggers
+          </span>
         </div>
-        <Button
-          variant="secondary"
-          size="sm"
-          icon={Zap}
-          onClick={() => setSimulated(true)}
-        >
-          Run Simulation
-        </Button>
-      </div>
+      ) : (
+        <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+          <div style={{ flex: 1 }}>
+            <Select
+              value={selected}
+              onChange={e => { setSelected(e.target.value); setSimulated(false) }}
+              options={draft.triggers.map(t => ({ value: t.label || t.value, label: t.label || t.value }))}
+            />
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Zap}
+            onClick={() => setSimulated(true)}
+          >
+            ▶ Preview what happens
+          </Button>
+        </div>
+      )}
 
       {simulated ? (
         <div>
@@ -951,39 +2042,76 @@ function Step14TestPreview({ draft }) {
             <CheckCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>Pack fired successfully. The preview below shows what the agent will see in their inbox.</span>
           </div>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginTop: 16 }}>
-            <div style={{ padding: '12px 16px', background: 'var(--bg-card-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--accent-purple-dim)', border: '1px solid var(--accent-purple-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-purple)' }}>
-                <GitBranch size={13} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{draft.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
-                  {draft.pattern} · {draft.destination} · SLA {draft.slaMinutes}m
-                </div>
+
+          <div
+            className="sim-story-card"
+            style={{
+              border: '1px solid var(--accent-teal-border)',
+              borderLeft: '3px solid var(--accent-teal)',
+              background: 'var(--bg-card)',
+            }}
+          >
+            {/* Header row */}
+            <div className="sim-story-hdr">
+              <div className="sim-story-hdr-left">
+                <span className="sim-story-hdr-name">{draft.name}</span>
+                <Badge label={draft.pattern} variant={draft.pattern === 'Handoff' ? 'purple' : 'teal'} size="sm" />
               </div>
               <Badge label="Simulated" variant="amber" size="sm" />
             </div>
-            <div style={{ padding: 16 }}>
-              {PACKET_FIELDS.filter(f => draft.packetFields[f.id]).slice(0, 4).map(f => (
-                <div key={f.id} className="packet-preview-field">
-                  <div className="packet-preview-key">{f.label}</div>
-                  <div className="packet-preview-val">
-                    {f.id === 'summary'         && 'Customer expressed frustration about delayed shipping order #10482.'}
-                    {f.id === 'aiReasoning'     && `Trigger matched: "${selected}". Threshold exceeded.`}
-                    {f.id === 'suggestedAction' && 'Offer expedited shipping credit or connect with logistics team.'}
-                    {f.id === 'context'         && '{ channel: "web-chat", session: "s-8f2a", customer: "pro" }'}
-                    {f.id === 'sentiment'       && 'Declining — 0.81 → 0.34 → 0.19 over 3 turns'}
-                    {f.id === 'timeline'        && '14:02 trigger eval · 14:03 pack fired · 14:03 packet built'}
-                  </div>
+
+            {/* Story paragraph */}
+            <div className="sim-story-para" style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
+              A customer reached out and triggered this Pack. The AI reviewed the conversation and decided to hand off because confidence fell below the threshold. Your team will see this item in their Inbox, labeled as <strong>{draft.name}</strong>, with a <strong>{fmtSLA(draft.slaMinutes)}</strong> SLA timer running.
+            </div>
+
+            {/* Three preview tiles */}
+            <div className="sim-tiles">
+              <div className="sim-tile">
+                <div className="sim-tile-emoji">💬</div>
+                <div className="sim-tile-label">The situation</div>
+                <div className="sim-tile-value">Customer escalated after payment method failed during 3DS verification. Conversation paused — awaiting agent.</div>
+              </div>
+              <div className="sim-tile">
+                <div className="sim-tile-emoji">🤖</div>
+                <div className="sim-tile-label">Why it was handed off</div>
+                <div className="sim-tile-value">AI confidence dropped below threshold after 3 unresolved turns. Escalation keywords detected.</div>
+              </div>
+              <div className="sim-tile">
+                <div className="sim-tile-emoji">✅</div>
+                <div className="sim-tile-label">Suggested first step</div>
+                <div className="sim-tile-value">Review account and offer to manually update payment details via admin panel.</div>
+              </div>
+            </div>
+
+            {/* What happens next */}
+            <div className="sim-timeline-label">What happens next</div>
+            <div className="sim-timeline">
+              {STORY_STEPS.map((s, i) => (
+                <div key={i} className="sim-step">
+                  <div className="sim-step-num">{i + 1}</div>
+                  <span className="sim-step-icon">{s.icon}</span>
+                  <span className="sim-step-text">{s.text}</span>
                 </div>
               ))}
             </div>
+
+            {/* Technical details accordion */}
+            <button className="sim-tech-toggle" onClick={() => setTechOpen(o => !o)}>
+              Technical details
+              {techOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+            {techOpen && (
+              <div className="sim-tech-body">
+                <div>Trigger matched: {selected}</div>
+                <div>{"Context payload: { channel: 'web-chat', session: 's-8f2a', customer: 'pro' }"}</div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
         <div style={{ padding: '40px 24px', border: '1px dashed var(--border)', borderRadius: 10, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
-          Select a trigger above and run the simulation to preview the agent's inbox item.
+          Select a trigger above and click 'Preview what happens' to see a realistic simulation.
         </div>
       )}
     </div>
@@ -1021,7 +2149,7 @@ function Step15Review({ draft }) {
       id: 'triggers',
       label: 'Triggers',
       rows: draft.triggers.length > 0
-        ? draft.triggers.map((t, i) => [`Trigger ${i + 1}`, t.value])
+        ? draft.triggers.map((t, i) => [`Trigger ${i + 1}`, t.label || t.value])
         : [['—', 'No triggers configured']],
     },
     {
@@ -1296,7 +2424,10 @@ function StepNav({ current, visited, onGoto }) {
             <div className="pb-nav-node">
               {isComplete ? <Check size={10} strokeWidth={3} /> : s.id}
             </div>
-            <span className="pb-nav-label">{s.label}</span>
+            <div className="pb-nav-label-wrap">
+              <span className="pb-nav-label">{s.label}</span>
+              {s.note && <span className="pb-nav-note">{s.note}</span>}
+            </div>
           </div>
         )
       })}
@@ -1375,7 +2506,7 @@ export default function PackBuilder() {
       case 9:  return <Step9SensitiveSignals {...p} />
       case 10: return <Step10Notifications  {...p} />
       case 11: return <Step11SLA            {...p} />
-      case 12: return <Step12Availability   {...p} />
+      case 12: return <Step12Availability   {...p} onSkip={() => goTo(13)} />
       case 13: return <Step13Jurisdiction   />
       case 14: return <Step14TestPreview    draft={draft} />
       case 15: return <Step15Review         draft={draft} />
@@ -1457,7 +2588,10 @@ export default function PackBuilder() {
                 <Button variant="secondary" size="sm" onClick={prev}>Back</Button>
               )}
               {step < 15 ? (
-                <Button variant="primary" size="sm" onClick={next}>Next</Button>
+                <Button
+                  variant="primary" size="sm" onClick={next}
+                  disabled={step === 2 && draft.triggers.length === 0}
+                >Next</Button>
               ) : (
                 <Button variant="primary" size="sm" icon={CheckCircle} onClick={publish}>
                   Publish Pack
