@@ -10,7 +10,7 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks, agents, packAgentBindings } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings, packWorkflowBindings } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
@@ -2657,8 +2657,8 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
 function WorkflowsTab({ sourcePack }) {
   const canConnect = true
 
-  const attached = networks.filter(n => n.htlPackId === sourcePack?.id)
-  const [detached,        setDetached]        = useState(new Set())
+  const initialWfIds = packWorkflowBindings[sourcePack?.id ?? ""] ?? []
+  const [connectedWorkflows, setConnectedWorkflows] = useState(new Set(initialWfIds))
   const [pinned,          setPinned]          = useState({})
   const [showWfPicker,    setShowWfPicker]    = useState(false)
   const [connectedAgents, setConnectedAgents] = useState(
@@ -2679,7 +2679,7 @@ function WorkflowsTab({ sourcePack }) {
 
   const TABLE_COLS = '1fr 120px 56px 80px 68px 130px 70px'
 
-  const visibleWorkflows = attached.filter(n => !detached.has(n.id))
+  const visibleWorkflows = networks.filter(n => connectedWorkflows.has(n.id))
 
   const sections = [
     {
@@ -2718,7 +2718,7 @@ function WorkflowsTab({ sourcePack }) {
             <Toggle on={!!pinned[net.id]} onChange={v => setPinned(p => ({ ...p, [net.id]: v }))} />
           </div>
           <div>
-            <button className="wt-detach-btn" onClick={() => setDetached(d => new Set([...d, net.id]))}>
+            <button className="wt-detach-btn" onClick={() => setConnectedWorkflows(s => { const n = new Set(s); n.delete(net.id); return n })}>
               Detach
             </button>
           </div>
@@ -2728,13 +2728,13 @@ function WorkflowsTab({ sourcePack }) {
         <div className="wt-picker">
           <div className="wt-picker-label">Attach a workflow</div>
           {networks
-            .filter(n => n.htlPackId !== sourcePack?.id)
+            .filter(n => !connectedWorkflows.has(n.id))
             .map(n => (
               <div
                 key={n.id}
                 className="wt-picker-row"
                 onClick={() => {
-                  setDetached(d => { const next = new Set(d); next.delete(n.id); return next })
+                  setConnectedWorkflows(s => new Set([...s, n.id]))
                   setShowWfPicker(false)
                 }}
               >
