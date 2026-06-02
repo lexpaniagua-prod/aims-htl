@@ -3,12 +3,15 @@
   <head>
     <meta charset="utf-8">
     <script>
-      var path = window.location.pathname;
-      var search = window.location.search;
-      var hash = window.location.hash;
+      var l = window.location;
       var base = '/aims-htl';
-      var redirect = base + '/?p=' + encodeURIComponent(path.slice(base.length) + search + hash);
-      window.location.replace(redirect);
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        base + '/?p=' +
+        l.pathname.slice(base.length).replace(/&/g, '~and~') +
+        (l.search ? '&q=' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+        l.hash
+      );
     </script>
   </head>
   <body></body>
