@@ -10,7 +10,7 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
@@ -131,7 +131,7 @@ function initDraft(pack) {
     routingFallbacks: [
       { id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 },
     ],
-    routingFinalAction: 'requeue',
+    routingFinalAction: ['requeue'],
     requireAck:    false,
     allowReassign: true,
     coverageZone:  'US-East',
@@ -628,6 +628,60 @@ function Step2Triggers({ draft, update }) {
 }
 
 // ─── Step 3: Routing Logic ────────────────────────────────────────────────────
+
+const RT_TEAMS = [
+  'Sales', 'Sales Managers', 'Customer Success', 'Operations', 'Finance',
+  'Engineering', 'Legal', 'HR', 'Product', 'Marketing',
+  'Support Tier 1', 'Support Tier 2', 'Support Tier 3',
+  'Procurement', 'Compliance', 'Accounting', 'Data & Analytics',
+]
+
+const RT_PERSONS = [
+  'Alexa M.', 'Carlos Vega', 'David Osei', 'Fatima Al-Rashid',
+  'Hannah Moore', 'Jordan Park', 'Jordan S.', 'Lena Brandt',
+  'Maya R.', 'Rachel Ng', 'Sandra Voss', 'Yuki Tanaka',
+  'Ben Cooper', 'Priya Kapoor', 'Marcus Webb', 'Nina Torres',
+  'Sofia Chen', 'Alex Torres', 'James Rodriguez', 'Priya Patel',
+]
+
+function SearchableSelect({ value, onChange, options, placeholder, className }) {
+  const [query, setQuery] = useState(value || '')
+  const [open,  setOpen]  = useState(false)
+
+  const filtered = query
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options
+
+  const select = opt => { setQuery(opt); onChange(opt); setOpen(false) }
+
+  return (
+    <div className="rt-search-wrap">
+      <input
+        className={`rt-text-input${className ? ' ' + className : ''}`}
+        value={query}
+        placeholder={placeholder}
+        onChange={e => { setQuery(e.target.value); setOpen(true) }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 160)}
+      />
+      {open && filtered.length > 0 && (
+        <div className="rt-search-drop">
+          {filtered.map(opt => (
+            <div
+              key={opt}
+              className={`rt-search-opt${opt === value ? ' rt-search-opt--sel' : ''}`}
+              onMouseDown={e => e.preventDefault()}
+              onClick={() => select(opt)}
+            >
+              {opt}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const RT_RECIPIENTS = [
   { id: 'tier1',    label: 'Tier 1 Support Queue' },
   { id: 'tier2',    label: 'Tier 2 Support Queue' },
@@ -660,7 +714,9 @@ function Step3Routing({ draft, update }) {
   const condition     = draft.routingCondition      || 'always'
   const condValue     = draft.routingConditionValue || ''
   const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 }]
-  const finalAction   = draft.routingFinalAction    || 'requeue'
+  const finalAction   = Array.isArray(draft.routingFinalAction)
+    ? draft.routingFinalAction
+    : [draft.routingFinalAction || 'requeue']
 
   const rName = (id, custom) =>
     ROUTING_RECIPIENT_NAMES[id] || custom || RT_RECIPIENTS.find(r => r.id === id)?.label || id
@@ -677,7 +733,12 @@ function Step3Routing({ draft, update }) {
   const setPrimaryCustom = v => { update('routingPrimaryCustom', v); sync(primary, v, condition, condValue) }
   const setCondition     = v => { update('routingCondition',     v); sync(primary, primaryCustom, v, condValue) }
   const setCondValue     = v => { update('routingConditionValue',v); sync(primary, primaryCustom, condition, v) }
-  const setFinalAction   = v =>   update('routingFinalAction',   v)
+  const toggleFinalAction = v => {
+    const next = finalAction.includes(v)
+      ? finalAction.filter(x => x !== v)
+      : [...finalAction, v]
+    if (next.length > 0) update('routingFinalAction', next)
+  }
 
   const setFallbacks = fbs => {
     update('routingFallbacks', fbs)
@@ -697,13 +758,14 @@ function Step3Routing({ draft, update }) {
     let s = `This item will go to ${rName(primary, primaryCustom)} first.`
     for (const fb of fallbacks)
       s += ` If no one responds in ${fb.afterMin} minutes, it moves to ${rName(fb.recipient, fb.customRecipient)}.`
-    const endings = {
-      requeue: 'the next available agent handles it.',
-      notify:  'the team manager is notified.',
-      slack:   'a notification is sent via Slack or email.',
-      wait:    'the item stays open indefinitely.',
+    const endingMap = {
+      requeue: 'the next available agent handles it',
+      notify:  'the team manager is notified',
+      slack:   'a notification is sent via Slack or email',
+      wait:    'the item stays open indefinitely',
     }
-    s += ` If still unhandled, ${endings[finalAction] || 'the item remains open.'}`
+    const endingParts = finalAction.map(a => endingMap[a]).filter(Boolean)
+    s += ` If still unhandled: ${endingParts.join(', and ') || 'the item remains open'}.`
     return s
   }
 
@@ -738,11 +800,11 @@ function Step3Routing({ draft, update }) {
             {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
           </select>
           {primaryOpt?.needsInput && (
-            <input
-              className="rt-text-input"
-              placeholder={primary === 'team' ? 'Team name…' : 'Person name or email…'}
+            <SearchableSelect
               value={primaryCustom}
-              onChange={e => setPrimaryCustom(e.target.value)}
+              onChange={setPrimaryCustom}
+              options={primary === 'team' ? RT_TEAMS : RT_PERSONS}
+              placeholder={primary === 'team' ? 'Search team…' : 'Search person…'}
             />
           )}
         </div>
@@ -784,11 +846,13 @@ function Step3Routing({ draft, update }) {
                   {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
                 </select>
                 {fbOpt?.needsInput && (
-                  <input
-                    className="rt-text-input rt-text-input--sm"
-                    placeholder={fb.recipient === 'team' ? 'Team name…' : 'Person…'}
+                  <SearchableSelect
+                    key={fb.recipient}
                     value={fb.customRecipient}
-                    onChange={e => updateFallback(fb.id, 'customRecipient', e.target.value)}
+                    onChange={val => updateFallback(fb.id, 'customRecipient', val)}
+                    options={fb.recipient === 'team' ? RT_TEAMS : RT_PERSONS}
+                    placeholder={fb.recipient === 'team' ? 'Search team…' : 'Search person…'}
+                    className="rt-text-input--sm"
                   />
                 )}
                 <span className="rt-after-lbl">then try next after</span>
@@ -810,14 +874,17 @@ function Step3Routing({ draft, update }) {
       {/* ── Final action ──────────────────────────────────────────────── */}
       <div className="rt-section-hd">If nobody responds after all fallbacks:</div>
       <div className="rt-final-opts">
-        {RT_FINAL_ACTIONS.map(a => (
-          <label key={a.id} className="rt-final-row" onClick={() => setFinalAction(a.id)}>
-            <div className={`rt-radio${finalAction === a.id ? ' rt-radio--on' : ''}`}>
-              {finalAction === a.id && <div className="rt-radio-dot" />}
-            </div>
-            <span className="rt-final-lbl">{a.label}</span>
-          </label>
-        ))}
+        {RT_FINAL_ACTIONS.map(a => {
+          const checked = finalAction.includes(a.id)
+          return (
+            <label key={a.id} className="rt-final-row" onClick={() => toggleFinalAction(a.id)}>
+              <div className={`rt-check${checked ? ' rt-check--on' : ''}`}>
+                {checked && <Check size={9} color="#fff" strokeWidth={3} />}
+              </div>
+              <span className="rt-final-lbl">{a.label}</span>
+            </label>
+          )
+        })}
       </div>
 
       {/* ── Live summary ──────────────────────────────────────────────── */}
@@ -857,52 +924,107 @@ function Step3Routing({ draft, update }) {
 }
 
 // ─── Step 4: Destination ──────────────────────────────────────────────────────
-const DEST_OPTIONS = [
-  { id: 'Inbox',       emoji: '📥', name: 'Inbox',        desc: 'Full agent UI with reply, close, and reassign actions' },
-  { id: 'Mixed',       emoji: '⚡', name: 'Mixed',        desc: 'Inbox + external system write-back (CRM, ticketing, Slack)' },
-  { id: 'Lightweight', emoji: '🪶', name: 'Lightweight',  desc: 'Minimal card — approve or reject only, no full context view' },
-  { id: 'External',    emoji: '🔗', name: 'External',     desc: 'Bypass HTL inbox, route directly to external webhook' },
+const DEST_ADDONS = [
+  {
+    id:   'lightweight',
+    emoji: '🪶',
+    name: 'Lightweight',
+    desc: 'Also send a minimal approval card alongside the inbox item — approve or reject only, no full context view.',
+  },
+  {
+    id:   'external',
+    emoji: '🔗',
+    name: 'External',
+    desc: 'Also route to an external webhook — for CRM write-back, ticketing systems, or Slack notifications.',
+  },
 ]
 
+function parseDestAddons(dest) {
+  const addons = []
+  if (dest?.includes('Lightweight')) addons.push('lightweight')
+  if (dest?.includes('External'))    addons.push('external')
+  return addons
+}
+
+function buildDestLabel(addons) {
+  const parts = ['Inbox']
+  if (addons.includes('lightweight')) parts.push('Lightweight')
+  if (addons.includes('external'))    parts.push('External')
+  return parts.join(' + ')
+}
+
 function Step4Destination({ draft, update }) {
+  const [addons, setAddons] = useState(() => parseDestAddons(draft.destination))
+
+  const toggle = id => {
+    const next = addons.includes(id)
+      ? addons.filter(a => a !== id)
+      : [...addons, id]
+    setAddons(next)
+    update('destination', buildDestLabel(next))
+  }
+
   return (
     <div>
       <div className="pb-step-header">
         <div className="pb-step-title">Choose Destination</div>
         <div className="pb-step-desc">
-          Where should items from this pack be delivered? The destination determines the agent's interaction surface.
+          Items always land in the Inbox. Optionally add lightweight or external delivery on top.
         </div>
       </div>
 
-      <div className="destination-cards">
-        {DEST_OPTIONS.map(d => (
-          <div
-            key={d.id}
-            className={`dest-card${draft.destination === d.id ? ' dest-card--selected' : ''}`}
-            onClick={() => update('destination', d.id)}
-          >
-            {draft.destination === d.id && (
-              <div className="dest-card-check"><Check size={10} strokeWidth={3} /></div>
-            )}
-            <div className="dest-card-icon">{d.emoji}</div>
-            <div className="dest-card-name">{d.name}</div>
-            <div className="dest-card-desc">{d.desc}</div>
+      {/* ── Inbox — always on ──────────────────────────────── */}
+      <div className="dest-inbox-card">
+        <div className="dest-inbox-left">
+          <span className="dest-inbox-emoji">📥</span>
+          <div>
+            <div className="dest-inbox-name">Inbox</div>
+            <div className="dest-inbox-desc">Full agent UI with reply, close, and reassign actions. Always included.</div>
           </div>
-        ))}
+        </div>
+        <div className="dest-inbox-check">
+          <Check size={11} strokeWidth={3} />
+          Always on
+        </div>
       </div>
 
-      {draft.destination === 'External' && (
+      {/* ── Optional add-ons ───────────────────────────────── */}
+      <div className="dest-addons-label">Also deliver to <span>(optional — select none, one, or both)</span></div>
+      <div className="dest-addons-grid">
+        {DEST_ADDONS.map(d => {
+          const on = addons.includes(d.id)
+          return (
+            <div
+              key={d.id}
+              className={`dest-addon-card${on ? ' dest-addon-card--on' : ''}`}
+              onClick={() => toggle(d.id)}
+            >
+              <div className="dest-addon-top">
+                <span className="dest-addon-emoji">{d.emoji}</span>
+                <div className={`dest-addon-check${on ? ' dest-addon-check--on' : ''}`}>
+                  {on && <Check size={9} color="#fff" strokeWidth={3} />}
+                </div>
+              </div>
+              <div className="dest-addon-name">{d.name}</div>
+              <div className="dest-addon-desc">{d.desc}</div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* ── Active destination summary ─────────────────────── */}
+      <div className="dest-summary">
+        <span className="dest-summary-label">Active destination:</span>
+        <span className="dest-summary-value">{buildDestLabel(addons)}</span>
+      </div>
+
+      {/* ── Conditional banners ────────────────────────────── */}
+      {addons.includes('external') && (
         <div className="pb-banner pb-banner--warning">
           <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
-            <strong>External routing bypasses the HTL inbox.</strong> Agents will not see items in Queue. Ensure the target webhook is configured under Settings → Integrations before activating.
+            <strong>External routing also fires for each item.</strong> Ensure the target webhook is configured under <strong>Settings → Integrations</strong> before activating.
           </div>
-        </div>
-      )}
-      {draft.destination === 'Mixed' && (
-        <div className="pb-banner pb-banner--info">
-          <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>Mixed destinations require at least one external channel. Link channels under <strong>Settings → Channels</strong>.</div>
         </div>
       )}
     </div>
@@ -2241,133 +2363,513 @@ function Step15Review({ draft }) {
 }
 
 // ─── Overview tab ─────────────────────────────────────────────────────────────
-function OverviewTab({ draft, sourcePack, navigate, id }) {
-  const fmtSLA = m => m >= 1440 ? `${(m/1440).toFixed(1)}d` : m >= 60 ? `${(m/60).toFixed(1)}h` : `${m}m`
-  const attachedCount = networks.filter(n => n.htlPackId === sourcePack?.id).length
-
-  return (
-    <div className="pb-overview">
-      <div className="pb-overview-hero">
-        <div className={`pack-icon pack-icon--${(draft.pattern||'handoff').toLowerCase()}`} style={{ width: 40, height: 40, borderRadius: 9, flexShrink: 0 }}>
-          {draft.pattern === 'Handoff' ? <GitBranch size={18} /> : <RefreshCw size={18} />}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Syne', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            {draft.description || 'No description provided.'}
-          </div>
-        </div>
-        <Button variant="primary" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>
-          Edit Pack
-        </Button>
-      </div>
-
-      <div className="pb-overview-grid">
-        {[
-          ['Pattern',           draft.pattern],
-          ['Status',            draft.status],
-          ['Version',           draft.version],
-          ['Destination',       draft.destination],
-          ['SLA',               fmtSLA(draft.slaMinutes)],
-          ['Sensitive Signals', draft.sensitiveSignalEnabled ? 'Enabled' : 'Disabled'],
-          ['Attached Workflows', String(attachedCount)],
-        ].map(([k, v]) => (
-          <div key={k} className="pb-overview-kv">
-            <div className="pb-overview-key">{k}</div>
-            <div className="pb-overview-val">{v}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+function generatePackSummary(pack) {
+  const trigger = pack.triggerSummary || 'a condition is met'
+  const recipient = pack.primaryRecipient || 'the assigned team'
+  const destination = pack.destinationLabel || pack.destination || 'Inbox'
+  const fmtSLA = m => {
+    if (!m) return null
+    if (m >= 1440) return `${Math.floor(m / 1440)}d`
+    if (m >= 60)   return `${Math.floor(m / 60)}h`
+    return `${m}m`
+  }
+  const slaLabel = pack.slaLabel || (pack.slaMinutes ? fmtSLA(pack.slaMinutes) : null) || 'the configured time'
+  const continuationNote = pack.pattern === 'Continuation'
+    ? 'The AI pauses and waits for approval.'
+    : 'The AI steps back and the agent owns it from here.'
+  return `When ${trigger}, this Pack routes items to ${recipient} via ${destination}. Agents have ${slaLabel} to respond. ${continuationNote}`
 }
 
-// ─── Workflows tab ────────────────────────────────────────────────────────────
-function WorkflowsTab({ sourcePack }) {
-  const attached = networks.filter(n => n.htlPackId === sourcePack?.id)
-  const [pinned,   setPinned]   = useState({})
-  const [detached, setDetached] = useState(new Set())
+function getAttentionBanners(pack) {
+  const candidates = []
 
-  function relT(iso) {
-    const diff = Date.now() - new Date(iso).getTime()
+  if (pack.slaBreachRate > 15) {
+    candidates.push({
+      level: 'coral',
+      icon: '🔴',
+      text: `SLA breach rate is ${pack.slaBreachRate}% this week — items timing out.`,
+      cta: 'Review routing rules →',
+      priority: 1,
+    })
+  }
+
+  if (pack.connectorStatus === 'error') {
+    const name = pack.connectorName || 'A connector'
+    candidates.push({
+      level: 'coral',
+      icon: '🔴',
+      text: `${name} has an error. Items may not be arriving.`,
+      cta: 'Fix connector →',
+      priority: 2,
+    })
+  }
+
+  if (pack.hasOOOWithNoCoverage) {
+    candidates.push({
+      level: 'amber',
+      icon: '🟡',
+      text: 'A team member is OOO with no coverage. Items have no fallback.',
+      cta: 'Assign coverage →',
+      priority: 3,
+    })
+  }
+
+  if (pack.trainMePendingReview > 5) {
+    candidates.push({
+      level: 'amber',
+      icon: '🟡',
+      text: `${pack.trainMePendingReview} Train Me submissions waiting for review.`,
+      cta: 'Review corrections →',
+      priority: 4,
+    })
+  }
+
+  if (pack.attachedWorkflows === 0 && pack.status === 'Active') {
+    candidates.push({
+      level: 'amber',
+      icon: '🟡',
+      text: 'Pack is Active but no workflows are using it.',
+      cta: 'Go to Node Connection →',
+      priority: 5,
+    })
+  }
+
+  candidates.sort((a, b) => a.priority - b.priority)
+  return candidates.slice(0, 2)
+}
+
+function OverviewTab({ draft, sourcePack, navigate, id }) {
+  const pack = sourcePack ?? {}
+  const attachedCount = networks.filter(n => n.htlPackId === sourcePack?.id).length
+
+  const fmtSLA = m => {
+    if (!m) return '—'
+    if (m >= 1440) return `${Math.floor(m / 1440)}d`
+    if (m >= 60)   return `${Math.floor(m / 60)}h`
+    return `${m}m`
+  }
+
+  const relT = iso => {
+    const diff = (new Date()).getTime() - new Date(iso).getTime()
     const m = Math.floor(diff / 60000)
-    if (m < 1) return 'just now'
+    if (m < 1)  return 'just now'
     if (m < 60) return `${m}m ago`
     const h = Math.floor(m / 60)
     if (h < 24) return `${h}h ago`
     return `${Math.floor(h / 24)}d ago`
   }
 
-  const visible = attached.filter(n => !detached.has(n.id))
+  const summary = generatePackSummary({ ...pack, ...draft })
+  const banners = getAttentionBanners({ ...pack, attachedWorkflows: pack.attachedWorkflows ?? attachedCount })
+
+  const slaDisplay = fmtSLA(draft.slaMinutes)
+
+  const perfCards = [
+    {
+      label: 'Open items',
+      value: String(pack.openItems ?? 0),
+      delta: pack.openItemsDelta ?? '—',
+      tint: (pack.openItems ?? 0) > 20 ? 'coral' : 'neutral',
+    },
+    {
+      label: 'SLA compliance',
+      value: pack.slaComplianceRate != null ? `${pack.slaComplianceRate}%` : '—',
+      delta: pack.slaComplianceDelta ?? '—',
+      tint: (pack.slaComplianceRate ?? 100) >= 90 ? 'green' : (pack.slaComplianceRate ?? 100) >= 75 ? 'amber' : 'coral',
+    },
+    {
+      label: 'Avg handle time',
+      value: pack.avgHandleMinutes != null ? fmtSLA(pack.avgHandleMinutes) : '—',
+      delta: pack.avgHandleDelta ?? '—',
+      tint: 'neutral',
+    },
+    {
+      label: 'Items this week',
+      value: String(pack.itemsThisWeek ?? 0),
+      delta: pack.itemsThisWeekDelta ?? '—',
+      tint: 'neutral',
+    },
+    {
+      label: 'Train Me rate',
+      value: pack.trainMeRate != null ? `${pack.trainMeRate}%` : '—',
+      delta: pack.trainMeRateDelta ?? '—',
+      tint: (pack.trainMeRate ?? 0) > 10 ? 'amber' : 'green',
+    },
+  ]
+
+  const TINT_STYLES = {
+    green:   'var(--accent-teal-dim)',
+    amber:   'var(--accent-amber-dim)',
+    coral:   'var(--accent-coral-dim)',
+    neutral: 'var(--bg-card)',
+  }
+
+  const TINT_VALUE_COLORS = {
+    green:   'var(--accent-teal)',
+    amber:   'var(--accent-amber)',
+    coral:   'var(--accent-coral)',
+    neutral: 'var(--text-primary)',
+  }
+
+  const configRows = [
+    ['Pattern',           draft.pattern],
+    ['Status',            draft.status],
+    ['Version',           draft.version],
+    ['Destination',       draft.destination],
+    ['SLA',               slaDisplay],
+    ['Sensitive Signals', draft.sensitiveSignalEnabled ? 'Enabled' : 'Disabled'],
+    ['Composer Scope',    draft.composerScope || '—'],
+    ['Escalation Policy', draft.escalationPolicy || '—'],
+  ]
+
+  const activity = pack.recentActivity ?? []
+  const attachedNets = networks.filter(n => n.htlPackId === sourcePack?.id).slice(0, 3)
+
+  return (
+    <div className="pb-overview">
+
+      {/* A. Identity card */}
+      <div className="pb-ov-identity">
+        <div className="pb-ov-identity-left">
+          <div className={`pack-icon pack-icon--${(draft.pattern || 'handoff').toLowerCase()}`} style={{ width: 40, height: 40, borderRadius: 9, flexShrink: 0 }}>
+            {draft.pattern === 'Handoff' ? <GitBranch size={18} /> : <RefreshCw size={18} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Syne', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              {draft.description || 'No description provided.'}
+            </div>
+          </div>
+        </div>
+        <div className="pb-ov-identity-right">
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+            What this Pack does
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
+            {summary}
+          </div>
+          <Button variant="primary" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>
+            Edit Pack
+          </Button>
+        </div>
+      </div>
+
+      {/* B. Attention banners */}
+      {banners.map((b, i) => (
+        <div key={i} className={`pb-ov-banner pb-ov-banner--${b.level}`}>
+          <span className="pb-ov-banner-icon">{b.icon}</span>
+          <span className="pb-ov-banner-text">{b.text}</span>
+          <button className="pb-ov-banner-cta">{b.cta}</button>
+        </div>
+      ))}
+
+      {/* C. Performance strip */}
+      <div className="pb-ov-perf">
+        {perfCards.map(card => (
+          <div
+            key={card.label}
+            className="pb-ov-perf-card"
+            style={{ background: TINT_STYLES[card.tint] }}
+          >
+            <div className="pb-ov-perf-label">{card.label}</div>
+            <div className="pb-ov-perf-value" style={{ color: TINT_VALUE_COLORS[card.tint] }}>{card.value}</div>
+            <div className="pb-ov-perf-delta">{card.delta}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* D. Activity feed */}
+      <div className="pb-ov-section">
+        <div className="pb-ov-section-hdr">
+          <span className="pb-ov-section-title">Recent activity</span>
+        </div>
+        {activity.length === 0 ? (
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '16px 0' }}>No recent activity.</div>
+        ) : (
+          activity.map((item, i) => (
+            <div key={i} className={`pb-ov-feed-row${i % 2 === 1 ? ' pb-ov-feed-row--alt' : ''}`}>
+              <span className="pb-ov-feed-icon">{item.icon ?? '•'}</span>
+              <span className="pb-ov-feed-text">{item.text}</span>
+              <span className="pb-ov-feed-time">{item.time ? relT(item.time) : item.timeLabel ?? ''}</span>
+            </div>
+          ))
+        )}
+        <div style={{ paddingTop: 10 }}>
+          <button style={{ fontSize: 12, color: 'var(--accent-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            View full activity log →
+          </button>
+        </div>
+      </div>
+
+      {/* E. Config summary */}
+      <div className="pb-ov-section">
+        <div className="pb-ov-section-hdr">
+          <span className="pb-ov-section-title">Configuration</span>
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>Edit</Button>
+        </div>
+        <div className="pb-ov-config">
+          {configRows.map(([k, v]) => (
+            <div key={k} className="pb-ov-config-row">
+              <span className="pb-ov-config-key">{k}</span>
+              <span className="pb-ov-config-val">{v}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* F. Attached workflows */}
+      <div className="pb-ov-section">
+        <div className="pb-ov-section-hdr">
+          <span className="pb-ov-section-title">Attached workflows</span>
+          <button
+            style={{ fontSize: 12, color: 'var(--accent-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            onClick={() => navigate(`/configure/packs/${id}/workflows`)}
+          >
+            See all {attachedCount} →
+          </button>
+        </div>
+        {attachedNets.length === 0 ? (
+          <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>No workflows are attached to this Pack yet.</div>
+            <Button variant="secondary" size="sm" onClick={() => navigate(`/configure/packs/${id}/workflows`)}>
+              Go to Node Connection
+            </Button>
+          </div>
+        ) : (
+          <div className="pb-ov-wf-list">
+            {attachedNets.map(net => (
+              <div key={net.id} className="pb-ov-wf-row">
+                <span className="pb-ov-wf-dot" />
+                <span className="pb-ov-wf-name">{net.name}</span>
+                <span className="pb-ov-wf-studio">{net.studio}</span>
+                <span className="pb-ov-wf-stats">{net.activeNodes} nodes · {net.triggerCount30d?.toLocaleString() ?? 0} items 30d</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+    </div>
+  )
+}
+
+// ─── Workflows tab ────────────────────────────────────────────────────────────
+function WorkflowsTab({ sourcePack }) {
+  const canConnect = true
+
+  const attached = networks.filter(n => n.htlPackId === sourcePack?.id)
+  const [detached,        setDetached]        = useState(new Set())
+  const [pinned,          setPinned]          = useState({})
+  const [showWfPicker,    setShowWfPicker]    = useState(false)
+  const [connectedAgents, setConnectedAgents] = useState(
+    new Set(packAgentBindings[sourcePack?.id] ?? [])
+  )
+  const [showAgentPicker, setShowAgentPicker] = useState(false)
+  const [agentSearch,     setAgentSearch]     = useState('')
+
+  function relT(iso) {
+    const diff = Date.now() - new Date(iso).getTime()
+    const m = Math.floor(diff / 60000)
+    if (m < 1)  return 'just now'
+    if (m < 60) return `${m}m ago`
+    const h = Math.floor(m / 60)
+    if (h < 24) return `${h}h ago`
+    return `${Math.floor(h / 24)}d ago`
+  }
+
+  const TABLE_COLS = '1fr 120px 56px 80px 68px 130px 70px'
+
+  const visibleWorkflows = attached.filter(n => !detached.has(n.id))
+
+  const sections = [
+    {
+      key:     'workflows',
+      title:   'Connected Workflows',
+      sub:     'Agentic workflows that trigger this Pack at a HITL node',
+      btnLabel:'Attach workflow',
+      showPicker: showWfPicker,
+      openPicker: () => setShowWfPicker(true),
+      closePicker:() => setShowWfPicker(false),
+      cols:    TABLE_COLS,
+      hdrCells:['Workflow / Studio', 'Binding Node', 'Version', 'Last Triggered', 'Items 30d', 'Pin Version', ''],
+      rows:    visibleWorkflows,
+      emptyText: 'No workflows attached.',
+      renderRow: (net) => (
+        <div key={net.id} className="wt-row" style={{ gridTemplateColumns: TABLE_COLS }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{net.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{net.studio}</div>
+          </div>
+          <div>
+            <code style={{ fontSize: 11, background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--accent-purple)', fontFamily: 'DM Mono' }}>
+              {net.bindingNode}
+            </code>
+          </div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
+            {sourcePack?.version ?? '—'}
+          </div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
+            {relT(net.lastTriggered)}
+          </div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {net.triggerCount30d?.toLocaleString() ?? 0}
+          </div>
+          <div>
+            <Toggle on={!!pinned[net.id]} onChange={v => setPinned(p => ({ ...p, [net.id]: v }))} />
+          </div>
+          <div>
+            <button className="wt-detach-btn" onClick={() => setDetached(d => new Set([...d, net.id]))}>
+              Detach
+            </button>
+          </div>
+        </div>
+      ),
+      pickerContent: (
+        <div className="wt-picker">
+          <div className="wt-picker-label">Attach a workflow</div>
+          {networks
+            .filter(n => n.htlPackId !== sourcePack?.id)
+            .map(n => (
+              <div
+                key={n.id}
+                className="wt-picker-row"
+                onClick={() => {
+                  setDetached(d => { const next = new Set(d); next.delete(n.id); return next })
+                  setShowWfPicker(false)
+                }}
+              >
+                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{n.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{n.studio}</span>
+              </div>
+            ))}
+        </div>
+      ),
+    },
+    {
+      key:     'agents',
+      title:   'Connected AI Agents',
+      sub:     'Agents that run alongside this Pack — enriching data, drafting content, or writing back to systems',
+      btnLabel:'Connect agent',
+      showPicker: showAgentPicker,
+      openPicker: () => setShowAgentPicker(true),
+      closePicker:() => { setShowAgentPicker(false); setAgentSearch('') },
+      cols:    TABLE_COLS,
+      hdrCells:['Agent / Studio', 'Model', 'Owner', 'Last Run', 'Runs 30d', 'Capabilities', ''],
+      rows:    agents.filter(a => connectedAgents.has(a.id)),
+      emptyText: 'No agents connected.',
+      renderRow: (agent) => (
+        <div key={agent.id} className="wt-row" style={{ gridTemplateColumns: TABLE_COLS }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{agent.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{agent.studio}</div>
+          </div>
+          <div>
+            <code style={{ fontSize: 11, background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--accent-blue)', fontFamily: 'DM Mono' }}>
+              {agent.model}
+            </code>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{agent.owner}</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
+            {relT(agent.lastRun)}
+          </div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+            {agent.runs30d?.toLocaleString() ?? 0}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {(agent.capabilities ?? []).map(cap => (
+              <span key={cap} style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-purple)', background: 'var(--accent-purple-dim)', border: '1px solid var(--accent-purple-border)', borderRadius: 10, padding: '1px 7px' }}>
+                {cap}
+              </span>
+            ))}
+          </div>
+          <div>
+            <button className="wt-detach-btn" onClick={() => setConnectedAgents(s => { const next = new Set(s); next.delete(agent.id); return next })}>
+              Disconnect
+            </button>
+          </div>
+        </div>
+      ),
+      pickerContent: (
+        <div className="wt-picker">
+          <div className="wt-picker-label">Connect an agent</div>
+          <input
+            className="wt-picker-search"
+            placeholder="Search agents…"
+            value={agentSearch}
+            onChange={e => setAgentSearch(e.target.value)}
+          />
+          {agents
+            .filter(a => !connectedAgents.has(a.id))
+            .filter(a => !agentSearch || a.name.toLowerCase().includes(agentSearch.toLowerCase()))
+            .map(a => (
+              <div
+                key={a.id}
+                className="wt-picker-row"
+                onClick={() => {
+                  setConnectedAgents(s => new Set([...s, a.id]))
+                  setShowAgentPicker(false)
+                  setAgentSearch('')
+                }}
+              >
+                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{a.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{a.studio}</span>
+              </div>
+            ))}
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div>
-      {visible.length > 0 && (
+      {visibleWorkflows.length > 0 && (
         <div className="pb-banner pb-banner--warning" style={{ marginBottom: 20 }}>
           <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
-            <strong>Blast radius:</strong> {visible.length} active workflow{visible.length !== 1 ? 's' : ''} use this pack.
+            <strong>Blast radius:</strong> {visibleWorkflows.length} active workflow{visibleWorkflows.length !== 1 ? 's' : ''} use this pack.
             Publishing a new version will immediately apply to all unversioned attachments.
           </span>
         </div>
       )}
 
-      <div className="pb-wf-table">
-        <div className="pb-wf-header">
-          <span className="pb-wf-c pb-wf-c--name">Workflow / Network</span>
-          <span className="pb-wf-c pb-wf-c--node">Binding Node</span>
-          <span className="pb-wf-c pb-wf-c--ver">Version</span>
-          <span className="pb-wf-c pb-wf-c--time">Last Triggered</span>
-          <span className="pb-wf-c pb-wf-c--count">Items 30d</span>
-          <span className="pb-wf-c pb-wf-c--pin">Pin Version</span>
-          <span className="pb-wf-c pb-wf-c--action"></span>
-        </div>
-
-        {visible.length === 0 ? (
-          <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' }}>
-            No workflows are attached to this pack yet.
-          </div>
-        ) : visible.map(net => (
-          <div key={net.id} className="pb-wf-row">
-            <div className="pb-wf-c pb-wf-c--name">
-              <div className="pb-wf-name">{net.name}</div>
-              <div className="pb-wf-sub">{net.studio} · {net.activeNodes} nodes</div>
+      {sections.map(sec => (
+        <div key={sec.key} className="wt-section">
+          <div className="wt-section-hdr">
+            <div>
+              <div className="wt-section-title">{sec.title}</div>
+              <div className="wt-section-sub">{sec.sub}</div>
             </div>
-            <div className="pb-wf-c pb-wf-c--node">
-              <code className="pb-wf-code">{net.bindingNode}</code>
-            </div>
-            <div className="pb-wf-c pb-wf-c--ver">
-              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                {sourcePack?.version ?? '—'}
-              </span>
-            </div>
-            <div className="pb-wf-c pb-wf-c--time">
-              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
-                {relT(net.lastTriggered)}
-              </span>
-            </div>
-            <div className="pb-wf-c pb-wf-c--count">
-              <span style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                {net.triggerCount30d.toLocaleString()}
-              </span>
-            </div>
-            <div className="pb-wf-c pb-wf-c--pin">
-              <Toggle on={!!pinned[net.id]} onChange={v => setPinned(p => ({ ...p, [net.id]: v }))} />
-            </div>
-            <div className="pb-wf-c pb-wf-c--action">
-              <button className="pb-wf-detach" onClick={() => setDetached(d => new Set([...d, net.id]))}>
-                Detach
+            {canConnect && (
+              <button className="wt-attach-btn" onClick={sec.openPicker}>
+                <Plus size={13} />
+                {sec.btnLabel}
               </button>
-            </div>
+            )}
           </div>
-        ))}
-      </div>
 
-      {detached.size > 0 && (
-        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-tertiary)' }}>
-          {detached.size} workflow{detached.size !== 1 ? 's' : ''} detached — publish to apply.
+          {sec.showPicker && sec.pickerContent}
+
+          {sec.rows.length === 0 ? (
+            <div className="wt-empty">
+              {sec.emptyText}{' '}
+              {canConnect && (
+                <button className="wt-empty-link" onClick={sec.openPicker}>
+                  {sec.btnLabel}
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="wt-table-hdr" style={{ gridTemplateColumns: sec.cols }}>
+                {sec.hdrCells.map((cell, i) => (
+                  <span key={i}>{cell}</span>
+                ))}
+              </div>
+              {sec.rows.map(row => sec.renderRow(row))}
+            </>
+          )}
         </div>
-      )}
+      ))}
     </div>
   )
 }
