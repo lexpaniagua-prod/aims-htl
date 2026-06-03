@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react'
-import { routingRules, packs, analytics } from '../data/mockData.js'
+import { routingRules, packs, analytics, teamsAndQueues } from '../data/mockData.js'
 import { Drawer } from '../components/Modal.jsx'
 import Button from '../components/Button.jsx'
 import Badge from '../components/Badge.jsx'
 import KPICard from '../components/KPICard.jsx'
 import { Select, Textarea } from '../components/FormFields.jsx'
-import { GitFork, Activity, Clock, AlertTriangle, Plus, ArrowUp, ArrowDown, Check } from 'lucide-react'
+import { GitFork, Activity, Clock, AlertTriangle, Plus, ArrowUp, ArrowDown, Check, X } from 'lucide-react'
 import './Routing.css'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -77,7 +77,11 @@ export default function Routing() {
   const [filterSig,  setFilterSig]  = useState('All')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selected,   setSelected]   = useState(null)
-  const [draftFallback, setDraftFallback] = useState(['', '', ''])
+  const [isNew,      setIsNew]      = useState(false)
+  const [draftFallback, setDraftFallback] = useState([''])
+  const [draftRule, setDraftRule] = useState({
+    packId: '', condition: '', destination: '', signal: '', priority: 1, timeoutMinutes: 15,
+  })
 
   // newest timestamp per ruleMatched
   const lastTriggeredMap = useMemo(() => {
@@ -134,11 +138,26 @@ export default function Routing() {
     routingRules.reduce((s, r) => s + r.timeoutMinutes, 0) / routingRules.length
   )
 
+  function openNewRule() {
+    setIsNew(true)
+    setSelected(null)
+    setDraftRule({ packId: packs[0]?.id || '', condition: '', destination: '', signal: '', priority: 1, timeoutMinutes: 15 })
+    setDraftFallback([''])
+    setDrawerOpen(true)
+  }
+
   function openDrawer(rule) {
+    setIsNew(false)
     setSelected(rule)
+    setDraftRule({ packId: rule.packId, condition: rule.condition, destination: rule.destination, signal: rule.signal, priority: rule.priority, timeoutMinutes: rule.timeoutMinutes })
     setDraftFallback([rule.destination, rule.fallback, 'On-call Manager'])
     setDrawerOpen(true)
   }
+
+  function updateDraft(key, val) { setDraftRule(d => ({ ...d, [key]: val })) }
+  function addFallback() { setDraftFallback(fb => [...fb, '']) }
+  function removeFallback(i) { setDraftFallback(fb => fb.filter((_, idx) => idx !== i)) }
+  function updateFallback(i, val) { setDraftFallback(fb => fb.map((f, idx) => idx === i ? val : f)) }
 
   function moveChain(i, dir) {
     setDraftFallback(prev => {
@@ -167,7 +186,7 @@ export default function Routing() {
           <p className="page-subtitle">Signal-based dispatch rules that route work to the right destination and fallback chain</p>
         </div>
         <div className="page-actions">
-          <Button variant="primary" size="sm" icon={Plus}>New Rule</Button>
+          <Button variant="primary" size="sm" icon={Plus} onClick={openNewRule}>New Rule</Button>
         </div>
       </div>
 
@@ -283,165 +302,166 @@ export default function Routing() {
         })}
       </div>
 
-      {/* ── Drawer: Rule Editor ── */}
+      {/* ── Drawer: Rule Editor (New + Edit) ── */}
       <Drawer
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        title={selected ? `Edit Rule — ${selected.signal}` : 'Edit Rule'}
-        subtitle={selected ? `Pack: ${packs.find(p => p.id === selected?.packId)?.name ?? ''}` : ''}
+        title={isNew ? 'New Rule' : `Edit Rule — ${selected?.signal ?? ''}`}
+        subtitle={isNew ? 'Create a new routing rule' : `Pack: ${packs.find(p => p.id === selected?.packId)?.name ?? ''}`}
         footer={
           <>
             <Button variant="secondary" size="sm" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-            <Button variant="primary" size="sm" icon={Check}>Save Rule</Button>
+            <Button variant="primary" size="sm" icon={Check}>{isNew ? 'Create Rule' : 'Save Rule'}</Button>
           </>
         }
       >
-        {selected && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* Primary rule summary */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                Primary Rule
-              </div>
-              <Textarea
-                value={`${selected.condition} → ${selected.destination}`}
-                onChange={() => {}}
-                rows={3}
-              />
+          {/* Pack context note (new only — rules belong to packs, not assigned here) */}
+          {isNew && (
+            <div style={{ padding: '10px 13px', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+              💡 This rule will appear in the global routing log. To attach it directly to a Pack, open the Pack and configure routing from <strong>Builder → Routing & Response</strong>.
             </div>
+          )}
 
-            {/* IF / THEN blocks */}
+          {/* Primary rule summary (edit only) */}
+          {!isNew && selected && (
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                Condition / Destination
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  flex: 1, padding: '10px 12px', background: 'var(--accent-blue-dim)',
-                  border: '1px solid var(--accent-blue-border)', borderRadius: 8,
-                  fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-primary)',
-                  lineHeight: 1.5,
-                }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-blue)', marginBottom: 4 }}>IF</div>
-                  {selected.condition}
-                </div>
-                <div style={{ color: 'var(--text-tertiary)', fontFamily: 'DM Mono', fontSize: 16, flexShrink: 0 }}>→</div>
-                <div style={{
-                  flex: 1, padding: '10px 12px', background: 'var(--accent-teal-dim)',
-                  border: '1px solid var(--accent-teal-border)', borderRadius: 8,
-                  fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-primary)',
-                  lineHeight: 1.5,
-                }}>
-                  <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-teal)', marginBottom: 4 }}>THEN</div>
-                  {selected.destination}
-                </div>
-              </div>
+              <div className="rdr-label">Primary Rule</div>
+              <Textarea value={`${selected.condition} → ${selected.destination}`} onChange={() => {}} rows={3} />
             </div>
+          )}
 
-            {/* Fallback chain */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                Fallback Chain
+          {/* IF / THEN blocks */}
+          <div>
+            <div className="rdr-label">Condition / Destination</div>
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: 10 }}>
+              <div style={{ flex: 1, padding: '10px 12px', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-blue)', marginBottom: 6 }}>IF</div>
+                {isNew ? (
+                  <textarea
+                    placeholder="e.g. CSAT rating ≤ 2 submitted during conversation"
+                    value={draftRule.condition}
+                    onChange={e => updateDraft('condition', e.target.value)}
+                    rows={3}
+                    style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-primary)', fontFamily: 'DM Mono', fontSize: 11, outline: 'none', resize: 'none', lineHeight: 1.5 }}
+                  />
+                ) : (
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5 }}>{selected?.condition}</div>
+                )}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {draftFallback.map((item, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 12px', borderRadius: 8,
-                      background: 'var(--bg-card-elevated)',
-                      border: '1px solid var(--border)',
-                    }}
+              <div style={{ color: 'var(--text-tertiary)', fontFamily: 'DM Mono', fontSize: 16, flexShrink: 0, alignSelf: 'center' }}>→</div>
+              <div style={{ flex: 1, padding: '10px 12px', background: 'var(--accent-teal-dim)', border: '1px solid var(--accent-teal-border)', borderRadius: 8 }}>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent-teal)', marginBottom: 6 }}>THEN</div>
+                {isNew ? (
+                  <select
+                    value={draftRule.destination}
+                    onChange={e => updateDraft('destination', e.target.value)}
+                    style={{ width: '100%', background: 'transparent', border: 'none', color: draftRule.destination ? 'var(--text-primary)' : 'var(--accent-teal)', fontFamily: 'DM Mono', fontSize: 11, outline: 'none', cursor: 'pointer' }}
                   >
-                    <span style={{
-                      fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700,
-                      color: 'var(--text-tertiary)', minWidth: 18,
-                    }}>
-                      {i + 1}
-                    </span>
-                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-primary)' }}>{item}</span>
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button
-                        onClick={() => moveChain(i, -1)}
-                        disabled={i === 0}
-                        style={{
-                          background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer',
-                          color: i === 0 ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                          padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center',
-                        }}
-                      >
-                        <ArrowUp size={13} />
-                      </button>
-                      <button
-                        onClick={() => moveChain(i, 1)}
-                        disabled={i === draftFallback.length - 1}
-                        style={{
-                          background: 'none', border: 'none',
-                          cursor: i === draftFallback.length - 1 ? 'default' : 'pointer',
-                          color: i === draftFallback.length - 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)',
-                          padding: 3, borderRadius: 4, display: 'flex', alignItems: 'center',
-                        }}
-                      >
-                        <ArrowDown size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    <option value="">— Select destination —</option>
+                    {teamsAndQueues.filter(t => t.status === 'active').map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5 }}>{selected?.destination}</div>
+                )}
               </div>
             </div>
-
-            {/* Timeout */}
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                Timeout
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <input
-                  type="number"
-                  defaultValue={selected.timeoutMinutes}
-                  min={1}
-                  style={{
-                    width: 80, padding: '8px 10px', borderRadius: 7,
-                    border: '1px solid var(--border)', background: 'var(--bg-input)',
-                    color: 'var(--text-primary)', fontFamily: 'DM Mono', fontSize: 13,
-                    outline: 'none',
-                  }}
-                  onFocus={e => e.target.style.borderColor = 'var(--border-focus)'}
-                  onBlur={e => e.target.style.borderColor = 'var(--border)'}
-                />
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>minutes</span>
-              </div>
-            </div>
-
-            {/* Signal + Priority */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                  Signal
-                </div>
-                <Badge
-                  label={selected.signal}
-                  variant={SIGNAL_COLORS[selected.signal] || 'gray'}
-                  size="sm"
-                />
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                  Priority
-                </div>
-                <span style={{
-                  fontFamily: 'DM Mono', fontSize: 13, fontWeight: 700,
-                  color: selected.priority === 0 ? 'var(--accent-coral)' : 'var(--text-primary)',
-                }}>
-                  {selected.priority === 0 ? 'Critical (0)' : `P${selected.priority}`}
-                </span>
-              </div>
-            </div>
-
           </div>
-        )}
+
+          {/* Fallback chain — editable + add/remove */}
+          <div>
+            <div className="rdr-label">Fallback Chain</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {draftFallback.map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, background: 'var(--bg-card-elevated)', border: '1px solid var(--border)' }}>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: 10, fontWeight: 700, color: 'var(--text-tertiary)', minWidth: 18, flexShrink: 0 }}>{i + 1}</span>
+                  <select
+                    value={item}
+                    onChange={e => updateFallback(i, e.target.value)}
+                    style={{ flex: 1, background: 'transparent', border: 'none', color: item ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: 13, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', padding: '4px 0' }}
+                  >
+                    <option value="">— Select a team or queue —</option>
+                    {teamsAndQueues.filter(t => t.status === 'active').map(t => (
+                      <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                  </select>
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button onClick={() => moveChain(i, -1)} disabled={i === 0}
+                      style={{ background: 'none', border: 'none', cursor: i === 0 ? 'default' : 'pointer', color: i === 0 ? 'var(--text-tertiary)' : 'var(--text-secondary)', padding: 3, borderRadius: 4, display: 'flex' }}>
+                      <ArrowUp size={12} />
+                    </button>
+                    <button onClick={() => moveChain(i, 1)} disabled={i === draftFallback.length - 1}
+                      style={{ background: 'none', border: 'none', cursor: i === draftFallback.length - 1 ? 'default' : 'pointer', color: i === draftFallback.length - 1 ? 'var(--text-tertiary)' : 'var(--text-secondary)', padding: 3, borderRadius: 4, display: 'flex' }}>
+                      <ArrowDown size={12} />
+                    </button>
+                    {draftFallback.length > 1 && (
+                      <button onClick={() => removeFallback(i)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 3, borderRadius: 4, display: 'flex', transition: 'color 0.1s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-coral)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}>
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={addFallback}
+              style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--accent-blue)', background: 'var(--accent-blue-dim)', border: '1px dashed var(--accent-blue-border)', borderRadius: 7, padding: '7px 12px', cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s, color 0.12s', width: '100%', justifyContent: 'center' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-blue)'; e.currentTarget.style.color = '#fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--accent-blue-dim)'; e.currentTarget.style.color = 'var(--accent-blue)' }}
+            >
+              <Plus size={12} /> Add Fallback Step
+            </button>
+          </div>
+
+          {/* Timeout */}
+          <div>
+            <div className="rdr-label">Timeout</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                type="number"
+                value={draftRule.timeoutMinutes}
+                min={1}
+                onChange={e => updateDraft('timeoutMinutes', e.target.value)}
+                style={{ width: 80, padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'DM Mono', fontSize: 13, outline: 'none' }}
+              />
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>minutes</span>
+            </div>
+          </div>
+
+          {/* Signal + Priority */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <div className="rdr-label">Signal</div>
+              {isNew ? (
+                <input
+                  placeholder="e.g. csat_low"
+                  value={draftRule.signal}
+                  onChange={e => updateDraft('signal', e.target.value)}
+                  style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'DM Mono', fontSize: 12, outline: 'none' }}
+                />
+              ) : (
+                <Badge label={selected?.signal} variant={SIGNAL_COLORS[selected?.signal] || 'gray'} size="sm" />
+              )}
+            </div>
+            <div>
+              <div className="rdr-label">Priority</div>
+              <select
+                value={draftRule.priority}
+                onChange={e => updateDraft('priority', Number(e.target.value))}
+                style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'DM Mono', fontSize: 13, outline: 'none' }}
+              >
+                {[0, 1, 2, 3].map(p => <option key={p} value={p}>{p === 0 ? 'Critical (P0)' : `P${p}`}</option>)}
+              </select>
+            </div>
+          </div>
+
+        </div>
       </Drawer>
     </div>
   )

@@ -29,7 +29,7 @@ const DAG_NODES = [
   },
   {
     id: 'n5', name: 'HITL Handoff', type: 'hitl', htlPackId: 'pk-esc-t1',
-    desc: 'Packages the full conversation context and hands off to a human agent via the configured HTL pack. SLA clock starts on fire.',
+    desc: 'Packages the full conversation context and transfers control to a human agent via the configured HTL pack. The AI steps back, the SLA clock starts immediately, and the item appears in the agent\'s Inbox.',
   },
 ]
 
@@ -191,82 +191,87 @@ function ConfigPanel({ nodeId }) {
 
         {selectedPack && (
           <div className="nb-pack-info">
-            {[
-              ['Pattern',     <Badge key="pat" label={selectedPack.pattern} variant={selectedPack.pattern === 'Handoff' ? 'purple' : 'teal'} size="sm" />],
-              ['Status',      <Badge key="st" label={selectedPack.status} variant={selectedPack.status === 'Active' ? 'teal' : 'amber'} size="sm" />],
-              ['Destination', selectedPack.destination],
-              ['SLA',         selectedPack.slaMinutes >= 60 ? `${selectedPack.slaMinutes / 60}h` : `${selectedPack.slaMinutes}m`],
-            ].map(([k, v]) => (
-              <div key={k} className="nb-pack-info-row">
-                <span className="nb-pack-info-k">{k}</span>
-                {typeof v === 'string'
-                  ? <span className="nb-pack-info-v">{v}</span>
-                  : v}
+            {/* Pattern + Status row */}
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Pattern</span>
+              <Badge label={selectedPack.pattern} variant={selectedPack.pattern === 'Handoff' ? 'purple' : 'teal'} size="sm" />
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Status</span>
+              <Badge label={selectedPack.status} variant={selectedPack.status === 'Active' ? 'teal' : 'amber'} size="sm" />
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Destination</span>
+              <span className="nb-pack-info-v">{selectedPack.destinationLabel || selectedPack.destination}</span>
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Primary recipient</span>
+              <span className="nb-pack-info-v">{selectedPack.primaryRecipient || 'Tier 1 Support Queue'}</span>
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">SLA window</span>
+              <span className="nb-pack-info-v">{selectedPack.slaLabel || (selectedPack.slaMinutes >= 60 ? `${selectedPack.slaMinutes / 60}h` : `${selectedPack.slaMinutes}m`)}</span>
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Composer scope</span>
+              <span className="nb-pack-info-v">{(selectedPack.composerScope || 'Full').split('—')[0].trim()}</span>
+            </div>
+            <div className="nb-pack-info-row">
+              <span className="nb-pack-info-k">Sensitive signals</span>
+              <Badge label={selectedPack.sensitiveSignalEnabled ? 'Enabled' : 'Disabled'} variant={selectedPack.sensitiveSignalEnabled ? 'coral' : 'gray'} size="sm" />
+            </div>
+            {selectedPack.studio && (
+              <div className="nb-pack-info-row">
+                <span className="nb-pack-info-k">Studio</span>
+                <span className="nb-pack-info-v" style={{ fontFamily: 'DM Mono', fontSize: 11 }}>{selectedPack.studio}</span>
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
-      {/* Routing preview */}
+      {/* Routing preview — derived from pack data */}
       <div className="nb-config-section">
         <div className="nb-config-sec-label">Routing Preview</div>
         <div className="nb-routing">
-          {[
-            { dot: 'blue',   label: 'AI triggers HITL node' },
-            { dot: '',       label: 'Pack evaluates conditions' },
-            { dot: '',       label: `Packet built → ${selectedPack?.destination ?? 'Inbox'}` },
-            { dot: 'purple', label: 'Human agent handles', em: true },
-          ].map((step, i, arr) => (
-            <span key={i}>
-              <div className="nb-routing-step">
-                <div className={`nb-routing-dot${step.dot ? ` nb-routing-dot--${step.dot}` : ''}`} />
-                <span className={`nb-routing-lbl${step.em ? ' nb-routing-lbl--em' : ''}`}>{step.label}</span>
-              </div>
-              {i < arr.length - 1 && <div className="nb-routing-line" />}
-            </span>
-          ))}
+          {(() => {
+            const fmtSla = m => m >= 60 ? `${m / 60}h` : `${m}m`
+            const recipient = selectedPack?.primaryRecipient || 'Tier 1 Support Queue'
+            const dest      = selectedPack?.destinationLabel || selectedPack?.destination || 'Inbox'
+            const sla       = selectedPack ? fmtSla(selectedPack.slaMinutes) : '15m'
+            const scope     = (selectedPack?.composerScope || 'Full').split('—')[0].trim()
+            const isCont    = selectedPack?.pattern === 'Continuation'
+            const trigger   = selectedPack?.triggerSummary
+              ? `Trigger fires — ${selectedPack.triggerSummary}`
+              : 'Confidence drops below threshold — HITL node fires'
+
+            const steps = [
+              { dot: 'blue',   label: trigger },
+              { dot: '',       label: `Pack evaluates — routes to ${recipient}` },
+              { dot: '',       label: `Handoff packet assembled → delivered via ${dest}` },
+              { dot: '',       label: `SLA timer starts: ${sla}` },
+              { dot: 'purple', label: `Agent opens item — ${scope} Composer scope`, em: true },
+              ...(isCont ? [{ dot: 'teal', label: 'AI pauses · awaits agent approval to continue', em: true }] : []),
+            ]
+
+            return steps.map((step, i, arr) => (
+              <span key={i}>
+                <div className="nb-routing-step">
+                  <div className={`nb-routing-dot${step.dot ? ` nb-routing-dot--${step.dot}` : ''}`} />
+                  <span className={`nb-routing-lbl${step.em ? ' nb-routing-lbl--em' : ''}`}>{step.label}</span>
+                </div>
+                {i < arr.length - 1 && <div className="nb-routing-line" />}
+              </span>
+            ))
+          })()}
         </div>
       </div>
 
-      {/* Overrides */}
-      <div className="nb-config-section">
-        <div className="nb-config-sec-label">Node Overrides</div>
-
-        <div className="nb-override-row">
-          <div>
-            <div className="nb-override-lbl">Enable overrides</div>
-            <div className="nb-override-hint">Allow node-level settings to override pack defaults</div>
-          </div>
-          <Toggle on={overrideOn} onChange={setOverrideOn} />
-        </div>
-
-        <div className={`nb-override-nested${overrideOn ? '' : ' nb-override-nested--off'}`}>
-          <div className="nb-override-row">
-            <div>
-              <div className="nb-override-lbl">Sensitive mode</div>
-              <div className="nb-override-hint">Force sensitive signal handling on this node</div>
-            </div>
-            <Toggle on={sensitiveMode} onChange={overrideOn ? setSensitiveMode : () => {}} />
-          </div>
-          <div className="nb-override-row" style={{ borderBottom: 'none' }}>
-            <div>
-              <div className="nb-override-lbl">Pin pack version</div>
-              <div className="nb-override-hint">Lock to {selectedPack?.version ?? 'current version'} — ignore future updates</div>
-            </div>
-            <Toggle on={pinVersion} onChange={overrideOn ? setPinVersion : () => {}} />
-          </div>
-        </div>
-      </div>
-
-      {/* Continuation disabled note */}
+      {/* Continuation note */}
       {selectedPack?.pattern === 'Continuation' && (
-        <div className="nb-config-section">
-          <div className="nb-config-sec-label">Continuation Settings</div>
-          <div className="nb-locked-notice">
-            <Lock size={13} style={{ flexShrink: 0 }} />
-            <span>Continuation loop behavior is configured in the Pack Builder. Edit the pack to change approval chain settings.</span>
-          </div>
+        <div className="nb-locked-notice" style={{ margin: '0 0 20px' }}>
+          <Lock size={13} style={{ flexShrink: 0 }} />
+          <span>Continuation loop behavior is configured in the Pack Builder. Edit the pack to change the approval chain.</span>
         </div>
       )}
 

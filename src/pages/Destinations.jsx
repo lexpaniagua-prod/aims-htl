@@ -214,7 +214,7 @@ export default function Destinations() {
       <Drawer
         open={addDrawerOpen}
         onClose={() => { setAddDrawerOpen(false); setSelectedConnector(null) }}
-        title="Add Connector"
+        title="Integrations Available"
         subtitle="Connect an external system"
         footer={
           <>

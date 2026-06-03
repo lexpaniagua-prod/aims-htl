@@ -70,6 +70,16 @@
   min-width: 0;
 }
 
+/* Drawer section label */
+.rdr-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
 /* ─── Rules Table ────────────────────────────────────────────────────────────── */
 .rules-table-wrap {
   background: var(--bg-card);
