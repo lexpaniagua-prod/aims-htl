@@ -44,6 +44,13 @@ const DEST_CONFIG = {
   External:   { variant: 'amber'  },
 }
 
+const STUDIO_CONFIG = {
+  'Agentic Studio':           { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+  'Helix Governance Studio':  { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+  'Helix Data Studio':        { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+  'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
+}
+
 // ─── Three-dot context menu ───────────────────────────────────────────────────
 function PackMenu({ pack, onClose, onEdit, onClone, onArchive }) {
   const ref = useRef(null)
@@ -140,6 +147,23 @@ function PackRow({ pack, index, onNavigate, onEdit }) {
             variant={DEST_CONFIG[pack.destination]?.variant || 'gray'}
             size="sm"
           />
+          {pack.studio && (() => {
+            const sc = STUDIO_CONFIG[pack.studio] || STUDIO_CONFIG['All Studios']
+            return (
+              <span style={{
+                fontFamily: 'DM Mono, monospace',
+                fontSize: 10,
+                padding: '2px 7px',
+                borderRadius: 4,
+                background: sc.bg,
+                border: `1px solid ${sc.border}`,
+                color: sc.color,
+                whiteSpace: 'nowrap',
+              }}>
+                {pack.studio}
+              </span>
+            )
+          })()}
           <span className="pack-meta-sep">·</span>
           <span className="pack-meta-chip">
             <Workflow size={10} />
@@ -211,11 +235,12 @@ function PackRow({ pack, index, onNavigate, onEdit }) {
 export default function PackLibrary() {
   const navigate = useNavigate()
 
-  const [search,      setSearch]      = useState('')
-  const [filterPat,   setFilterPat]   = useState('All')
-  const [filterStatus,setFilterStatus]= useState('All')
-  const [filterDest,  setFilterDest]  = useState('All')
-  const [sortBy,      setSortBy]      = useState('modified')
+  const [search,        setSearch]        = useState('')
+  const [filterPat,     setFilterPat]     = useState('All')
+  const [filterStatus,  setFilterStatus]  = useState('All')
+  const [filterDest,    setFilterDest]    = useState('All')
+  const [filterStudio,  setFilterStudio]  = useState('All')
+  const [sortBy,        setSortBy]        = useState('modified')
 
   // Derived filter options from actual data
   const destinations = useMemo(
@@ -223,10 +248,10 @@ export default function PackLibrary() {
     []
   )
 
-  const isFiltered = search || filterPat !== 'All' || filterStatus !== 'All' || filterDest !== 'All'
+  const isFiltered = search || filterPat !== 'All' || filterStatus !== 'All' || filterDest !== 'All' || filterStudio !== 'All'
 
   const clearFilters = () => {
-    setSearch(''); setFilterPat('All'); setFilterStatus('All'); setFilterDest('All')
+    setSearch(''); setFilterPat('All'); setFilterStatus('All'); setFilterDest('All'); setFilterStudio('All')
   }
 
   const filtered = useMemo(() => {
@@ -239,9 +264,10 @@ export default function PackLibrary() {
         p.triggers.some(t => t.toLowerCase().includes(search.toLowerCase()))
       )
 
-    if (filterPat !== 'All')    list = list.filter(p => p.pattern === filterPat)
-    if (filterStatus !== 'All') list = list.filter(p => p.status  === filterStatus)
-    if (filterDest !== 'All')   list = list.filter(p => p.destination === filterDest)
+    if (filterPat    !== 'All') list = list.filter(p => p.pattern     === filterPat)
+    if (filterStatus !== 'All') list = list.filter(p => p.status      === filterStatus)
+    if (filterDest   !== 'All') list = list.filter(p => p.destination === filterDest)
+    if (filterStudio !== 'All') list = list.filter(p => (p.studio || 'All Studios') === filterStudio)
 
     list.sort((a, b) => {
       if (sortBy === 'name')      return a.name.localeCompare(b.name)
@@ -252,7 +278,7 @@ export default function PackLibrary() {
     })
 
     return list
-  }, [search, filterPat, filterStatus, filterDest, sortBy])
+  }, [search, filterPat, filterStatus, filterDest, filterStudio, sortBy])
 
   // KPI stats
   const totalPacks      = packs.length
@@ -354,6 +380,19 @@ export default function PackLibrary() {
               value={filterDest}
               onChange={e => setFilterDest(e.target.value)}
               options={destinations.map(d => ({ value: d, label: d === 'All' ? 'All Destinations' : d }))}
+            />
+          </div>
+
+          <div className="pl-filter-select">
+            <Select
+              value={filterStudio}
+              onChange={e => setFilterStudio(e.target.value)}
+              options={[
+                { value: 'All',                      label: 'All Studios'              },
+                { value: 'Agentic Studio',           label: 'Agentic Studio'           },
+                { value: 'Helix Governance Studio',  label: 'Helix Governance Studio'  },
+                { value: 'Helix Data Studio',        label: 'Helix Data Studio'        },
+              ]}
             />
           </div>
 

@@ -7,7 +7,7 @@ import {
   List, CheckCircle, AlertTriangle, RefreshCw,
   LayoutDashboard, Clock, Route as RouteIcon, Activity, GraduationCap,
   FileText, CalendarOff, Zap, Shield,
-  Bell, Search, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, User
+  Bell, Search, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, User, Users
 } from 'lucide-react'
 
 import './shell.css'
@@ -37,6 +37,8 @@ import OOOCoverage from './pages/OOOCoverage.jsx'
 import Integrations from './pages/Integrations.jsx'
 import Audit from './pages/Audit.jsx'
 import PackBuilder from './pages/PackBuilder.jsx'
+import Triggers from './pages/Triggers.jsx'
+import TeamsAndQueues from './pages/TeamsAndQueues.jsx'
 
 const NAV = [
   {
@@ -70,6 +72,7 @@ const NAV = [
       { label: 'Routing Log', path: '/reports/routing-log', icon: RouteIcon },
       { label: 'Signals', path: '/reports/signals', icon: Activity },
       { label: 'Train Me', path: '/reports/train-me', icon: GraduationCap, badge: 7 },
+      { label: 'Audit', path: '/settings/audit', icon: Shield },
     ]
   },
   {
@@ -77,8 +80,9 @@ const NAV = [
     items: [
       { label: 'Templates', path: '/settings/templates', icon: FileText },
       { label: 'OOO & Coverage', path: '/settings/ooo', icon: CalendarOff },
-      { label: 'Integrations', path: '/settings/integrations', icon: Zap },
-      { label: 'Audit', path: '/settings/audit', icon: Shield },
+      { label: 'Triggers',       path: '/settings/triggers',  icon: Zap   },
+      { label: 'Teams & Queues', path: '/settings/teams',     icon: Users },
+      { label: 'Integrations',   path: '/settings/integrations', icon: Zap },
       { label: 'Routing', path: '/configure/routing', icon: GitFork },
       { label: 'Destinations', path: '/configure/destinations', icon: Navigation },
       { label: 'Sensitive Signals', path: '/configure/signals', icon: Radio },
@@ -317,6 +321,8 @@ export default function App() {
             <Route path="/reports/train-me" element={<TrainMe />} />
             <Route path="/settings/templates" element={<Templates />} />
             <Route path="/settings/ooo" element={<OOOCoverage />} />
+            <Route path="/settings/triggers" element={<Triggers />} />
+            <Route path="/settings/teams" element={<TeamsAndQueues />} />
             <Route path="/settings/integrations" element={<Integrations />} />
             <Route path="/settings/audit" element={<Audit />} />
           </Routes>

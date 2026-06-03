@@ -53,6 +53,7 @@ export default function Queue() {
   const [activeTab, setActiveTab]     = useState('All')
   const [priorityFilter, setPriority] = useState('All')
   const [shapeFilter, setShape]       = useState('All')
+  const [studioFilter, setStudio]     = useState('All')
   const [sortBy, setSort]             = useState('sla')
 
   // Exclude resolved items from the queue
@@ -72,8 +73,9 @@ export default function Queue() {
     : items.filter(i => getTab(i) === activeTab)
 
   // Secondary filters
-  if (priorityFilter !== 'All') filtered = filtered.filter(i => i.priority === priorityFilter)
-  if (shapeFilter    !== 'All') filtered = filtered.filter(i => i.shape    === shapeFilter)
+  if (priorityFilter !== 'All') filtered = filtered.filter(i => i.priority   === priorityFilter)
+  if (shapeFilter    !== 'All') filtered = filtered.filter(i => i.shape      === shapeFilter)
+  if (studioFilter   !== 'All') filtered = filtered.filter(i => (i.packStudio || 'Agentic Studio') === studioFilter)
 
   // Sort
   const PRIO = { High: 0, Medium: 1, Low: 2 }
@@ -138,6 +140,15 @@ export default function Queue() {
             <option value="TrainMe">Train Me</option>
           </select>
         </div>
+        <div className="iq-filter-group">
+          <label>Studio</label>
+          <select value={studioFilter} onChange={e => setStudio(e.target.value)}>
+            <option value="All">All Studios</option>
+            <option value="Agentic Studio">Agentic Studio</option>
+            <option value="Helix Governance Studio">Helix Governance Studio</option>
+            <option value="Helix Data Studio">Helix Data Studio</option>
+          </select>
+        </div>
         <div className="iq-filter-spacer" />
         <div className="iq-filter-group">
           <label>Sort</label>
@@ -187,6 +198,18 @@ export default function Queue() {
                   <span className={`iq-pattern-badge iq-pattern-badge--${item.pattern === 'Handoff' ? 'handoff' : 'cont'}`}>
                     {item.pattern}
                   </span>
+                  {item.packStudio && (() => {
+                    const sc = {
+                      'Agentic Studio':          { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+                      'Helix Governance Studio': { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+                      'Helix Data Studio':       { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+                    }[item.packStudio] || { bg: 'var(--bg-card-elevated)', border: 'var(--border)', color: 'var(--text-tertiary)' }
+                    return (
+                      <span style={{ fontFamily: 'DM Mono, monospace', fontSize: 10, padding: '2px 6px', borderRadius: 4, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, whiteSpace: 'nowrap' }}>
+                        {item.packStudio}
+                      </span>
+                    )
+                  })()}
                   {(item.customerName || item.requester) && (
                     <>
                       <span className="iq-meta-sep">·</span>

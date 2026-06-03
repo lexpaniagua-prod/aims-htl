@@ -10,7 +10,7 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
@@ -122,12 +122,12 @@ function initDraft(pack) {
       compliance: false,
     },
     fallbackChain: ['Tier 1 Support', 'Tier 2 Support', 'Support Manager'],
-    routingPrimary:       'tier1',
+    routingPrimary:       'team-001',
     routingPrimaryCustom: '',
     routingCondition:     'always',
     routingConditionValue:'',
     routingFallbacks: [
-      { id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 },
+      { id: 1, recipient: 'team-002', customRecipient: '', afterMin: 15 },
     ],
     routingFinalAction: ['requeue'],
     slaStages: [
@@ -140,6 +140,7 @@ function initDraft(pack) {
     coverageHours: '09:00–18:00',
     oooHandling:   'queue',
     jurisdiction:  '',
+    studio:        pack?.studio ?? 'All Studios',
   }
 }
 
@@ -227,15 +228,54 @@ function Step1Pattern({ draft, update }) {
           ))}
         </div>
       </div>
+
+      {/* ── Studio selector ───────────────────────────────── */}
+      <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+          Which studio will use this Pack?
+        </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          {['All Studios', 'Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio'].map(s => {
+            const sel = (draft.studio || 'All Studios') === s
+            const colors = {
+              'Agentic Studio':          { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+              'Helix Governance Studio': { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+              'Helix Data Studio':       { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+              'All Studios':             { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
+            }
+            const c = sel ? colors[s] : { bg: 'var(--bg-card)', border: 'var(--border)', color: 'var(--text-tertiary)' }
+            return (
+              <button
+                key={s}
+                onClick={() => update('studio', s)}
+                style={{
+                  padding: '5px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontFamily: 'DM Mono, monospace',
+                  fontWeight: sel ? 600 : 400,
+                  background: c.bg,
+                  border: `1.5px solid ${c.border}`,
+                  color: c.color,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                {s}
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
 
 // ─── Routing recipient display names (shared between Step 3 and Review) ──────
 const ROUTING_RECIPIENT_NAMES = {
-  tier1:    'Tier 1 Support',
-  tier2:    'Tier 2 Support',
   assigned: 'assigned agent',
+  person:   'assigned person',
+  // team IDs are resolved via RT_RECIPIENTS label lookup
 }
 
 // ─── Step 2: Triggers ────────────────────────────────────────────────────────
@@ -918,11 +958,10 @@ function SearchableSelect({ value, onChange, options, placeholder, className }) 
   )
 }
 
+// Recipients pulled from teamsAndQueues + special options
 const RT_RECIPIENTS = [
-  { id: 'tier1',    label: 'Tier 1 Support Queue' },
-  { id: 'tier2',    label: 'Tier 2 Support Queue' },
-  { id: 'team',     label: 'A specific team',           needsInput: true },
-  { id: 'person',   label: 'A specific person',         needsInput: true },
+  ...teamsAndQueues.filter(t => t.status === 'active').map(t => ({ id: t.id, label: t.name })),
+  { id: 'person',   label: 'A specific person', needsInput: true },
   { id: 'assigned', label: 'The person who triggered this' },
 ]
 
