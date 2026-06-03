@@ -1446,6 +1446,22 @@ export const rosters = [
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. OOO ENTRIES
+export const customSignalClasses = [
+  {
+    id: 'sig-custom-001',
+    name: 'Financial Fraud',
+    description: 'Activated when suspicious financial activity or fraud language is detected.',
+    keywords: ['fraud', 'suspicious transfer', 'unauthorized charge'],
+    minRequired: 2,
+    mandatoryAck: true,
+    priority: 'Critical',
+    members: [],
+    policyAttached: false,
+    status: 'incomplete',
+    isCustom: true,
+  },
+]
+
 // ─────────────────────────────────────────────────────────────────────────────
 export const oooEntries = [
   {
