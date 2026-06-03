@@ -73,7 +73,7 @@ const NAV = [
     ]
   },
   {
-    section: 'Configurations', icon: Settings,
+    section: 'Settings', icon: Settings,
     items: [
       { label: 'Templates', path: '/settings/templates', icon: FileText },
       { label: 'OOO & Coverage', path: '/settings/ooo', icon: CalendarOff },

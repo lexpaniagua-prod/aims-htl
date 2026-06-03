@@ -123,6 +123,62 @@
   padding: 12px 0;
 }
 
+/* Optional steps toggle */
+.pb-nav-opt-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 10px;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+  transition: background 0.1s;
+}
+.pb-nav-opt-toggle:hover { background: var(--bg-row-hover); }
+
+.pb-nav-opt-track {
+  width: 28px;
+  height: 15px;
+  border-radius: 8px;
+  background: var(--border-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.pb-nav-opt-track--on { background: var(--accent-blue); }
+.pb-nav-opt-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s;
+}
+.pb-nav-opt-track--on .pb-nav-opt-knob { transform: translateX(13px); }
+
+.pb-nav-opt-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); flex: 1; text-align: left; }
+.pb-nav-opt-count {
+  font-size: 10px;
+  color: var(--accent-blue);
+  background: var(--accent-blue-dim);
+  border: 1px solid var(--accent-blue-border);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+.pb-nav-opt-count--off {
+  color: var(--text-tertiary);
+  background: var(--bg-card-elevated);
+  border-color: var(--border);
+}
+
 .pb-nav-item {
   display: flex;
   align-items: center;
@@ -670,6 +726,46 @@
   transition: color 0.12s;
 }
 .trig-pill-x:hover { color: var(--accent-coral); }
+
+/* ── AND / OR logic list ────────────────────────────────────────────────── */
+.trig-logic-list { display: flex; flex-direction: column; }
+
+.trig-logic-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 13px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  transition: border-color 0.12s;
+}
+.trig-logic-row:hover { border-color: var(--border-strong); }
+.trig-logic-icon { font-size: 14px; flex-shrink: 0; width: 20px; text-align: center; }
+.trig-logic-lbl  { flex: 1; font-size: 13px; color: var(--text-secondary); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.trig-connector-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 0;
+}
+.trig-connector {
+  padding: 3px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background 0.12s, color 0.12s;
+}
+.trig-connector--or  { background: var(--accent-amber-dim); border-color: var(--accent-amber-border); color: var(--accent-amber); }
+.trig-connector--or:hover  { background: var(--accent-amber); color: #fff; }
+.trig-connector--and { background: var(--accent-blue-dim);  border-color: var(--accent-blue-border);  color: var(--accent-blue); }
+.trig-connector--and:hover { background: var(--accent-blue);  color: #fff; }
+
 .trig-empty {
   font-size: 13px;
   color: var(--text-tertiary);
@@ -1023,7 +1119,24 @@
 }
 .fallback-reorder button:hover { background: var(--bg-card-elevated); color: var(--text-primary); }
 
-/* ── Step 4 — Destination ──────────────────────────────────────────────────── */
+/* ── Step 4 — Destination (toggle rows + notifications) ─────────────────── */
+.dst-locked-row { display:flex; align-items:center; gap:12px; padding:13px 16px; background:var(--accent-teal-dim); border:1px solid var(--accent-teal-border); border-left:3px solid var(--accent-teal); border-radius:10px; margin-bottom:4px; }
+.dst-locked-body { flex:1; display:flex; flex-direction:column; gap:2px; }
+.dst-locked-name { font-size:13px; font-weight:600; color:var(--text-primary); }
+.dst-locked-sub  { font-size:11px; color:var(--text-tertiary); }
+.dst-locked-badge { font-size:11px; font-weight:600; color:var(--accent-teal); background:var(--bg-card-elevated); border:1px solid var(--accent-teal-border); border-radius:20px; padding:3px 10px; flex-shrink:0; }
+.dst-toggle-list { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
+.dst-toggle-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--bg-row); border:1px solid var(--border); border-radius:9px; transition:background 0.12s, border-color 0.12s; }
+.dst-toggle-row--on  { background:var(--accent-blue-dim); border-color:var(--accent-blue-border); }
+.dst-toggle-row--err { background:var(--accent-amber-dim); border-color:var(--accent-amber-border); }
+.dst-toggle-body { flex:1; display:flex; flex-direction:column; gap:2px; }
+.dst-toggle-name { font-size:13px; font-weight:500; color:var(--text-primary); }
+.dst-toggle-meta { font-size:11px; color:var(--text-tertiary); }
+.dst-badge-ok { font-size:11px; font-weight:500; color:var(--accent-teal); flex-shrink:0; background:var(--accent-teal-dim); border:1px solid var(--accent-teal-border); border-radius:6px; padding:2px 8px; }
+.dst-badge-err { display:flex; align-items:center; flex-shrink:0; font-size:11px; font-weight:500; color:var(--accent-coral); background:var(--accent-coral-dim); border:1px solid var(--accent-coral-border); border-radius:6px; padding:2px 8px; }
+.dst-manage-link { font-size:12px; color:var(--text-tertiary); margin-bottom:4px; padding:0 2px; }
+
+/* ── Step 4 — Destination (legacy card styles kept) ─────────────────────── */
 
 /* Inbox — always-on card */
 .dest-inbox-card {
@@ -2305,6 +2418,13 @@
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
 }
+
+/* ── Routing & Response Rules — section chrome ─────────────────────────── */
+.rr-section-label { font-family: "DM Mono", monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 6px; }
+.rr-section-sub   { font-size: 12px; color: var(--text-tertiary); margin-bottom: 14px; line-height: 1.5; }
+.rr-sub-label     { font-size: 13px; font-weight: 600; color: var(--text-primary); margin: 20px 0 10px; }
+.rr-divider { position: relative; border-top: 1px solid var(--border); margin: 28px 0 24px; text-align: center; }
+.rr-divider span { position: relative; top: -9px; background: var(--bg-app); padding: 0 10px; font-family: "DM Mono", monospace; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-tertiary); }
 
 .pb-overview-kv {
   padding: 14px 16px;

@@ -10,26 +10,24 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks, agents, packAgentBindings, packWorkflowBindings } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
 const STEPS = [
-  { id: 1,  label: 'Pattern'           },
-  { id: 2,  label: 'Triggers'          },
-  { id: 3,  label: 'Routing Logic'     },
-  { id: 4,  label: 'Destination'       },
-  { id: 5,  label: 'Handoff Packet'    },
-  { id: 6,  label: 'Composer Scope'    },
-  { id: 7,  label: 'Macros'            },
-  { id: 8,  label: 'Escalation Policy' },
-  { id: 9,  label: 'Sensitive Signals' },
-  { id: 10, label: 'Notifications'     },
-  { id: 11, label: 'SLA'               },
-  { id: 12, label: 'Availability', note: 'Optional' },
-  { id: 13, label: 'Jurisdiction'      },
-  { id: 14, label: 'Test & Preview'    },
-  { id: 15, label: 'Review & Publish'  },
+  { id: 1,  label: 'Pattern'            },
+  { id: 2,  label: 'Triggers'           },
+  { id: 3,  label: 'Routing & Response' },
+  { id: 4,  label: 'Destination'        },
+  { id: 5,  label: 'Handoff Packet'     },
+  { id: 6,  label: 'Composer Scope'     },
+  { id: 7,  label: 'Macros',             note: 'Optional' },
+  { id: 8,  label: 'Sensitive Signals'  },
+  { id: 9,  label: 'Notifications',     hidden: true },
+  { id: 10, label: 'Availability',      note: 'Optional' },
+  { id: 11, label: 'Jurisdiction',      note: 'Optional' },
+  { id: 12, label: 'Test & Preview',    note: 'Optional' },
+  { id: 13, label: 'Review & Publish'   },
 ]
 
 // ─── Module-scope constants ───────────────────────────────────────────────────
@@ -132,6 +130,10 @@ function initDraft(pack) {
       { id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 },
     ],
     routingFinalAction: ['requeue'],
+    slaStages: [
+      { id: 1, delayMinutes: 0,  delayUnit: 'minutes', action: 'escalate_next',  customTeam: '' },
+      { id: 2, delayMinutes: 30, delayUnit: 'minutes', action: 'notify_manager', customTeam: '' },
+    ],
     requireAck:    false,
     allowReassign: true,
     coverageZone:  'US-East',
@@ -297,10 +299,48 @@ function Step2Triggers({ draft, update }) {
   const [advMode,       setAdvMode]       = useState(false)
   const [advText,       setAdvText]       = useState('')
 
+  const [showGroupNote, setShowGroupNote] = useState(false)
+
   const toggleExpand    = id => setExpanded(e => ({ ...e, [id]: !e[id] }))
   const toggleEvent     = id => setSelEvents(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
-  const removeTrigger   = id => update('triggers', draft.triggers.filter(t => t.id !== id))
   const hasByType       = type => draft.triggers.some(t => t.type === type)
+
+  // Remove trigger — ensure last item has no connector
+  const removeTrigger = id => {
+    const next = draft.triggers.filter(t => t.id !== id)
+    if (next.length > 0) next[next.length - 1] = { ...next[next.length - 1], connector: null }
+    update('triggers', next)
+  }
+
+  // Toggle AND ↔ OR on a connector between triggers
+  const toggleConnector = id =>
+    update('triggers', draft.triggers.map(t =>
+      t.id === id ? { ...t, connector: (t.connector || 'OR') === 'OR' ? 'AND' : 'OR' } : t
+    ))
+
+  // Generate plain-language summary from triggers + their connectors
+  const buildLogicSummary = ts => {
+    if (ts.length === 0) return ''
+    if (ts.length === 1) return 'This Pack fires when ' + (ts[0].label || ts[0].value) + '.'
+    const labels = ts.map(t => t.label || t.value)
+    const conns  = ts.slice(0, -1).map(t => t.connector || 'OR')
+    const allAnd = conns.every(c => c === 'AND')
+    const allOr  = conns.every(c => c === 'OR')
+    if (allOr) {
+      const last = labels.pop()
+      return 'This Pack fires when ' + labels.join(', ') + ', OR ' + last + '.'
+    }
+    if (allAnd) {
+      const last = labels.pop()
+      return 'This Pack fires only when all of these are true: ' + labels.join(', ') + ', AND ' + last + '.'
+    }
+    // Mixed — inline connectors
+    return 'This Pack fires when ' + ts.map((t, i) =>
+      (t.label || t.value) + (t.connector ? ' ' + t.connector + ' ' : '')
+    ).join('').trim() + '.'
+  }
+
+  const TRIG_ICONS = { behavior: '💬', confidence: '🤖', score: '📊', event: '⚡', advanced: '✏️' }
 
   // ── Label generators ───────────────────────────────────────────────────────
   const behaviorLabel = (sel, custom) => ({
@@ -349,7 +389,15 @@ function Step2Triggers({ draft, update }) {
       label  = eventLabel(selEvents, evStatus, evTag, evCustom)
       config = { events: [...selEvents], evStatus, evTag, evCustom }
     }
-    update('triggers', [...draft.triggers, { id: Date.now(), type, label, value: label, ...config }])
+    // Give the current last trigger an OR connector before appending the new one
+    const existing = draft.triggers.length > 0
+      ? draft.triggers.map((t, i) =>
+          i === draft.triggers.length - 1 && t.connector == null
+            ? { ...t, connector: 'OR' }
+            : t
+        )
+      : draft.triggers
+    update('triggers', [...existing, { id: Date.now(), type, label, value: label, connector: null, ...config }])
   }
 
   return (
@@ -573,26 +621,74 @@ function Step2Triggers({ draft, update }) {
         )
       })}
 
-      {/* ── Active triggers summary ────────────────────────────────────── */}
+      {/* ── Active triggers — structured logic list ───────────────────── */}
       <div className="trig-summary">
         {draft.triggers.length > 0 ? (
           <>
-            <div className="trig-summary-lbl">This Pack fires when any of these are true:</div>
-            <div className="trig-pills">
-              {draft.triggers.map(t => (
-                <div key={t.id} className="trig-pill">
-                  <span className="trig-pill-txt">{t.label || t.value}</span>
-                  <button className="trig-pill-x" onClick={() => removeTrigger(t.id)}>
-                    <X size={11} />
-                  </button>
-                </div>
-              ))}
+            <div className="trig-summary-lbl">
+              {draft.triggers.slice(0,-1).every(t => (t.connector||'OR')==='AND')
+                ? 'This Pack fires only when ALL of these are true:'
+                : 'This Pack fires when any of these match:'}
+            </div>
+            <div className="trig-logic-list">
+              {draft.triggers.map((t, i) => {
+                const isLast = i === draft.triggers.length - 1
+                const conn   = (t.connector || 'OR')
+                return (
+                  <div key={t.id}>
+                    <div className="trig-logic-row">
+                      <span className="trig-logic-icon">{TRIG_ICONS[t.type] || '⚡'}</span>
+                      <span className="trig-logic-lbl">{t.label || t.value}</span>
+                      <button className="trig-pill-x" onClick={() => removeTrigger(t.id)}>
+                        <X size={11} />
+                      </button>
+                    </div>
+                    {!isLast && (
+                      <div className="trig-connector-wrap">
+                        <button
+                          className={`trig-connector trig-connector--${conn.toLowerCase()}`}
+                          onClick={() => toggleConnector(t.id)}
+                          title="Click to toggle AND / OR"
+                        >
+                          {conn}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+            {/* Plain-language summary */}
+            <div className="rt-summary" style={{ marginTop: 10, padding: '10px 13px' }}>
+              <Info size={12} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 2 }} />
+              <span className="rt-summary-txt" style={{ fontSize: 12 }}>
+                {buildLogicSummary(draft.triggers)}
+              </span>
             </div>
           </>
         ) : (
           <div className="trig-empty">Add at least one trigger above to continue.</div>
         )}
       </div>
+
+      {/* ── Add trigger group (shown when 2+ triggers) ────────────────── */}
+      {draft.triggers.length >= 2 && (
+        <div className="trig-adv-row" style={{ marginBottom: 0 }}>
+          <button className="trig-adv-link" onClick={() => setShowGroupNote(g => !g)}>
+            {showGroupNote ? '↑ Hide grouping' : '+ Add trigger group'}
+          </button>
+        </div>
+      )}
+      {showGroupNote && (
+        <div className="trig-adv-panel" style={{ marginBottom: 8 }}>
+          <div className="trig-field-label" style={{ marginBottom: 6 }}>Grouping (advanced)</div>
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
+            Groups let you apply higher-level logic — e.g.{' '}
+            <em>(customer asks to cancel <strong>AND</strong> CSAT &lt; 3) <strong>OR</strong> AI confidence &lt; 60%</em>.
+            Use the AND / OR connectors above for most cases. Grouped logic is available in a future update.
+          </div>
+        </div>
+      )}
 
       {/* ── Advanced mode ─────────────────────────────────────────────── */}
       <div className="trig-adv-row">
@@ -623,6 +719,146 @@ function Step2Triggers({ draft, update }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Merged: Routing & Response Rules ──────────────────────────────────────────
+function StepRoutingResponse({ draft, update }) {
+  const primary       = draft.routingPrimary        || "tier1"
+  const primaryCustom = draft.routingPrimaryCustom  || ""
+  const condition     = draft.routingCondition      || "always"
+  const condValue     = draft.routingConditionValue || ""
+  const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: "tier2", customRecipient: "", afterMin: 15 }]
+  const finalAction   = Array.isArray(draft.routingFinalAction) ? draft.routingFinalAction : [draft.routingFinalAction || "requeue"]
+  const stages        = draft.slaStages || [{ id:1,delayMinutes:0,delayUnit:"minutes",action:"escalate_next",customTeam:"" },{ id:2,delayMinutes:30,delayUnit:"minutes",action:"notify_manager",customTeam:"" }]
+  const hours         = Math.floor(draft.slaMinutes / 60)
+  const mins          = draft.slaMinutes % 60
+  const [hasResTarget,setHasResTarget] = useState(false)
+  const [resHours,setResHours]         = useState(4)
+  const [resMins,setResMins]           = useState(0)
+
+  const setStages   = s => update("slaStages", s)
+  const addStage    = () => setStages([...stages,{ id: stages.reduce((m,s)=>Math.max(m,s.id),0)+1, delayMinutes:60, delayUnit:"minutes", action:"notify_senior", customTeam:"" }])
+  const removeStage = id => setStages(stages.filter(s=>s.id!==id))
+  const updateStage = (id,k,v) => setStages(stages.map(s=>s.id===id?{...s,[k]:v}:s))
+  const rName = (id,custom) => ROUTING_RECIPIENT_NAMES[id]||custom||RT_RECIPIENTS.find(r=>r.id===id)?.label||id
+  const toMin = s => s.delayUnit==="hours"?s.delayMinutes*60:s.delayMinutes
+  const fmtMin= m => m>=1440?(m/1440).toFixed(1)+"d":m>=60?(m/60).toFixed(1)+"h":m+"m"
+  const setPrimary       = v => update("routingPrimary",v)
+  const setPrimaryCustom = v => update("routingPrimaryCustom",v)
+  const setCondition     = v => update("routingCondition",v)
+  const setCondValue     = v => update("routingConditionValue",v)
+  const setFallbacks     = fb => { update("routingFallbacks",fb); update("fallbackChain",fb.map(f=>rName(f.recipient,f.customRecipient))) }
+  const toggleFinalAction = v => { const next=finalAction.includes(v)?finalAction.filter(x=>x!==v):[...finalAction,v]; if(next.length>0)update("routingFinalAction",next) }
+  const setHoursF = h => update("slaMinutes",Math.max(0,parseInt(h)||0)*60+mins)
+  const setMinsF  = m => update("slaMinutes",hours*60+Math.min(59,Math.max(0,parseInt(m)||0)))
+  const moveFallback   = (i,dir) => { const a=[...fallbacks];const j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];setFallbacks(a) }
+  const addFallback    = () => setFallbacks([...fallbacks,{ id:fallbacks.reduce((m,f)=>Math.max(m,f.id),0)+1, recipient:"tier2", customRecipient:"", afterMin:30 }])
+  const removeFallback = id => setFallbacks(fallbacks.filter(f=>f.id!==id))
+  const updateFallback = (id,k,v) => setFallbacks(fallbacks.map(f=>f.id===id?{...f,[k]:v}:f))
+  const primaryOpt = RT_RECIPIENTS.find(r=>r.id===primary)
+  const condOpt    = RT_CONDITIONS.find(c=>c.id===condition)
+  const humanWindow = m => { const h=Math.floor(m/60),mn=m%60; return [h>0&&(h+" hour"+(h!==1?"s":"")),mn>0&&(mn+" minute"+(mn!==1?"s":""))].filter(Boolean).join(" and ")||"immediately" }
+  const buildSummary = () => { let s="This item goes to "+rName(primary,primaryCustom)+" first."; for(const fb of fallbacks)s+=" If no one responds in "+fmtMin(fb.afterMin)+"m, it moves to "+rName(fb.recipient,fb.customRecipient)+"."; const m={requeue:"the next available agent handles it",notify:"the team manager is notified",slack:"a lightweight alert is sent",wait:"the item stays open"}; s+=" If still unhandled: "+finalAction.map(a=>m[a]).filter(Boolean).join(", and ")+"."; return s }
+  const stageTimes = stages.reduce((acc,s,i)=>{ const cum=i===0?draft.slaMinutes:acc[i-1].cumMin+toMin(s); return [...acc,{...s,cumMin:cum}] },[])
+  const TL_COLORS = SLA_STAGE_COLORS
+  const inputSty = {width:64,padding:"6px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--bg-input)",color:"var(--text-primary)",fontSize:14,fontFamily:"DM Mono",textAlign:"center"}
+
+  return (
+    <div>
+      <div className="pb-step-header">
+        <div className="pb-step-title">Routing &amp; Response Rules</div>
+        <div className="pb-step-desc">Define who receives this item, how long they have to act, and what happens automatically if they don't.</div>
+      </div>
+
+      <div className="rr-section-label">WHO GETS THIS ITEM?</div>
+      <div className="rt-block">
+        <div className="rt-block-label">Send this item to</div>
+        <div className="rt-primary-row">
+          <select className="rt-sel rt-sel--lg" value={primary} onChange={e=>setPrimary(e.target.value)}>
+            {RT_RECIPIENTS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+          </select>
+          {primaryOpt?.needsInput&&<SearchableSelect value={primaryCustom} onChange={setPrimaryCustom} options={primary==="team"?RT_TEAMS:RT_PERSONS} placeholder={primary==="team"?"Search team…":"Search person…"}/>}
+        </div>
+        <div className="rt-condition-row">
+          <span className="rt-cond-prefix">Only if</span>
+          <select className="rt-sel" value={condition} onChange={e=>setCondition(e.target.value)}>{RT_CONDITIONS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select>
+          {condOpt?.needsInput&&<input className="rt-text-input rt-text-input--sm" placeholder="value…" value={condValue} onChange={e=>setCondValue(e.target.value)}/>}
+          {condOpt?.needsSelect&&<select className="rt-sel" value={condValue||condOpt.needsSelect[0]} onChange={e=>setCondValue(e.target.value)}>{condOpt.needsSelect.map(v=><option key={v}>{v}</option>)}</select>}
+        </div>
+      </div>
+
+      <div className="rr-sub-label">If they're unavailable or don't respond in time, try:</div>
+      <div className="rt-fallbacks">
+        {fallbacks.map((fb,i)=>{ const fbOpt=RT_RECIPIENTS.find(r=>r.id===fb.recipient); return (
+          <div key={fb.id} className="rt-fb-card">
+            <div className="rt-fb-num">{i+1}</div>
+            <div className="rt-fb-reorder"><button className="rt-reorder-btn" onClick={()=>moveFallback(i,-1)} disabled={i===0}><ArrowUp size={11}/></button><button className="rt-reorder-btn" onClick={()=>moveFallback(i,1)} disabled={i===fallbacks.length-1}><ArrowDown size={11}/></button></div>
+            <div className="rt-fb-body">
+              <select className="rt-sel" value={fb.recipient} onChange={e=>updateFallback(fb.id,"recipient",e.target.value)}>{RT_RECIPIENTS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select>
+              {fbOpt?.needsInput&&<SearchableSelect key={fb.recipient} value={fb.customRecipient} onChange={val=>updateFallback(fb.id,"customRecipient",val)} options={fb.recipient==="team"?RT_TEAMS:RT_PERSONS} placeholder={fb.recipient==="team"?"Search team…":"Search person…"} className="rt-text-input--sm"/>}
+              <span className="rt-after-lbl">then try next after</span>
+              <select className="rt-sel" value={fb.afterMin} onChange={e=>updateFallback(fb.id,"afterMin",Number(e.target.value))}>{RT_TIMEOUTS.map(t=><option key={t} value={t}>{t} min</option>)}</select>
+            </div>
+            <button className="rt-remove-btn" onClick={()=>removeFallback(fb.id)} title="Remove"><X size={13}/></button>
+          </div>
+        )})}
+        <button className="rt-add-fb" onClick={addFallback}><Plus size={13}/> Add another fallback</button>
+      </div>
+
+      <div className="rr-sub-label">If nobody responds after all fallbacks:</div>
+      <div className="rt-final-opts">
+        {RT_FINAL_ACTIONS.map(a=>{ const on=finalAction.includes(a.id); return (
+          <label key={a.id} className="rt-final-row" onClick={()=>toggleFinalAction(a.id)}>
+            <div className={"rt-check"+(on?" rt-check--on":"")}>{on&&<Check size={9} color="#fff" strokeWidth={3}/>}</div>
+            <span className="rt-final-lbl">{a.label}</span>
+          </label>
+        )})}
+      </div>
+      <div className="rt-summary"><Info size={13} className="rt-summary-icon"/><span className="rt-summary-txt">{buildSummary()}</span></div>
+
+      <div className="rr-divider"><span>RESPONSE WINDOW</span></div>
+      <div className="rr-section-label">HOW LONG DOES EACH PERSON HAVE?</div>
+      <div className="rr-section-sub">This is the total time window for this item to be resolved — not the time per fallback. Fallback timeouts are defined above.</div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={hours} min={0} max={168} onChange={e=>setHoursF(e.target.value)} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>h</span></div>
+        <div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={mins}  min={0} max={59}  onChange={e=>setMinsF(e.target.value)}  style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>min</span></div>
+        <span style={{fontSize:12,color:"var(--accent-blue)",fontFamily:"DM Mono",background:"var(--accent-blue-dim)",border:"1px solid var(--accent-blue-border)",borderRadius:4,padding:"3px 8px"}}>= {fmtMin(draft.slaMinutes)}</span>
+      </div>
+      <div className="sla-echo">Agents have <strong>{humanWindow(draft.slaMinutes)}</strong> total to resolve items from this Pack.</div>
+      <label className="sla-res-toggle"><input type="checkbox" checked={hasResTarget} onChange={e=>setHasResTarget(e.target.checked)} style={{accentColor:"var(--accent-blue)",marginRight:6}}/>Set a resolution target (optional)</label>
+      {hasResTarget&&(<div className="sla-res-target"><div style={{fontSize:12,color:"var(--text-tertiary)",marginBottom:10}}>How long can the full interaction take before it's overdue?</div><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={resHours} min={0} max={168} onChange={e=>setResHours(Math.max(0,parseInt(e.target.value)||0))} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>h</span></div><div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={resMins} min={0} max={59} onChange={e=>setResMins(Math.min(59,Math.max(0,parseInt(e.target.value)||0)))} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>min</span></div><span style={{fontSize:12,color:"var(--accent-purple)",fontFamily:"DM Mono",background:"var(--accent-purple-dim)",border:"1px solid var(--accent-purple-border)",borderRadius:4,padding:"3px 8px"}}>= {fmtMin(resHours*60+resMins)}</span></div></div>)}
+
+      <div className="rr-divider"><span>IF TIME RUNS OUT</span></div>
+      <div className="rr-section-label">WHAT HAPPENS AUTOMATICALLY IF TIME RUNS OUT?</div>
+      <div className="rr-section-sub">These actions fire on their own — no one needs to do anything. They run in order, one stage at a time.</div>
+      <div className="sla-stages">
+        {stages.map((stage,i)=>{ const isFirst=i===0;const isLast=i===stages.length-1;const color=TL_COLORS[Math.min(i,TL_COLORS.length-1)];const actionOpt=SLA_ACTIONS.find(a=>a.id===stage.action); return (
+          <div key={stage.id} className="sla-stage">
+            {!isLast&&<div className="sla-stage-line"/>}
+            <div className="sla-stage-card">
+              <div className="sla-stage-hdr">
+                <div className="sla-stage-badge" style={{background:color}}>{i+1}</div>
+                <div className="sla-stage-hdr-txt">{isFirst?(<span style={{fontSize:13}}><strong style={{color:"var(--text-primary)"}}>At the response window deadline</strong><span style={{color:"var(--text-tertiary)"}}> — when the total window expires</span></span>):(<span style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontSize:13,color:"var(--text-secondary)"}}>If still unresolved after<input type="number" value={stage.delayMinutes} min={1} max={10080} onChange={e=>updateStage(stage.id,"delayMinutes",Math.max(1,parseInt(e.target.value)||1))} style={{...inputSty,width:52,fontSize:13,padding:"4px 8px"}}/><select className="rt-sel rt-sel--sm" value={stage.delayUnit} onChange={e=>updateStage(stage.id,"delayUnit",e.target.value)}><option value="minutes">minutes</option><option value="hours">hours</option></select>from Stage {i}:</span>)}</div>
+                {!isFirst&&<button className="sla-stage-rm" onClick={()=>removeStage(stage.id)}><X size={12}/></button>}
+              </div>
+              <div className="sla-stage-action"><span style={{fontSize:12,color:"var(--text-tertiary)",flexShrink:0}}>Action:</span><select className="rt-sel" value={stage.action} onChange={e=>updateStage(stage.id,"action",e.target.value)} style={{flex:1}}>{SLA_ACTIONS.filter(a=>i>0||a.id!=="notify_senior").map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select>{actionOpt?.needsInput&&<input className="trig-text-input trig-text-input--sm" placeholder="Team name…" value={stage.customTeam} onChange={e=>updateStage(stage.id,"customTeam",e.target.value)}/>}</div>
+              {isLast&&stages.length>1&&<div className="sla-stage-final">⚠ Final action — if this fires, the item is critically overdue</div>}
+            </div>
+          </div>
+        )})}
+        <button className="sla-add-stage" onClick={addStage}><Plus size={13}/> Add another stage</button>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
+        {[{key:"requireAck",label:"Start the response clock only after the agent accepts the item",hint:"Useful when agents need time to review before the clock starts."},{key:"allowReassign",label:"Let agents pass this item to a colleague themselves",hint:"Agents can transfer without waiting for a manager."}].map(opt=>(
+          <div key={opt.key} className="ep-toggle-row"><div><div className="ep-toggle-label">{opt.label}</div><div className="ep-toggle-hint">{opt.hint}</div></div><Toggle on={!!draft[opt.key]} onChange={val=>update(opt.key,val)}/></div>
+        ))}
+      </div>
+      <div className="sla-tl-preview">
+        <div className="sla-tl-item"><div className="sla-tl-dot" style={{borderColor:"var(--border-strong)",color:"var(--text-tertiary)"}}>0:00</div><div className="sla-tl-lbl">Item arrives</div></div>
+        {stageTimes.map((s,i)=>{ const color=TL_COLORS[Math.min(i,TL_COLORS.length-1)]; return (<span key={s.id} style={{display:"contents"}}><div className="sla-tl-track" style={{background:color+"44"}}/><div className="sla-tl-item"><div className="sla-tl-dot" style={{borderColor:color,background:color+"22",color}}>{i===0?fmtMin(s.cumMin):"+"+fmtMin(toMin(s))}</div><div className="sla-tl-lbl" style={{color}}>{i===0?"Response window":"Stage "+(i+1)}</div></div></span>) })}
+      </div>
     </div>
   )
 }
@@ -939,92 +1175,179 @@ const DEST_ADDONS = [
   },
 ]
 
-function parseDestAddons(dest) {
-  const addons = []
-  if (dest?.includes('Lightweight')) addons.push('lightweight')
-  if (dest?.includes('External'))    addons.push('external')
-  return addons
-}
-
-function buildDestLabel(addons) {
-  const parts = ['Inbox']
-  if (addons.includes('lightweight')) parts.push('Lightweight')
-  if (addons.includes('external'))    parts.push('External')
-  return parts.join(' + ')
-}
-
 function Step4Destination({ draft, update }) {
-  const [addons, setAddons] = useState(() => parseDestAddons(draft.destination))
+  // Integration toggles
+  const [intToggles,  setIntToggles]  = useState({})
+  // Lightweight channel toggles
+  const [chanToggles, setChanToggles] = useState({})
+  // Notification event toggles (absorbed from Step 10)
+  const [notifOn,     setNotifOn]     = useState({ notifyOnAssign: true, notifyOnSlaBreach: true, notifyOnResolve: false })
+  // Notification channel toggles
+  const [notifCh,     setNotifCh]     = useState({ email: true, slack: false, inApp: true, sms: false })
 
-  const toggle = id => {
-    const next = addons.includes(id)
-      ? addons.filter(a => a !== id)
-      : [...addons, id]
-    setAddons(next)
-    update('destination', buildDestLabel(next))
+  const toggleInt  = id => setIntToggles(p  => ({ ...p,  [id]: !p[id]  }))
+  const toggleChan = id => setChanToggles(p => ({ ...p,  [id]: !p[id]  }))
+  const toggleNotifEv = k => setNotifOn(p   => ({ ...p,  [k]:  !p[k]   }))
+  const toggleNotifCh = k => setNotifCh(p   => ({ ...p,  [k]:  !p[k]   }))
+
+  const activeCh = Object.entries(notifCh).filter(([,v]) => v).map(([k]) =>
+    ({ email: 'Email', slack: 'Slack', inApp: 'In-app', sms: 'SMS' }[k])
+  )
+
+  const fmtSync = iso => {
+    const diff = (+new Date(iso) ? (new Date()).getTime() - (new Date(iso)).getTime() : 0)
+    const m = Math.floor(diff / 60000)
+    if (m < 60) return m + 'm ago'
+    const h = Math.floor(m / 60)
+    if (h < 24) return h + 'h ago'
+    return Math.floor(h / 24) + 'd ago'
   }
+
+  const NOTIF_EVENTS = [
+    { key: 'notifyOnAssign',    label: 'On assignment',  hint: 'Notify the agent when this item lands in their queue', Icon: Bell       },
+    { key: 'notifyOnSlaBreach', label: 'On SLA breach',  hint: 'Alert agent and supervisor when time runs out',        Icon: Clock      },
+    { key: 'notifyOnResolve',   label: 'On resolution',  hint: 'Confirm to the originating agent when closed',         Icon: CheckCircle},
+  ]
+
+  const NOTIF_CHANNELS = [
+    { key: 'email',  label: 'Email'   },
+    { key: 'slack',  label: 'Slack'   },
+    { key: 'inApp',  label: 'In-app'  },
+    { key: 'sms',    label: 'SMS'     },
+  ]
 
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Choose Destination</div>
+        <div className="pb-step-title">Where should this item be delivered?</div>
         <div className="pb-step-desc">
-          Items always land in the Inbox. Optionally add lightweight or external delivery on top.
+          Inbox is always on. Add any active integration or channel on top of it.
         </div>
       </div>
 
       {/* ── Inbox — always on ──────────────────────────────── */}
-      <div className="dest-inbox-card">
-        <div className="dest-inbox-left">
-          <span className="dest-inbox-emoji">📥</span>
-          <div>
-            <div className="dest-inbox-name">Inbox</div>
-            <div className="dest-inbox-desc">Full agent UI with reply, close, and reassign actions. Always included.</div>
-          </div>
+      <div className="dst-locked-row">
+        <Lock size={13} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
+        <div className="dst-locked-body">
+          <span className="dst-locked-name">Inbox — AIMS</span>
+          <span className="dst-locked-sub">Every item lands in the agent's Inbox. Cannot be disabled.</span>
         </div>
-        <div className="dest-inbox-check">
-          <Check size={11} strokeWidth={3} />
-          Always on
-        </div>
+        <span className="dst-locked-badge">Always on</span>
       </div>
 
-      {/* ── Optional add-ons ───────────────────────────────── */}
-      <div className="dest-addons-label">Also deliver to <span>(optional — select none, one, or both)</span></div>
-      <div className="dest-addons-grid">
-        {DEST_ADDONS.map(d => {
-          const on = addons.includes(d.id)
+      {/* ── Active integrations ────────────────────────────── */}
+      <div className="pb-section-label" style={{ marginTop: 20 }}>Active Integrations</div>
+      <div className="dst-toggle-list">
+        {integrations.map(int => {
+          const on  = !!intToggles[int.id]
+          const err = int.status === 'error'
           return (
-            <div
-              key={d.id}
-              className={`dest-addon-card${on ? ' dest-addon-card--on' : ''}`}
-              onClick={() => toggle(d.id)}
-            >
-              <div className="dest-addon-top">
-                <span className="dest-addon-emoji">{d.emoji}</span>
-                <div className={`dest-addon-check${on ? ' dest-addon-check--on' : ''}`}>
-                  {on && <Check size={9} color="#fff" strokeWidth={3} />}
-                </div>
+            <div key={int.id} className={`dst-toggle-row${on ? ' dst-toggle-row--on' : ''}${err ? ' dst-toggle-row--err' : ''}`}>
+              <Toggle on={on && !err} onChange={() => !err && toggleInt(int.id)} />
+              <div className="dst-toggle-body">
+                <span className="dst-toggle-name">{int.name}</span>
+                <span className="dst-toggle-meta">{int.type} · Last sync {fmtSync(int.lastSync)}</span>
               </div>
-              <div className="dest-addon-name">{d.name}</div>
-              <div className="dest-addon-desc">{d.desc}</div>
+              {err ? (
+                <div className="dst-badge-err">
+                  <span>Error</span>
+                  <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link" style={{ marginLeft: 6, fontSize: 11 }}>Fix →</a>
+                </div>
+              ) : (
+                <span className="dst-badge-ok">Connected ✓</span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+      <div className="dst-manage-link">
+        Don't see an integration?{' '}
+        <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link">Manage integrations →</a>
+      </div>
+
+      {/* ── Lightweight channels ──────────────────────────── */}
+      <div className="pb-section-label" style={{ marginTop: 20 }}>Lightweight Channels</div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+        Deliver a message directly via these channels. Recipients don't need to log into AIMS.
+      </div>
+      <div className="dst-toggle-list">
+        {lightweightChannels.map(ch => {
+          const on = !!chanToggles[ch.id]
+          return (
+            <div key={ch.id} className={`dst-toggle-row${on ? ' dst-toggle-row--on' : ''}`}>
+              <Toggle on={on} onChange={() => toggleChan(ch.id)} />
+              <div className="dst-toggle-body">
+                <span className="dst-toggle-name">{ch.name}</span>
+                <span className="dst-toggle-meta">{ch.activePacks > 0 ? `${ch.activePacks} packs active` : '—'}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="dst-manage-link">
+        Don't see a channel?{' '}
+        <a href="/aims-htl/settings/channels" target="_blank" rel="noopener" className="av-link">Manage channels →</a>
+      </div>
+
+      {/* ── Notifications (absorbed) ──────────────────────── */}
+      <div className="rr-divider"><span>NOTIFICATIONS</span></div>
+      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        Choose which events alert the assigned agent, and through which channels.
+      </div>
+
+      {/* Event toggles */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        {NOTIF_EVENTS.map(({ key, label, hint, Icon }) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', background: 'var(--bg-row)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+                <Icon size={14} />
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{hint}</div>
+              </div>
+            </div>
+            <Toggle on={notifOn[key]} onChange={() => toggleNotifEv(key)} />
+          </div>
+        ))}
+      </div>
+
+      {/* Channel toggles */}
+      <div className="pb-section-label">Deliver via</div>
+      <div className="pb-2col" style={{ marginBottom: 12 }}>
+        {NOTIF_CHANNELS.map(ch => {
+          const on = notifCh[ch.key]
+          return (
+            <div key={ch.key} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '10px 14px',
+              background: on ? 'var(--accent-teal-dim)' : 'var(--bg-row)',
+              border: `1px solid ${on ? 'var(--accent-teal-border)' : 'var(--border)'}`,
+              borderRadius: 8, transition: 'background 0.15s, border-color 0.15s',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: on ? 500 : 400, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                {ch.label}
+                {on && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-teal)', background: 'var(--accent-teal-dim)', border: '1px solid var(--accent-teal-border)', borderRadius: 10, padding: '1px 6px' }}>✓ ON</span>}
+              </span>
+              <Toggle on={on} onChange={() => toggleNotifCh(ch.key)} />
             </div>
           )
         })}
       </div>
 
-      {/* ── Active destination summary ─────────────────────── */}
-      <div className="dest-summary">
-        <span className="dest-summary-label">Active destination:</span>
-        <span className="dest-summary-value">{buildDestLabel(addons)}</span>
-      </div>
-
-      {/* ── Conditional banners ────────────────────────────── */}
-      {addons.includes('external') && (
-        <div className="pb-banner pb-banner--warning">
-          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <div>
-            <strong>External routing also fires for each item.</strong> Ensure the target webhook is configured under <strong>Settings → Integrations</strong> before activating.
-          </div>
+      {/* Live echo */}
+      {activeCh.length > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
+          <span>Notifications will be sent via:</span>
+          {activeCh.map(c => (
+            <span key={c} style={{ padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: 'var(--accent-teal-dim)', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal-border)' }}>{c}</span>
+          ))}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-amber)' }}>
+          <AlertTriangle size={12} />
+          No channels selected — agents won't be notified.
         </div>
       )}
     </div>
@@ -2912,10 +3235,26 @@ function VersionsTab({ draft }) {
 }
 
 // ─── Step navigator ───────────────────────────────────────────────────────────
-function StepNav({ current, visited, onGoto }) {
+const VISIBLE_STEPS = STEPS.filter(s => !s.hidden)
+
+function StepNav({ current, visited, onGoto, steps, showOptional, optionalCount, onToggleOptional }) {
+  const navSteps = steps ?? VISIBLE_STEPS
   return (
     <div className="pb-nav">
-      {STEPS.map(s => {
+      {/* Optional toggle */}
+      <button className="pb-nav-opt-toggle" onClick={onToggleOptional}>
+        <span className={`pb-nav-opt-track${showOptional ? ' pb-nav-opt-track--on' : ''}`}>
+          <span className="pb-nav-opt-knob" />
+        </span>
+        <span className="pb-nav-opt-label">
+          {showOptional ? 'All steps' : 'Core steps only'}
+        </span>
+        <span className={`pb-nav-opt-count${!showOptional ? ' pb-nav-opt-count--off' : ''}`}>
+          {showOptional ? `${optionalCount} optional` : `+${optionalCount} hidden`}
+        </span>
+      </button>
+
+      {navSteps.map((s, idx) => {
         const isActive   = current === s.id
         const isComplete = visited.has(s.id) && !isActive
         let cls = 'pb-nav-item'
@@ -2924,7 +3263,7 @@ function StepNav({ current, visited, onGoto }) {
         return (
           <div key={s.id} className={cls} onClick={() => onGoto(s.id)}>
             <div className="pb-nav-node">
-              {isComplete ? <Check size={10} strokeWidth={3} /> : s.id}
+              {isComplete ? <Check size={10} strokeWidth={3} /> : idx + 1}
             </div>
             <div className="pb-nav-label-wrap">
               <span className="pb-nav-label">{s.label}</span>
@@ -2965,10 +3304,16 @@ export default function PackBuilder() {
     }
   }
 
-  const [draft,   setDraft]   = useState(() => initDraft(sourcePack))
-  const [step,    setStep]    = useState(1)
-  const [visited, setVisited] = useState(new Set([1]))
-  const [toast,   setToast]   = useState(null)
+  const [draft,        setDraft]        = useState(() => initDraft(sourcePack))
+  const [step,         setStep]         = useState(1)
+  const [visited,      setVisited]      = useState(new Set([1]))
+  const [toast,        setToast]        = useState(null)
+  const [showOptional, setShowOptional] = useState(true)
+
+  // Steps visible in nav + respected by Back/Next
+  const activeSteps = VISIBLE_STEPS.filter(s => showOptional || !s.note)
+  const optionalCount = VISIBLE_STEPS.filter(s => !!s.note).length
+  const isStepActive  = s => !s.hidden && (showOptional || !s.note)
 
   const update       = (key, val) => setDraft(d => ({ ...d, [key]: val }))
   const updatePacket = (key, val) => setDraft(d => ({ ...d, packetFields: { ...d.packetFields, [key]: val } }))
@@ -2978,8 +3323,14 @@ export default function PackBuilder() {
     setVisited(v => new Set([...v, n]))
   }
 
-  const next = () => { if (step < 15) goTo(step + 1) }
-  const prev = () => { if (step > 1)  goTo(step - 1) }
+  const next = () => {
+    const nxt = STEPS.find(s => s.id > step && isStepActive(s))
+    if (nxt) goTo(nxt.id)
+  }
+  const prev = () => {
+    const prv = [...STEPS].reverse().find(s => s.id < step && isStepActive(s))
+    if (prv) goTo(prv.id)
+  }
 
   const showToast = (msg) => {
     setToast(msg)
@@ -2997,21 +3348,19 @@ export default function PackBuilder() {
 
   function renderStep() {
     switch (step) {
-      case 1:  return <Step1Pattern         {...p} />
-      case 2:  return <Step2Triggers        {...p} />
-      case 3:  return <Step3Routing         {...p} />
-      case 4:  return <Step4Destination     {...p} />
-      case 5:  return <Step5HandoffPacket   draft={draft} updatePacket={updatePacket} />
-      case 6:  return <Step6ComposerScope   {...p} />
-      case 7:  return <Step7Macros          />
-      case 8:  return <Step8EscalationPolicy {...p} />
-      case 9:  return <Step9SensitiveSignals {...p} />
-      case 10: return <Step10Notifications  {...p} />
-      case 11: return <Step11SLA            {...p} />
-      case 12: return <Step12Availability   {...p} onSkip={() => goTo(13)} />
-      case 13: return <Step13Jurisdiction   />
-      case 14: return <Step14TestPreview    draft={draft} />
-      case 15: return <Step15Review         draft={draft} />
+      case 1:  return <Step1Pattern          {...p} />
+      case 2:  return <Step2Triggers         {...p} />
+      case 3:  return <StepRoutingResponse   {...p} />
+      case 4:  return <Step4Destination      {...p} />
+      case 5:  return <Step5HandoffPacket    draft={draft} updatePacket={updatePacket} />
+      case 6:  return <Step6ComposerScope    {...p} />
+      case 7:  return <Step7Macros           />
+      case 8:  return <Step9SensitiveSignals {...p} />
+      case 9:  return <Step10Notifications   {...p} />
+      case 10: return <Step12Availability    {...p} onSkip={() => goTo(11)} />
+      case 11: return <Step13Jurisdiction    />
+      case 12: return <Step14TestPreview     draft={draft} />
+      case 13: return <Step15Review          draft={draft} />
       default: return null
     }
   }
@@ -3075,7 +3424,15 @@ export default function PackBuilder() {
       {/* ── Builder tab ───────────────────────────────────────────────────── */}
       {activeTab === 'builder' && (
         <div className="pb-body">
-          <StepNav current={step} visited={visited} onGoto={goTo} />
+          <StepNav
+            current={step}
+            visited={visited}
+            onGoto={goTo}
+            steps={activeSteps}
+            showOptional={showOptional}
+            optionalCount={optionalCount}
+            onToggleOptional={() => setShowOptional(s => !s)}
+          />
 
           <div className="pb-content">
             {renderStep()}
@@ -3085,11 +3442,11 @@ export default function PackBuilder() {
                 Cancel
               </Button>
               <div className="pb-footer-spacer" />
-              <span className="pb-step-count">{step} / {STEPS.length}</span>
+              <span className="pb-step-count">{activeSteps.findIndex(s => s.id === step) + 1 || '—'} / {activeSteps.length}</span>
               {step > 1 && (
                 <Button variant="secondary" size="sm" onClick={prev}>Back</Button>
               )}
-              {step < 15 ? (
+              {activeSteps[activeSteps.length - 1]?.id !== step ? (
                 <Button
                   variant="primary" size="sm" onClick={next}
                   disabled={step === 2 && draft.triggers.length === 0}

@@ -1494,6 +1494,20 @@ export const packAgentBindings = {
   'pk-proc-midmarket': ['ag-invoice-parser','ag-crm-updater'],
 }
 
+export const integrations = [
+  { id: 'int-salesforce', name: 'Salesforce CRM',    type: 'CRM',       status: 'connected', lastSync: ago(5)    },
+  { id: 'int-zendesk',    name: 'Zendesk',            type: 'Ticketing', status: 'connected', lastSync: ago(34)   },
+  { id: 'int-jira',       name: 'Jira Projects',      type: 'Ticketing', status: 'connected', lastSync: ago(120)  },
+  { id: 'int-netsuite',   name: 'NetSuite',           type: 'ERP',       status: 'error',     lastSync: ago(1440) },
+]
+
+export const lightweightChannels = [
+  { id: 'ch-slack',     name: 'Slack Connect',       activePacks: 2 },
+  { id: 'ch-email',     name: 'Email Support',       activePacks: 4 },
+  { id: 'ch-whatsapp',  name: 'WhatsApp Business',   activePacks: 2 },
+  { id: 'ch-sms',       name: 'SMS',                 activePacks: 0 },
+]
+
 export const packWorkflowBindings = {
   'pk-esc-t1':         ['net-cs-escalation', 'net-onboarding-flow'],
   'pk-hot-lead':       ['net-hot-lead-activation', 'net-lead-qualification'],
