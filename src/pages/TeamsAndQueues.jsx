@@ -26,6 +26,27 @@ const PEOPLE_POOL = [
   'Carlos Vega', 'Yuki Tanaka', 'Fatima Al-Rashid', 'Lena Brandt',
 ]
 
+// Role → people who hold that role
+const ROLES_CATALOG = {
+  'Finance Manager':            [{ name: 'Priya Kapoor',     role: 'Finance Manager',           status: 'online'  }],
+  'Finance Director':           [{ name: 'David Osei',       role: 'Finance Director',           status: 'busy'    }],
+  'Legal Counsel':              [{ name: 'Sandra Voss',      role: 'Legal Counsel',              status: 'online'  }],
+  'Legal Analyst':              [{ name: 'Marcus Williams',  role: 'Legal Analyst',              status: 'offline' }],
+  'Chief Compliance Officer':   [{ name: 'Rachel Ng',        role: 'Chief Compliance Officer',   status: 'online'  }],
+  'Head of Procurement':        [{ name: 'Fatima Al-Rashid', role: 'Head of Procurement',        status: 'online'  }],
+  'Senior Support Agent':       [{ name: 'Alex Thompson',    role: 'Senior Agent',               status: 'online'  },
+                                  { name: 'Jordan Martinez',  role: 'Senior Agent',               status: 'busy'    }],
+  'Support Agent':              [{ name: 'Maya R.',           role: 'Support Agent',              status: 'online'  },
+                                  { name: 'James Rodriguez',  role: 'Support Agent',              status: 'online'  },
+                                  { name: 'Sarah Kim',         role: 'Support Agent',              status: 'offline' },
+                                  { name: 'Jordan S.',         role: 'Support Agent',              status: 'online'  }],
+  'Account Executive':          [{ name: 'Carlos Vega',      role: 'Account Executive',          status: 'online'  }],
+  'Solutions Engineer':         [{ name: 'Yuki Tanaka',      role: 'Solutions Engineer',         status: 'online'  }],
+  'Finance Manager (Backup)':   [{ name: 'Lena Brandt',      role: 'Finance Manager Backup',     status: 'online'  }],
+  'On-Call Support':            [{ name: 'Sam V.',            role: 'Support Specialist',         status: 'offline' },
+                                  { name: 'Jordan Martinez',  role: 'Senior Agent',               status: 'offline' }],
+}
+
 function initials(name) {
   return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
 }
@@ -35,8 +56,16 @@ function TeamDrawer({ team, onSave, onClose }) {
   const [name,       setName]       = useState(team?.name       || '')
   const [type,       setType]       = useState(team?.type       || 'queue')
   const [desc,       setDesc]       = useState(team?.description || '')
-  const [members,    setMembers]    = useState(team?.members    || [])
-  const [hasCoverage,setHasCoverage]= useState(!!(team?.coverageHours))
+  const [members,      setMembers]      = useState(team?.members      || [])
+  const [selectedRole, setSelectedRole] = useState(team?.roleTitle    || '')
+  // Rotation slots
+  const [rotationSlots, setRotationSlots] = useState(team?.rotationSlots || [
+    { id: 'office',  label: 'Office Hours', hours: 'Mon–Fri · 09:00–18:00', emoji: '🏢', enabled: true,  members: [], search: '' },
+    { id: 'after',   label: 'After Hours',  hours: 'Mon–Fri · 18:00–09:00', emoji: '🌙', enabled: false, members: [], search: '' },
+    { id: 'weekend', label: 'Weekends',     hours: 'Sat–Sun · All day',      emoji: '📅', enabled: false, members: [], search: '' },
+    { id: 'custom',  label: 'Custom',       hours: 'Define your own schedule',emoji: '⚙️', enabled: false, members: [], search: '' },
+  ])
+  const [hasCoverage,  setHasCoverage]  = useState(!!(team?.coverageHours))
   const [tzZone,     setTzZone]     = useState(team?.timezone   || 'US-East')
   const [hoursFrom,  setHoursFrom]  = useState('09:00')
   const [hoursTo,    setHoursTo]    = useState('18:00')
@@ -64,6 +93,8 @@ function TeamDrawer({ team, onSave, onClose }) {
     onSave({
       name, type, description: desc, members, status: 'active',
       assignmentMethod: assignment,
+      ...(type === 'role'     ? { roleTitle: selectedRole } : {}),
+      ...(type === 'rotation' ? { rotationSlots: rotationSlots.filter(s => s.enabled) } : {}),
       ...(hasCoverage ? { coverageHours: `${hoursFrom}–${hoursTo}`, timezone: tzZone } : {}),
     })
   }
@@ -112,40 +143,211 @@ function TeamDrawer({ team, onSave, onClose }) {
             <textarea className="tq-textarea" placeholder="Brief description of this team's purpose…" value={desc} onChange={e => setDesc(e.target.value)} rows={2} />
           </div>
 
-          {/* Members */}
-          <div className="tq-field">
-            <label className="tq-label">Members</label>
-            {members.length > 0 && (
-              <div className="tq-member-list">
-                {members.map(m => (
-                  <div key={m.name} className="tq-member-row">
-                    <div className="tq-avatar-sm">{initials(m.name)}</div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.role}</div>
+          {/* ── ROLE type: role picker then people ───────────────── */}
+          {type === 'role' && (
+            <div className="tq-field">
+              <label className="tq-label">Select role <span className="tq-req">*</span></label>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 10 }}>
+                Choose the role this team represents. People who hold that role will appear for selection.
+              </div>
+              {/* Role grid */}
+              <div className="tq-role-grid">
+                {Object.keys(ROLES_CATALOG).map(role => (
+                  <button
+                    key={role}
+                    className={`tq-role-btn${selectedRole === role ? ' tq-role-btn--sel' : ''}`}
+                    onClick={() => {
+                      setSelectedRole(role)
+                      setMembers([])             // reset when role changes
+                      if (!name.trim()) setName(role) // auto-fill name
+                    }}
+                  >
+                    {role}
+                    <span className="tq-role-count">{ROLES_CATALOG[role].length}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* People with selected role */}
+              {selectedRole && (
+                <div style={{ marginTop: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    People with this role — select who should receive items
+                  </div>
+                  <div className="tq-role-people">
+                    {ROLES_CATALOG[selectedRole].map(person => {
+                      const isAdded = !!members.find(m => m.name === person.name)
+                      return (
+                        <div
+                          key={person.name}
+                          className={`tq-role-person${isAdded ? ' tq-role-person--sel' : ''}`}
+                          onClick={() => isAdded ? removeMember(person.name) : setMembers(ms => [...ms, person])}
+                        >
+                          <div className={`tq-avatar-sm${person.status === 'busy' ? ' tq-avatar--busy' : person.status === 'offline' ? ' tq-avatar--offline' : ''}`}>
+                            {initials(person.name)}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{person.name}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <span className={`tq-status-dot ${STATUS_DOT[person.status] || 'tq-dot--gray'}`} style={{ width: 6, height: 6 }} />
+                              {person.status}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: isAdded ? 'var(--accent-teal)' : 'var(--text-tertiary)' }}>
+                            {isAdded ? '✓ Selected' : '+ Select'}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── ROTATION type: time slots with per-slot members ────── */}
+          {type === 'rotation' && (
+            <div className="tq-field">
+              <label className="tq-label">Rotation schedule</label>
+              <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>
+                Toggle the time windows this rotation covers, then assign members to each slot.
+              </div>
+
+              {rotationSlots.map((slot, si) => {
+                const updateSlot = (patch) =>
+                  setRotationSlots(ss => ss.map((s, i) => i === si ? { ...s, ...patch } : s))
+
+                const addSlotMember = (name) => {
+                  if (!slot.members.find(m => m.name === name)) {
+                    updateSlot({ members: [...slot.members, { name, role: 'Agent', status: 'online' }], search: '' })
+                  }
+                }
+                const removeSlotMember = (name) =>
+                  updateSlot({ members: slot.members.filter(m => m.name !== name) })
+
+                const slotPool = PEOPLE_POOL.filter(p =>
+                  !slot.members.find(m => m.name === p) &&
+                  p.toLowerCase().includes((slot.search || '').toLowerCase())
+                )
+
+                return (
+                  <div key={slot.id} className={`tq-slot-card${slot.enabled ? ' tq-slot-card--on' : ''}`}>
+                    {/* Slot header — toggle + label */}
+                    <div className="tq-slot-hdr" onClick={() => updateSlot({ enabled: !slot.enabled })}>
+                      <div className="tq-slot-toggle-wrap">
+                        <div className={`tq-slot-toggle${slot.enabled ? ' tq-slot-toggle--on' : ''}`}>
+                          <div className="tq-slot-knob" />
+                        </div>
+                      </div>
+                      <span className="tq-slot-emoji">{slot.emoji}</span>
+                      <div className="tq-slot-info">
+                        <div className="tq-slot-label">{slot.label}</div>
+                        <div className="tq-slot-hours">{slot.hours}</div>
+                      </div>
+                      {slot.enabled && slot.members.length > 0 && (
+                        <span className="tq-slot-count">{slot.members.length} member{slot.members.length !== 1 ? 's' : ''}</span>
+                      )}
                     </div>
-                    <button className="tq-remove-btn" onClick={() => removeMember(m.name)}><X size={11} /></button>
+
+                    {/* Slot body — only when enabled */}
+                    {slot.enabled && (
+                      <div className="tq-slot-body">
+                        {/* Custom hours input */}
+                        {slot.id === 'custom' && (
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                            <input className="tq-input" placeholder="e.g. Mon–Wed · 06:00–09:00"
+                              value={slot.hours === 'Define your own schedule' ? '' : slot.hours}
+                              onChange={e => updateSlot({ hours: e.target.value })}
+                              style={{ flex: 1, fontSize: 12 }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Current members */}
+                        {slot.members.length > 0 && (
+                          <div className="tq-member-list" style={{ marginBottom: 8 }}>
+                            {slot.members.map(m => (
+                              <div key={m.name} className="tq-member-row">
+                                <div className="tq-avatar-sm">{initials(m.name)}</div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</div>
+                                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.role}</div>
+                                </div>
+                                <button className="tq-remove-btn" onClick={() => removeSlotMember(m.name)}><X size={11} /></button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add member */}
+                        <input
+                          className="tq-input"
+                          placeholder={`Add member for ${slot.label}…`}
+                          value={slot.search || ''}
+                          onChange={e => updateSlot({ search: e.target.value })}
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: 12 }}
+                        />
+                        {slot.search && slotPool.length > 0 && (
+                          <div className="tq-people-drop">
+                            {slotPool.slice(0, 5).map(p => (
+                              <div key={p} className="tq-people-item" onClick={() => addSlotMember(p)}>
+                                <div className="tq-avatar-sm">{initials(p)}</div>
+                                <span>{p}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {slot.members.length === 0 && !slot.search && (
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', fontStyle: 'italic', marginTop: 4 }}>
+                            No members yet — type a name above to assign someone to this slot.
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
-            <input
-              className="tq-input"
-              placeholder="Search people to add…"
-              value={memberSearch}
-              onChange={e => setMemberSearch(e.target.value)}
-            />
-            {memberSearch && filteredPool.length > 0 && (
-              <div className="tq-people-drop">
-                {filteredPool.slice(0, 6).map(p => (
-                  <div key={p} className="tq-people-item" onClick={() => addMember(p)}>
-                    <div className="tq-avatar-sm">{initials(p)}</div>
-                    <span>{p}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ── Non-role/rotation types: generic people search ───────── */}
+          {type !== 'role' && type !== 'rotation' && (
+            <div className="tq-field">
+              <label className="tq-label">Members</label>
+              {members.length > 0 && (
+                <div className="tq-member-list">
+                  {members.map(m => (
+                    <div key={m.name} className="tq-member-row">
+                      <div className="tq-avatar-sm">{initials(m.name)}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.role}</div>
+                      </div>
+                      <button className="tq-remove-btn" onClick={() => removeMember(m.name)}><X size={11} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input
+                className="tq-input"
+                placeholder="Search people to add…"
+                value={memberSearch}
+                onChange={e => setMemberSearch(e.target.value)}
+              />
+              {memberSearch && filteredPool.length > 0 && (
+                <div className="tq-people-drop">
+                  {filteredPool.slice(0, 6).map(p => (
+                    <div key={p} className="tq-people-item" onClick={() => addMember(p)}>
+                      <div className="tq-avatar-sm">{initials(p)}</div>
+                      <span>{p}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Assignment method (Queue only) */}
           {type === 'queue' && (
