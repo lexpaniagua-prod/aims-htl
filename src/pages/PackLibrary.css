@@ -231,24 +231,34 @@
   position: relative;
 }
 
+.pack-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 499;
+  background: transparent;
+}
+
 .pack-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
+  /* position:fixed is set inline with calculated coords */
   background: var(--bg-card-elevated);
   border: 1px solid var(--border-strong);
-  border-radius: 7px;
-  box-shadow: var(--shadow-drop);
-  min-width: 152px;
-  z-index: 100;
-  padding: 4px;
-  animation: packRowIn 0.12s ease;
+  border-radius: 9px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.16);
+  min-width: 176px;
+  z-index: 500;
+  padding: 5px;
+  animation: packMenuIn 0.14s cubic-bezier(0.2,0,0.2,1);
+}
+
+@keyframes packMenuIn {
+  from { opacity: 0; transform: scale(0.94) translateY(-4px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 
 .pack-menu-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   padding: 7px 10px;
   font-size: 13px;
   color: var(--text-secondary);

@@ -195,7 +195,9 @@
   overflow: hidden;
   transition: max-height 0.22s cubic-bezier(0.4,0,0.2,1);
 }
-.nav-section:hover .nav-submenu {
+/* Click-to-expand: open state driven by React class, not hover */
+.nav-section--open .nav-submenu,
+.nav-submenu--open {
   max-height: 400px;
 }
 /* Always-visible group (no section label, e.g. Pack Library) */
@@ -233,6 +235,7 @@
   transform: translateX(-6px);
   transition: opacity 0.14s ease, transform 0.14s ease;
 }
+.sidebar--collapsed .nav-section--open .nav-submenu:not(.nav-submenu--always),
 .sidebar--collapsed .nav-section:hover .nav-submenu:not(.nav-submenu--always) {
   opacity: 1;
   pointer-events: all;

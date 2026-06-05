@@ -51,16 +51,25 @@ const STUDIO_CONFIG = {
   'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
 }
 
-// ─── Three-dot context menu ───────────────────────────────────────────────────
-function PackMenu({ pack, onClose, onEdit, onClone, onArchive }) {
+// ─── Three-dot context menu — rendered at fixed position to escape stacking contexts ──
+function PackMenu({ pack, pos, onClose, onEdit, onClone, onArchive }) {
   const ref = useRef(null)
 
   useEffect(() => {
     const handler = e => {
+      if (e.key === 'Escape') { onClose(); return }
       if (ref.current && !ref.current.contains(e.target)) onClose()
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    // Slight delay so the opening click doesn't immediately re-close
+    const t = setTimeout(() => {
+      document.addEventListener('mousedown', handler)
+      document.addEventListener('keydown', handler)
+    }, 80)
+    return () => {
+      clearTimeout(t)
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('keydown', handler)
+    }
   }, [onClose])
 
   const items = [
@@ -69,12 +78,17 @@ function PackMenu({ pack, onClose, onEdit, onClone, onArchive }) {
     { icon: Copy,     label: 'Duplicate',       action: onClone },
     { icon: GitFork,  label: 'Branch version',  action: onClone },
     null,
-    { icon: Archive,  label: 'Archive pack',    action: onArchive, danger: false },
-    { icon: Trash2,   label: 'Delete pack',     action: onArchive, danger: true  },
+    { icon: Archive,  label: 'Archive pack',    action: onArchive },
+    { icon: Trash2,   label: 'Delete pack',     action: onArchive, danger: true },
   ]
 
   return (
-    <div className="pack-menu" ref={ref} onClick={e => e.stopPropagation()}>
+    <div
+      ref={ref}
+      className="pack-menu"
+      style={{ position: 'fixed', top: pos.top, right: pos.right }}
+      onClick={e => e.stopPropagation()}
+    >
       {items.map((item, i) =>
         item === null
           ? <div key={i} className="pack-menu-sep" />
@@ -94,9 +108,9 @@ function PackMenu({ pack, onClose, onEdit, onClone, onArchive }) {
 }
 
 // ─── Individual pack row ──────────────────────────────────────────────────────
-function PackRow({ pack, index, onNavigate, onEdit }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const patCfg = PATTERN_CONFIG[pack.pattern]
+function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
+  const moreRef = useRef(null)
+  const patCfg  = PATTERN_CONFIG[pack.pattern]
   const PatIcon = pack.pattern === 'Handoff' ? GitBranch : RefreshCw
   const rowClass = [
     'pack-row',
@@ -207,23 +221,22 @@ function PackRow({ pack, index, onNavigate, onEdit }) {
             <Archive size={13} />
           </button>
 
-          <div className="pack-menu-wrap">
+          <div className="pack-menu-wrap" ref={moreRef}>
             <button
               className="pack-action-btn"
               title="More"
-              onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+              onClick={e => {
+                e.stopPropagation()
+                if (menuOpenId === pack.id) { onOpenMenu(null, null); return }
+                const rect = moreRef.current.getBoundingClientRect()
+                onOpenMenu(pack.id, {
+                  top:   rect.bottom + 4,
+                  right: window.innerWidth - rect.right,
+                })
+              }}
             >
               <MoreHorizontal size={13} />
             </button>
-            {menuOpen && (
-              <PackMenu
-                pack={pack}
-                onClose={() => setMenuOpen(false)}
-                onEdit={() => onNavigate(pack.id)}
-                onClone={() => {}}
-                onArchive={() => {}}
-              />
-            )}
           </div>
         </div>
       </div>
@@ -235,6 +248,8 @@ function PackRow({ pack, index, onNavigate, onEdit }) {
 export default function PackLibrary() {
   const navigate = useNavigate()
 
+  const [menuOpenId,    setMenuOpenId]    = useState(null)
+  const [menuPos,       setMenuPos]       = useState(null)
   const [search,        setSearch]        = useState('')
   const [filterPat,     setFilterPat]     = useState('All')
   const [filterStatus,  setFilterStatus]  = useState('All')
@@ -459,6 +474,8 @@ export default function PackLibrary() {
               index={i}
               onNavigate={id => navigate(`/configure/packs/${id}`)}
               onEdit={id => navigate(`/configure/packs/${id}/edit`)}
+              menuOpenId={menuOpenId}
+              onOpenMenu={(id, pos) => { setMenuOpenId(id); setMenuPos(pos) }}
             />
           ))
         )}
@@ -475,6 +492,18 @@ export default function PackLibrary() {
           </span>
           <span style={{ color: 'var(--accent-coral)', marginRight: 4 }}>■</span>Sensitive signal protection active
         </div>
+      )}
+
+      {/* ── Menu rendered at position:fixed — above all stacking contexts ── */}
+      {menuOpenId && menuPos && (
+        <PackMenu
+          pack={packs.find(p => p.id === menuOpenId)}
+          pos={menuPos}
+          onClose={() => { setMenuOpenId(null); setMenuPos(null) }}
+          onEdit={() => { navigate(`/configure/packs/${menuOpenId}`); setMenuOpenId(null) }}
+          onClone={() => setMenuOpenId(null)}
+          onArchive={() => setMenuOpenId(null)}
+        />
       )}
     </div>
   )

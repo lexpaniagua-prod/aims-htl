@@ -3238,6 +3238,8 @@ function WorkflowsTab({ sourcePack }) {
 
 // ─── Versions tab ─────────────────────────────────────────────────────────────
 function VersionsTab({ draft }) {
+  const [restoredVer, setRestoredVer] = useState(null)
+
   const rows = [
     { ver: draft.version, date: 'Current',     author: 'Alexa M.', note: 'Current live version',           status: 'Active'     },
     { ver: 'v2.2',        date: '12d ago',      author: 'Alexa M.', note: 'Updated routing conditions',     status: 'Archived'   },
@@ -3249,25 +3251,71 @@ function VersionsTab({ draft }) {
     <div>
       <div className="pb-step-header">
         <div className="pb-step-title">Version History</div>
-        <div className="pb-step-desc">All published versions of this pack. Branch or rollback from any previous checkpoint.</div>
+        <div className="pb-step-desc">All published versions of this pack. Restore any previous version to make it the live version.</div>
       </div>
+
+      {restoredVer && (
+        <div className="pb-banner pb-banner--success" style={{ marginBottom: 16 }}>
+          <CheckCircle size={14} style={{ flexShrink: 0 }} />
+          <span><strong>{restoredVer}</strong> has been restored as the current live version. A new publish will go out shortly.</span>
+          <button style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none' }} onClick={() => setRestoredVer(null)}>✕</button>
+        </div>
+      )}
+
       <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        {rows.map((v, i) => (
-          <div key={v.ver} style={{
-            display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-            borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
-            background: i === 0 ? 'var(--bg-card-elevated)' : 'transparent',
-          }}>
-            <span style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', minWidth: 44 }}>{v.ver}</span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{v.note}</span>
-            <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)', minWidth: 90 }}>{v.date}</span>
-            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 80 }}>{v.author}</span>
-            <Badge label={v.status} variant={v.status === 'Active' ? 'teal' : v.status === 'Archived' ? 'gray' : 'amber'} size="sm" />
-            {i === 0
-              ? <Badge label="Current" variant="blue" size="sm" />
-              : <Button variant="ghost" size="sm">Rollback</Button>}
-          </div>
-        ))}
+        {rows.map((v, i) => {
+          const isCurrent = i === 0
+          return (
+            <div key={v.ver} style={{
+              display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
+              borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
+              background: isCurrent ? 'var(--accent-teal-dim)' : 'transparent',
+              borderLeft: isCurrent ? '3px solid var(--accent-teal)' : '3px solid transparent',
+              transition: 'background 0.1s',
+            }}>
+              {/* Version + live indicator */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 100 }}>
+                <span style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{v.ver}</span>
+                {isCurrent && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--accent-teal)', background: 'var(--accent-teal-dim)', border: '1px solid var(--accent-teal-border)', borderRadius: 10, padding: '1px 7px', fontFamily: 'DM Mono', letterSpacing: '0.04em' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-teal)', flexShrink: 0, animation: 'ep-pulse 2s ease-in-out infinite' }} />
+                    LIVE
+                  </span>
+                )}
+              </div>
+
+              {/* Note */}
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{v.note}</span>
+
+              {/* Date + author */}
+              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)', minWidth: 90, textAlign: 'right' }}>{v.date}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 72 }}>{v.author}</span>
+
+              {/* Status badge */}
+              <Badge
+                label={v.status}
+                variant={v.status === 'Active' ? 'teal' : v.status === 'Archived' ? 'gray' : 'amber'}
+                size="sm"
+              />
+
+              {/* Action */}
+              <div style={{ minWidth: 80, display: 'flex', justifyContent: 'flex-end' }}>
+                {isCurrent ? (
+                  <span style={{ fontSize: 11, color: 'var(--accent-teal)', fontWeight: 600, fontFamily: 'DM Mono' }}>Current</span>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setRestoredVer(v.ver)}
+                    style={{ fontSize: 12 }}
+                  >
+                    Restore
+                  </Button>
+                )}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

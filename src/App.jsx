@@ -45,7 +45,7 @@ const NAV = [
     section: null, icon: SlidersHorizontal,
     items: [
       { label: 'Overview', path: '/reports/overview', icon: LayoutDashboard },
-      { label: 'Queue', path: '/inbox/queue', icon: List, badge: 12 },
+      { label: 'My Work Queue', path: '/inbox/queue', icon: List, badge: 12 },
       { label: 'Pack Library', path: '/configure/packs', icon: Library },
     ]
   },
@@ -53,16 +53,6 @@ const NAV = [
     section: 'Connect', icon: Plug,
     items: [
       { label: 'Node Binding', path: '/connect/nodes', icon: Link2 },
-      { label: 'Agentic Networks', path: '/connect/networks', icon: Network },
-      { label: 'Pack Attachment', path: '/connect/attachment', icon: Paperclip },
-    ]
-  },
-  {
-    section: 'Inbox', icon: Inbox,
-    items: [
-      { label: 'Handled', path: '/inbox/handled', icon: CheckCircle },
-      { label: 'Escalations', path: '/inbox/escalations', icon: AlertTriangle, badge: 3 },
-      { label: 'Continuation', path: '/inbox/continuation', icon: RefreshCw },
     ]
   },
   {
@@ -78,14 +68,13 @@ const NAV = [
   {
     section: 'Settings', icon: Settings,
     items: [
-      { label: 'Templates', path: '/settings/templates', icon: FileText },
-      { label: 'OOO & Coverage', path: '/settings/ooo', icon: CalendarOff },
-      { label: 'Triggers',       path: '/settings/triggers',  icon: Zap   },
-      { label: 'Teams & Queues', path: '/settings/teams', icon: Users },
-      { label: 'Routing', path: '/configure/routing', icon: GitFork },
-      { label: 'Destinations', path: '/configure/destinations', icon: Navigation },
-      { label: 'Sensitive Signals', path: '/configure/signals', icon: Radio },
-      { label: 'Channels', path: '/configure/channels', icon: Hash },
+      { label: 'Triggers',          path: '/settings/triggers',      icon: Zap        },
+      { label: 'Teams & Queues',    path: '/settings/teams',         icon: Users      },
+      { label: 'Routing',           path: '/configure/routing',      icon: GitFork    },
+      { label: 'Destinations',      path: '/configure/destinations', icon: Navigation },
+      { label: 'Sensitive Signals', path: '/configure/signals',      icon: Radio      },
+      { label: 'Channels',          path: '/configure/channels',     icon: Hash       },
+      { label: 'OOO & Coverage',    path: '/settings/ooo',           icon: CalendarOff},
     ]
   },
 ]
@@ -125,8 +114,13 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem('htl-sidebar-collapsed') === 'true'
   )
-  const [queueCount,  setQueueCount]  = useState(12)
-  const [liveToast,   setLiveToast]   = useState(null)
+  const [queueCount,      setQueueCount]      = useState(12)
+  const [liveToast,       setLiveToast]       = useState(null)
+  const [expandedSection, setExpandedSection] = useState(null)
+
+  const toggleSection = (section) => {
+    setExpandedSection(prev => prev === section ? null : section)
+  }
   const toastTimer = useRef(null)
   const location = useLocation()
   const crumbs = useBreadcrumb(location.pathname)
@@ -193,36 +187,59 @@ export default function App() {
 
         {/* Nav */}
         <nav className="sidebar-nav">
-          {NAV.map(({ section, icon: SectionIcon, items }) => (
-            <div className="nav-section" key={section ?? '__top__'}>
-              {section && (
-                <div className="nav-section-label" data-tooltip={section}>
-                  <SectionIcon size={12} />
-                  <span className="nav-section-text">{section}</span>
-                </div>
-              )}
-              <div className={section ? 'nav-submenu' : 'nav-submenu nav-submenu--always'}>
-                {items.map(({ label, path, icon: Icon, badge }) => (
-                  <NavLink
-                    key={path}
-                    to={path}
-                    data-tooltip={label}
-                    className={({ isActive }) =>
-                      `nav-item${isActive ? ' nav-item--active' : ''}`
-                    }
+          {NAV.map(({ section, icon: SectionIcon, items }) => {
+            // In collapsed mode, rely on CSS :hover flyout — don't apply click-open class
+            const isOpen   = section ? (!sidebarCollapsed && expandedSection === section) : true
+            const isAlways = !section
+            return (
+              <div
+                key={section ?? '__top__'}
+                className={`nav-section${isOpen && !isAlways ? ' nav-section--open' : ''}`}
+              >
+                {section && (
+                  <div
+                    className="nav-section-label"
+                    data-tooltip={section}
+                    onClick={() => toggleSection(section)}
+                    style={{ cursor: 'pointer' }}
                   >
-                    <Icon size={14} />
-                    <span className="nav-item-label">{label}</span>
-                    {badge != null && (
-                      <span className={`nav-badge${path === '/inbox/queue' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
-                        {path === '/inbox/queue' ? queueCount : badge}
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
+                    <SectionIcon size={12} />
+                    <span className="nav-section-text">{section}</span>
+                    <ChevronDown
+                      size={10}
+                      style={{
+                        marginLeft: 'auto',
+                        transition: 'transform 0.2s ease',
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        color: 'var(--text-tertiary)',
+                        flexShrink: 0,
+                      }}
+                    />
+                  </div>
+                )}
+                <div className={isAlways ? 'nav-submenu nav-submenu--always' : `nav-submenu${isOpen ? ' nav-submenu--open' : ''}`}>
+                  {items.map(({ label, path, icon: Icon, badge }) => (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      data-tooltip={label}
+                      className={({ isActive }) =>
+                        `nav-item${isActive ? ' nav-item--active' : ''}`
+                      }
+                    >
+                      <Icon size={14} />
+                      <span className="nav-item-label">{label}</span>
+                      {badge != null && (
+                        <span className={`nav-badge${path === '/inbox/queue' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
+                          {path === '/inbox/queue' ? queueCount : badge}
+                        </span>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Footer */}

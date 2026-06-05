@@ -16,7 +16,8 @@
       "Bash(curl -s http://localhost:5173/)",
       "Bash(findstr /i \"title\\\\|error\\\\|vite\")",
       "Bash(findstr \"title\")",
-      "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\PackBuilder.css\" | Measure-Object -Line\\).Lines; Write-Output \"Total lines: $lines\")"
+      "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\PackBuilder.css\" | Measure-Object -Line\\).Lines; Write-Output \"Total lines: $lines\")",
+      "Bash(node --input-type=module --eval \"import\\('./src/pages/PackLibrary.jsx'\\)\")"
     ]
   }
 }
