@@ -70,7 +70,6 @@ const NAV = [
     items: [
       { label: 'Triggers',          path: '/settings/triggers',      icon: Zap        },
       { label: 'Teams & Queues',    path: '/settings/teams',         icon: Users      },
-      { label: 'Routing',           path: '/configure/routing',      icon: GitFork    },
       { label: 'Destinations',      path: '/configure/destinations', icon: Navigation },
       { label: 'Sensitive Signals', path: '/configure/signals',      icon: Radio      },
       { label: 'Channels',          path: '/configure/channels',     icon: Hash       },
