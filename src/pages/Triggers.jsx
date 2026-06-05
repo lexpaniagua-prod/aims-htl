@@ -14,6 +14,36 @@ const TYPE_CFG = {
 }
 const TYPE_TABS = ['Customer behavior', 'AI confidence', 'Score threshold', 'Specific event']
 
+// ─── Specific event — reference data ─────────────────────────────────────────
+const FORMS_CATALOG = [
+  { id: 'purchase-intent-form',   label: 'Purchase Intent Form',        desc: 'Submitted when a prospect signals purchase readiness' },
+  { id: 'demo-request-form',      label: 'Demo Request Form',           desc: 'Submitted from the website when a visitor requests a demo' },
+  { id: 'support-ticket-form',    label: 'Support Ticket Submission',   desc: 'Customer submits a new support case' },
+  { id: 'cancellation-survey',    label: 'Cancellation Survey',         desc: 'Customer completes the exit survey before cancelling' },
+  { id: 'refund-request-form',    label: 'Refund Request Form',         desc: 'Customer submits a formal refund request' },
+  { id: 'escalation-form',        label: 'Manual Escalation Form',      desc: 'Agent manually escalates an item to a senior queue' },
+  { id: 'onboarding-checklist',   label: 'Onboarding Checklist',        desc: 'New customer completes the setup checklist' },
+  { id: 'feedback-survey',        label: 'Customer Feedback Survey',    desc: 'Post-interaction CSAT or NPS survey submission' },
+]
+
+const STATUS_BY_ENTITY = {
+  'Leads':           ['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiating', 'On Hold', 'Awaiting Customer', 'Won', 'Lost'],
+  'Deals':           ['Prospecting', 'Qualification', 'Proposal', 'Negotiation', 'On Hold', 'Awaiting Customer', 'Closed Won', 'Closed Lost'],
+  'Support Tickets': ['Open', 'Pending', 'In Review', 'Awaiting Customer', 'On Hold', 'Escalated', 'Resolved', 'Breached', 'Closed'],
+  'Invoices':        ['Draft', 'Pending Approval', 'Approved', 'Sent', 'On Hold', 'Overdue', 'Paid', 'Cancelled'],
+  'Onboarding Tasks':['Not Started', 'In Progress', 'Awaiting Customer', 'Blocked', 'Completed'],
+  'Contracts':       ['Draft', 'Under Review', 'Pending Signature', 'Active', 'On Hold', 'Expired', 'Terminated'],
+}
+const STATUS_ENTITIES = Object.keys(STATUS_BY_ENTITY)
+const STATUS_VALUES = ['Open', 'Pending', 'Resolved', 'Escalated', 'On Hold', 'Breached', 'Closed', 'Awaiting Customer', 'In Review']
+
+const TAGS_CATALOG = [
+  'high-priority', 'vip-customer', 'churn-risk', 'billing-issue',
+  'technical-escalation', 'compliance-flag', 'fraud-suspected',
+  'win-back', 'renewal-at-risk', 'nps-detractor', 'enterprise-account',
+  'trial-user', 'first-response', 'sla-at-risk', 'outage-related',
+]
+
 // ─── Drawer ───────────────────────────────────────────────────────────────────
 function TriggerDrawer({ trigger, onSave, onClose }) {
   const [name,        setName]        = useState(trigger?.name        || '')
@@ -32,8 +62,21 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
   const [scoreType,   setScoreType]   = useState(trigger?.scoreType   || 'CSAT')
   const [operator,    setOperator]    = useState(trigger?.operator    || 'below')
   const [scoreValue,  setScoreValue]  = useState(trigger?.value       !== undefined ? String(trigger.value) : '3')
-  const [eventType,   setEventType]   = useState(trigger?.event       || 'form_submit')
-  const [eventDetail, setEventDetail] = useState(trigger?.formId      || '')
+  const [eventType,       setEventType]       = useState(trigger?.event         || 'form_submit')
+  // form_submit
+  const [selectedForm,    setSelectedForm]    = useState(trigger?.formId        || '')
+  // status_change
+  const [statusEntity,    setStatusEntity]    = useState(trigger?.statusEntity  || '')
+  const [fromStatus,      setFromStatus]      = useState(trigger?.fromStatus    || '')
+  const [toStatus,        setToStatus]        = useState(trigger?.toStatus      || '')
+  // tag_applied
+  const [selectedTags,    setSelectedTags]    = useState(trigger?.tags          || [])
+  const [tagSearch,       setTagSearch]       = useState('')
+  // custom
+  const [customEvtName,   setCustomEvtName]   = useState(trigger?.customEvent   || '')
+  const [customProps,     setCustomProps]     = useState(trigger?.customProps    || [])
+  const [propKey,         setPropKey]         = useState('')
+  const [propVal,         setPropVal]         = useState('')
 
   const addExample = () => {
     const ex = exInput.trim()
@@ -49,8 +92,15 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
     if (type === 'AI confidence')   return `Fires when AI confidence drops below ${threshold}%`
     if (type === 'Score threshold') return `Fires when ${scoreType} goes ${operator} ${scoreValue}`
     if (type === 'Specific event') {
-      const labels = { form_submit: 'a form is submitted', status_change: 'status changes', tag_applied: 'a tag is applied', custom: 'a custom event occurs' }
-      return `Fires when ${labels[eventType] || 'event occurs'}` + (eventDetail ? ` (${eventDetail})` : '')
+      if (eventType === 'form_submit')    return selectedForm ? `Fires when the "${selectedForm}" form is submitted` : 'Fires when a form is submitted'
+      if (eventType === 'status_change') {
+        const where = statusEntity ? ` in ${statusEntity}` : ''
+        if (fromStatus && toStatus) return `Fires when${where} status changes from "${fromStatus}" to "${toStatus}"`
+        if (toStatus)               return `Fires when${where} status changes to "${toStatus}"`
+        return `Fires when${where} item status changes`
+      }
+      if (eventType === 'tag_applied')    return selectedTags.length > 0 ? `Fires when tag${selectedTags.length > 1 ? 's' : ''} [${selectedTags.join(', ')}] ${selectedTags.length > 1 ? 'are' : 'is'} applied` : 'Fires when a tag is applied'
+      if (eventType === 'custom')         return customEvtName ? `Fires when event "${customEvtName}" occurs` : 'Fires when a custom event occurs'
     }
     return ''
   }
@@ -62,7 +112,7 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
     if (type === 'Customer behavior') extra = { description, keywords, examples, exclusions, sensitivity }
     if (type === 'AI confidence')     extra = { threshold }
     if (type === 'Score threshold')   extra = { scoreType, operator, value: parseFloat(scoreValue) || 0 }
-    if (type === 'Specific event')    extra = { event: eventType, formId: eventDetail }
+    if (type === 'Specific event')    extra = { event: eventType, formId: selectedForm, statusEntity, fromStatus, toStatus, tags: selectedTags, customEvent: customEvtName, customProps }
     onSave({ ...base, ...extra })
   }
 
@@ -284,28 +334,166 @@ The customer may be angry, disappointed, or simply making an administrative requ
           )}
 
           {type === 'Specific event' && (
-            <div className="tl-field">
-              <label className="tl-label">Event type</label>
-              <select className="tl-sel-full" value={eventType} onChange={e => setEventType(e.target.value)}>
-                <option value="form_submit">Form submitted</option>
-                <option value="status_change">Status changes</option>
-                <option value="tag_applied">Tag applied</option>
-                <option value="custom">Custom event</option>
-              </select>
-              <input
-                className="tl-input"
-                style={{ marginTop: 8 }}
-                placeholder={
-                  eventType === 'form_submit'    ? 'Form ID or name…'
-                  : eventType === 'tag_applied'  ? 'Tag name…'
-                  : eventType === 'status_change'? 'New status value…'
-                  : 'Event identifier…'
-                }
-                value={eventDetail}
-                onChange={e => setEventDetail(e.target.value)}
-              />
+            <>
+              {/* Event sub-type selector */}
+              <div className="tl-field">
+                <label className="tl-label">Event type</label>
+                <div className="tl-type-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                  {[
+                    { id: 'form_submit',   label: 'Form submitted',  emoji: '📋' },
+                    { id: 'status_change', label: 'Status changes',  emoji: '🔄' },
+                    { id: 'tag_applied',   label: 'Tag applied',     emoji: '🏷' },
+                    { id: 'custom',        label: 'Custom event',    emoji: '⚙️' },
+                  ].map(ev => (
+                    <button key={ev.id} className={`tl-type-btn${eventType === ev.id ? ' tl-type-btn--sel' : ''}`} onClick={() => setEventType(ev.id)}>
+                      <span>{ev.emoji}</span><span>{ev.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Form submitted ────────────────────────────────── */}
+              {eventType === 'form_submit' && (
+                <div className="tl-field">
+                  <label className="tl-label">Which form?</label>
+                  <div className="tl-hint" style={{ marginBottom: 8 }}>Select the form that should fire this trigger when submitted.</div>
+                  <div className="tl-ev-cards">
+                    {FORMS_CATALOG.map(f => (
+                      <div key={f.id} className={`tl-ev-card${selectedForm === f.id ? ' tl-ev-card--sel' : ''}`} onClick={() => setSelectedForm(f.id)}>
+                        <div className="tl-ev-card-name">{f.label}</div>
+                        <div className="tl-ev-card-desc">{f.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Status changes ────────────────────────────────── */}
+              {eventType === 'status_change' && (
+                <div className="tl-field">
+                  <label className="tl-label">Status transition</label>
+                  <div className="tl-hint" style={{ marginBottom: 12 }}>
+                    Select the entity first — available statuses depend on where the change happens. Leave "From" empty to fire on any change to the target status.
+                  </div>
+
+                  {/* IN — entity picker */}
+                  <div style={{ marginBottom: 14 }}>
+                    <div className="tl-col-label">In <span style={{ color: 'var(--accent-coral)' }}>*</span></div>
+                    <div className="tl-entity-grid">
+                      {STATUS_ENTITIES.map(ent => (
+                        <button
+                          key={ent}
+                          className={`tl-entity-btn${statusEntity === ent ? ' tl-entity-btn--sel' : ''}`}
+                          onClick={() => { setStatusEntity(ent); setFromStatus(''); setToStatus('') }}
+                        >
+                          {ent}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FROM → TO — only shown once entity is selected */}
+                  {statusEntity ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <div className="tl-col-label">From (optional)</div>
+                        <select
+                          className="tl-sel-full"
+                          value={fromStatus}
+                          onChange={e => setFromStatus(e.target.value)}
+                        >
+                          <option value="">Any status</option>
+                          {STATUS_BY_ENTITY[statusEntity].map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div style={{ fontSize: 18, color: 'var(--text-tertiary)', paddingTop: 18 }}>→</div>
+                      <div style={{ flex: 1 }}>
+                        <div className="tl-col-label">To <span style={{ color: 'var(--accent-coral)' }}>*</span></div>
+                        <select
+                          className="tl-sel-full"
+                          value={toStatus}
+                          onChange={e => setToStatus(e.target.value)}
+                        >
+                          <option value="">Select status…</option>
+                          {STATUS_BY_ENTITY[statusEntity]
+                            .filter(s => s !== fromStatus)
+                            .map(s => <option key={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ padding: '12px 14px', background: 'var(--bg-card-elevated)', border: '1px dashed var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                      ↑ Select an entity above to see available statuses
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Tag applied ───────────────────────────────────── */}
+              {eventType === 'tag_applied' && (
+                <div className="tl-field">
+                  <label className="tl-label">Which tag(s)?</label>
+                  <div className="tl-hint" style={{ marginBottom: 8 }}>Trigger fires when ANY of the selected tags is applied. Click to select.</div>
+                  <div className="tl-tag-grid">
+                    {TAGS_CATALOG.map(tag => {
+                      const sel = selectedTags.includes(tag)
+                      return (
+                        <button key={tag} className={`tl-tag-opt${sel ? ' tl-tag-opt--sel' : ''}`}
+                          onClick={() => setSelectedTags(ts => sel ? ts.filter(t => t !== tag) : [...ts, tag])}>
+                          {tag}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {selectedTags.length > 0 && (
+                    <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-tertiary)' }}>
+                      {selectedTags.length} tag{selectedTags.length !== 1 ? 's' : ''} selected
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ── Custom event ─────────────────────────────────── */}
+              {eventType === 'custom' && (
+                <>
+                  <div className="tl-field">
+                    <label className="tl-label">Event name <span className="tl-req">*</span></label>
+                    <div className="tl-hint" style={{ marginBottom: 6 }}>The exact event identifier sent from your integration or webhook. Case-sensitive.</div>
+                    <input className="tl-input" style={{ fontFamily: 'DM Mono, monospace', fontSize: 13 }}
+                      placeholder="e.g. deal.stage_changed  or  invoice.overdue"
+                      value={customEvtName} onChange={e => setCustomEvtName(e.target.value)} />
+                  </div>
+                  <div className="tl-field">
+                    <label className="tl-label">Filter by event properties (optional)</label>
+                    <div className="tl-hint" style={{ marginBottom: 8 }}>
+                      Only fire when the event payload contains these key-value pairs. Leave empty to fire on all occurrences.
+                    </div>
+                    {customProps.length > 0 && (
+                      <div className="tl-prop-list">
+                        {customProps.map((p, i) => (
+                          <div key={i} className="tl-prop-row">
+                            <code className="tl-prop-key">{p.key}</code>
+                            <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>=</span>
+                            <code className="tl-prop-val">{p.value}</code>
+                            <button className="tl-ex-remove" onClick={() => setCustomProps(ps => ps.filter((_, j) => j !== i))}><X size={10} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8 }}>
+                      <input className="tl-input" style={{ fontFamily: 'DM Mono, monospace', fontSize: 12 }} placeholder="property key" value={propKey} onChange={e => setPropKey(e.target.value)} />
+                      <input className="tl-input" style={{ fontFamily: 'DM Mono, monospace', fontSize: 12 }} placeholder="expected value" value={propVal} onChange={e => setPropVal(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter' && propKey.trim()) { setCustomProps(ps => [...ps, { key: propKey.trim(), value: propVal.trim() }]); setPropKey(''); setPropVal('') }}} />
+                      <Button variant="secondary" size="sm" onClick={() => { if (propKey.trim()) { setCustomProps(ps => [...ps, { key: propKey.trim(), value: propVal.trim() }]); setPropKey(''); setPropVal('') }}}>Add</Button>
+                    </div>
+                    <div className="tl-hint" style={{ marginTop: 6 }}>Example: <code style={{ fontFamily: 'DM Mono', fontSize: 11 }}>deal.stage</code> = <code style={{ fontFamily: 'DM Mono', fontSize: 11 }}>Closed Lost</code></div>
+                  </div>
+                </>
+              )}
+
+              {/* Live echo */}
               {echo() && <div className="tl-echo">{echo()}</div>}
-            </div>
+            </>
           )}
 
           {/* Status */}
