@@ -17,7 +17,11 @@
       "Bash(findstr /i \"title\\\\|error\\\\|vite\")",
       "Bash(findstr \"title\")",
       "PowerShell($lines = \\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\PackBuilder.css\" | Measure-Object -Line\\).Lines; Write-Output \"Total lines: $lines\")",
-      "Bash(node --input-type=module --eval \"import\\('./src/pages/PackLibrary.jsx'\\)\")"
+      "Bash(node --input-type=module --eval \"import\\('./src/pages/PackLibrary.jsx'\\)\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\" -Recurse -Exclude node_modules -Include \"*wizard*\", \"*step*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npx acorn *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

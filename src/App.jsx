@@ -68,7 +68,7 @@ const NAV = [
   {
     section: 'Settings', icon: Settings,
     items: [
-      { label: 'Triggers',          path: '/settings/triggers',      icon: Zap        },
+      { label: 'Conditions',         path: '/settings/triggers',      icon: Zap        },
       { label: 'Teams & Queues',    path: '/settings/teams',         icon: Users      },
       { label: 'Destinations',      path: '/configure/destinations', icon: Navigation },
       { label: 'Sensitive Signals', path: '/configure/signals',      icon: Radio      },

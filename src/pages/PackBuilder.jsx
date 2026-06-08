@@ -10,17 +10,15 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues, availableWorkflows, availableAgents, triggerLibrary } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
 const STEPS = [
   { id: 1,  label: 'Pattern'            },
-  { id: 2,  label: 'Triggers'           },
+  { id: 2,  label: 'Conditions'          },
   { id: 3,  label: 'Routing & Response' },
   { id: 4,  label: 'Destination'        },
-  { id: 5,  label: 'Handoff Packet'     },
-  { id: 6,  label: 'Composer Scope'     },
   { id: 7,  label: 'Macros',             note: 'Optional' },
   { id: 8,  label: 'Sensitive Signals'  },
   { id: 9,  label: 'Notifications',     hidden: true },
@@ -324,41 +322,198 @@ const EVENT_OPTS = [
   { id: 'custom',   label: 'Something else:' },
 ]
 
+// ─── Trigger catalog modal ────────────────────────────────────────────────────
+const TRIG_STUDIO_CFG = {
+  'Agentic Studio':           { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+  'Helix Governance Studio':  { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+  'Helix Data Studio':        { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+  'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
+}
+const TRIG_TYPE_BADGE = {
+  'Customer behavior': 'blue',
+  'AI confidence':     'purple',
+  'Score threshold':   'amber',
+  'Specific event':    'teal',
+}
+const TRIG_TYPE_ICON = {
+  'Customer behavior': '💬',
+  'AI confidence':     '🤖',
+  'Score threshold':   '📊',
+  'Specific event':    '⚡',
+}
+const CATALOG_STUDIOS = ['Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio', 'All Studios']
+const CATALOG_TYPES   = ['Customer behavior', 'AI confidence', 'Score threshold', 'Specific event']
+
+function TriggerCatalogModal({ draft, onAdd, onClose }) {
+  const [search,       setSearch]       = useState('')
+  const [studioFilter, setStudioFilter] = useState('All')
+  const [typeFilter,   setTypeFilter]   = useState('All')
+  const [selected,     setSelected]     = useState(new Set())
+
+  const activeLibIds = new Set(draft.triggers.map(t => t.libraryId).filter(Boolean))
+
+  const q = search.toLowerCase()
+  const filtered = triggerLibrary.filter(t => {
+    if (q && !t.name.toLowerCase().includes(q) && !(t.description||'').toLowerCase().includes(q)) return false
+    if (studioFilter !== 'All' && (t.studio || 'All Studios') !== studioFilter) return false
+    if (typeFilter   !== 'All' && t.type !== typeFilter) return false
+    return true
+  })
+
+  // Group by type, preserving display order
+  const groups = {}
+  CATALOG_TYPES.forEach(type => {
+    const items = filtered.filter(t => t.type === type)
+    if (items.length > 0) groups[type] = items
+  })
+  // Include any types not in CATALOG_TYPES
+  filtered.forEach(t => {
+    if (!CATALOG_TYPES.includes(t.type) && !groups[t.type]) groups[t.type] = []
+    if (!CATALOG_TYPES.includes(t.type)) groups[t.type].push(t)
+  })
+
+  const toggle = id => setSelected(s => {
+    const next = new Set(s)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const handleAdd = () => {
+    const toAdd = triggerLibrary.filter(t => selected.has(t.id))
+    onAdd(toAdd)
+  }
+
+  return (
+    <>
+      <div className="trig-modal-overlay" onClick={onClose} />
+      <div className="trig-modal">
+        {/* Header */}
+        <div className="trig-modal-hdr">
+          <div>
+            <div className="trig-modal-title">Add trigger</div>
+            <div className="trig-modal-sub">
+              Select from your configured triggers. Create new ones in{' '}
+              <a href="/aims-htl/settings/triggers" target="_blank" style={{ color: 'var(--accent-blue)' }}>
+                Settings → Conditions
+              </a>.
+            </div>
+          </div>
+          <button className="wt-modal-close" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {/* Search + filters — sticky */}
+        <div className="trig-modal-filters">
+          <input
+            className="trig-modal-search"
+            placeholder="Search triggers..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+          <div className="trig-modal-filter-row">
+            <select className="trig-sel" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
+              <option value="All">All Studios</option>
+              {CATALOG_STUDIOS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <select className="trig-sel" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              <option value="All">All Types</option>
+              {CATALOG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Results — scrollable */}
+        <div className="trig-modal-results">
+          {Object.keys(groups).length === 0 ? (
+            <div style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '32px 0' }}>
+              No triggers match "{search}"
+            </div>
+          ) : (
+            Object.entries(groups).map(([type, items]) => (
+              <div key={type} className="trig-modal-group">
+                <div className="trig-modal-group-label">{type.toUpperCase()}</div>
+                <div className="trig-modal-group-rule" />
+                {items.map(t => {
+                  const isActive = activeLibIds.has(t.id)
+                  const sel      = selected.has(t.id)
+                  const sc       = TRIG_STUDIO_CFG[t.studio || 'All Studios'] || TRIG_STUDIO_CFG['All Studios']
+                  const desc     = t.description ? t.description.slice(0, 90) + (t.description.length > 90 ? '…' : '') : ''
+                  return (
+                    <div
+                      key={t.id}
+                      className={`trig-modal-row${isActive ? ' trig-modal-row--disabled' : ''}${sel ? ' trig-modal-row--sel' : ''}`}
+                      onClick={() => !isActive && toggle(t.id)}
+                    >
+                      <input type="checkbox" className="wt-modal-cb" checked={sel || isActive} disabled={isActive} readOnly />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: isActive ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                            {t.name}
+                          </span>
+                          {isActive && (
+                            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>
+                              Already added
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8, marginTop: 4 }}>
+                          {desc && <span style={{ fontSize: 12, color: 'var(--text-tertiary)', flex: '1 1 100%' }}>{desc}</span>}
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+                            Used in {t.usedInPacks} pack{t.usedInPacks !== 1 ? 's' : ''}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap' }}>
+                            {t.studio || 'All Studios'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))
+          )}
+
+          {/* Create new link */}
+          <div className="trig-modal-create">
+            Don't see what you need?{' '}
+            <a href="/aims-htl/settings/triggers" target="_blank" className="trig-modal-create-link">
+              Create a new trigger in Settings →
+            </a>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="wt-modal-foot">
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {selected.size > 0 ? `${selected.size} selected` : 'None selected'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="wt-modal-cancel" onClick={onClose}>Cancel</button>
+            <button className="wt-modal-confirm" disabled={selected.size === 0} onClick={handleAdd}>
+              Add to Pack →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Step 2: Triggers (catalog pattern) ──────────────────────────────────────
 function Step2Triggers({ draft, update }) {
-  const [expanded,      setExpanded]      = useState({})
-  const [behaviorSel,   setBehaviorSel]   = useState('')
-  const [behaviorCustom,setBehaviorCustom]= useState('')
-  const [confidence,    setConfidence]    = useState(60)
-  const [scoreType,     setScoreType]     = useState('csat')
-  const [scoreDir,      setScoreDir]      = useState('below')
-  const [scoreVal,      setScoreVal]      = useState('')
-  const [selEvents,     setSelEvents]     = useState([])
-  const [evStatus,      setEvStatus]      = useState('Escalated')
-  const [evTag,         setEvTag]         = useState('')
-  const [evCustom,      setEvCustom]      = useState('')
-  const [advMode,       setAdvMode]       = useState(false)
-  const [advText,       setAdvText]       = useState('')
+  const [showCatalog, setShowCatalog] = useState(false)
 
-  const [showGroupNote, setShowGroupNote] = useState(false)
-
-  const toggleExpand    = id => setExpanded(e => ({ ...e, [id]: !e[id] }))
-  const toggleEvent     = id => setSelEvents(p => p.includes(id) ? p.filter(x => x !== id) : [...p, id])
-  const hasByType       = type => draft.triggers.some(t => t.type === type)
-
-  // Remove trigger — ensure last item has no connector
   const removeTrigger = id => {
     const next = draft.triggers.filter(t => t.id !== id)
     if (next.length > 0) next[next.length - 1] = { ...next[next.length - 1], connector: null }
     update('triggers', next)
   }
 
-  // Toggle AND ↔ OR on a connector between triggers
   const toggleConnector = id =>
     update('triggers', draft.triggers.map(t =>
       t.id === id ? { ...t, connector: (t.connector || 'OR') === 'OR' ? 'AND' : 'OR' } : t
     ))
 
-  // Generate plain-language summary from triggers + their connectors
   const buildLogicSummary = ts => {
     if (ts.length === 0) return ''
     if (ts.length === 1) return 'This Pack fires when ' + (ts[0].label || ts[0].value) + '.'
@@ -366,321 +521,85 @@ function Step2Triggers({ draft, update }) {
     const conns  = ts.slice(0, -1).map(t => t.connector || 'OR')
     const allAnd = conns.every(c => c === 'AND')
     const allOr  = conns.every(c => c === 'OR')
-    if (allOr) {
-      const last = labels.pop()
-      return 'This Pack fires when ' + labels.join(', ') + ', OR ' + last + '.'
-    }
-    if (allAnd) {
-      const last = labels.pop()
-      return 'This Pack fires only when all of these are true: ' + labels.join(', ') + ', AND ' + last + '.'
-    }
-    // Mixed — inline connectors
-    return 'This Pack fires when ' + ts.map((t, i) =>
-      (t.label || t.value) + (t.connector ? ' ' + t.connector + ' ' : '')
-    ).join('').trim() + '.'
+    if (allOr)  { const last = labels.pop(); return 'This Pack fires when ' + labels.join(', ') + ', OR ' + last + '.' }
+    if (allAnd) { const last = labels.pop(); return 'This Pack fires only when all of these are true: ' + labels.join(', ') + ', AND ' + last + '.' }
+    return 'This Pack fires when ' + ts.map(t => (t.label || t.value) + (t.connector ? ' ' + t.connector + ' ' : '')).join('').trim() + '.'
   }
 
-  const TRIG_ICONS = { behavior: '💬', confidence: '🤖', score: '📊', event: '⚡', advanced: '✏️' }
-
-  // ── Label generators ───────────────────────────────────────────────────────
-  const behaviorLabel = (sel, custom) => ({
-    cancel:      'a customer asks to cancel',
-    frustration: 'a customer expresses frustration',
-    manager:     'a customer requests a manager',
-    silence:     'a customer goes silent (no reply)',
-    keywords:    `a customer uses specific words: "${custom}"`,
-    other:       custom || 'a custom customer behavior',
-  }[sel] || sel)
-
-  const confidenceLabel = v => `AI hands off when less than ${v}% confident`
-
-  const scoreLabel = (type, dir, val) => {
-    const t = { csat: 'CSAT', deal: 'Deal value', risk: 'Risk score', custom: 'Custom score' }[type] || type
-    return `${t} goes ${dir} ${val}`
-  }
-
-  const eventLabel = (evs, status, tag, custom) => {
-    const parts = []
-    if (evs.includes('escalate')) parts.push('Agent escalates')
-    if (evs.includes('form'))     parts.push('Customer submits a form')
-    if (evs.includes('status'))   parts.push(`Status changes to "${status}"`)
-    if (evs.includes('tag') && tag)    parts.push(`Tag applied: "${tag}"`)
-    if (evs.includes('custom') && custom) parts.push(custom)
-    return parts.join(' · ') || 'Event trigger'
-  }
-
-  // ── Add trigger ────────────────────────────────────────────────────────────
-  const addTrigger = (type) => {
-    let label = '', config = {}
-    if (type === 'behavior') {
-      if (!behaviorSel) return
-      if ((behaviorSel === 'keywords' || behaviorSel === 'other') && !behaviorCustom.trim()) return
-      label  = behaviorLabel(behaviorSel, behaviorCustom)
-      config = { behavior: behaviorSel, behaviorCustom }
-    } else if (type === 'confidence') {
-      label  = confidenceLabel(confidence)
-      config = { confidenceThreshold: confidence }
-    } else if (type === 'score') {
-      if (!scoreVal.trim()) return
-      label  = scoreLabel(scoreType, scoreDir, scoreVal)
-      config = { scoreType, scoreDir, scoreVal }
-    } else if (type === 'event') {
-      if (selEvents.length === 0) return
-      label  = eventLabel(selEvents, evStatus, evTag, evCustom)
-      config = { events: [...selEvents], evStatus, evTag, evCustom }
-    }
-    // Give the current last trigger an OR connector before appending the new one
+  const handleAddFromCatalog = (items) => {
     const existing = draft.triggers.length > 0
       ? draft.triggers.map((t, i) =>
-          i === draft.triggers.length - 1 && t.connector == null
-            ? { ...t, connector: 'OR' }
-            : t
+          i === draft.triggers.length - 1 && t.connector == null ? { ...t, connector: 'OR' } : t
         )
-      : draft.triggers
-    update('triggers', [...existing, { id: Date.now(), type, label, value: label, connector: null, ...config }])
+      : []
+    const newTriggers = items.map((t, i) => ({
+      id:          Date.now() + i,
+      libraryId:   t.id,
+      type:        t.type,
+      label:       t.name,
+      value:       t.name,
+      libraryDesc: t.description ? t.description.slice(0, 90) + (t.description.length > 90 ? '…' : '') : '',
+      studio:      t.studio || 'All Studios',
+      connector:   i < items.length - 1 ? 'OR' : null,
+    }))
+    update('triggers', [...existing, ...newTriggers])
+    setShowCatalog(false)
   }
+
+  const getDesc = t => {
+    if (t.libraryDesc) return t.libraryDesc
+    return ''
+  }
+
 
   return (
     <div>
       <div className="pb-step-header">
         <div className="pb-step-title">When should this Pack fire?</div>
         <div className="pb-step-desc">
-          Choose the conditions that activate this Pack. Any matching condition will trigger it — you can add as many as you need.
+          This Pack activates when any of these conditions are true. Use AND to require multiple conditions simultaneously.
         </div>
       </div>
 
-      {/* ── 2×2 category cards ─────────────────────────────────────────── */}
-      <div className="trig-cat-grid">
-        {TRIGGER_CATEGORIES.map(cat => {
-          const isOpen = !!expanded[cat.id]
-          const hasTrig = hasByType(cat.id)
-          return (
-            <div
-              key={cat.id}
-              className={`trig-cat-card${isOpen ? ' trig-cat-card--open' : ''}${hasTrig ? ' trig-cat-card--done' : ''}`}
-              style={{ '--ca': cat.accent, '--cd': cat.dim, '--cb': cat.border }}
-              onClick={() => toggleExpand(cat.id)}
-            >
-              <div className="trig-cat-top">
-                <span className="trig-cat-emoji">{cat.emoji}</span>
-                {(isOpen || hasTrig) && <span className="trig-cat-dot" style={{ background: cat.accent }} />}
-              </div>
-              <div className="trig-cat-name">{cat.title}</div>
-              <div className="trig-cat-desc">{cat.desc}</div>
-              <div className="trig-cat-foot">
-                {hasTrig && <span className="trig-cat-added" style={{ color: cat.accent }}>✓ Added</span>}
-                <span className="trig-cat-cta" style={{ color: isOpen ? cat.accent : 'var(--text-tertiary)' }}>
-                  {isOpen ? 'Collapse' : 'Configure'}&nbsp;
-                  {isOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                </span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* ── Accordion panels ───────────────────────────────────────────── */}
-      {TRIGGER_CATEGORIES.map(cat => {
-        const isOpen = !!expanded[cat.id]
-        return (
-          <div
-            key={cat.id}
-            className={`trig-accordion${isOpen ? ' trig-accordion--open' : ''}`}
-            style={{ '--ca': cat.accent, '--cd': cat.dim }}
-          >
-            <div className="trig-acc-inner">
-              {/* panel header */}
-              <div className="trig-acc-hdr">
-                <span className="trig-acc-emoji">{cat.emoji}</span>
-                <span className="trig-acc-label" style={{ color: cat.accent }}>{cat.title}</span>
-              </div>
-
-              {/* ─ Customer behavior ─ */}
-              {cat.id === 'behavior' && (
-                <div className="trig-acc-body">
-                  <div className="trig-field-label">When a customer says or does…</div>
-                  <div className="trig-beh-opts">
-                    {BEHAVIOR_OPTS.map(opt => (
-                      <button
-                        key={opt.id}
-                        className={`trig-beh-btn${behaviorSel === opt.id ? ' trig-beh-btn--sel' : ''}`}
-                        style={behaviorSel === opt.id
-                          ? { borderColor: cat.accent, background: cat.dim, color: cat.accent }
-                          : {}}
-                        onClick={() => setBehaviorSel(opt.id)}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                  {(behaviorSel === 'keywords' || behaviorSel === 'other') && (
-                    <input
-                      className="trig-text-input"
-                      placeholder={behaviorSel === 'keywords'
-                        ? 'e.g. cancel, refund, speak to someone'
-                        : 'Describe the behavior…'}
-                      value={behaviorCustom}
-                      onChange={e => setBehaviorCustom(e.target.value)}
-                    />
-                  )}
-                  {behaviorSel && (
-                    <div className="trig-preview">
-                      This Pack fires when {behaviorLabel(behaviorSel, behaviorCustom)}.
-                    </div>
-                  )}
-                  <Button
-                    variant="secondary" size="sm" icon={Plus}
-                    onClick={() => addTrigger('behavior')}
-                    disabled={!behaviorSel ||
-                      ((behaviorSel === 'keywords' || behaviorSel === 'other') && !behaviorCustom.trim())}
-                  >Add this trigger</Button>
-                </div>
-              )}
-
-              {/* ─ AI confidence ─ */}
-              {cat.id === 'confidence' && (
-                <div className="trig-acc-body">
-                  <div className="trig-field-label">
-                    Hand off when AI is less than{' '}
-                    <strong style={{ color: cat.accent, fontSize: 15 }}>{confidence}%</strong> confident
-                  </div>
-                  <div className="trig-slider-row">
-                    <span className="trig-slider-edge">30%</span>
-                    <input
-                      type="range" min={30} max={90} step={5}
-                      value={confidence}
-                      className="trig-slider"
-                      style={{ accentColor: cat.accent }}
-                      onChange={e => setConfidence(Number(e.target.value))}
-                    />
-                    <span className="trig-slider-edge">90%</span>
-                    <div
-                      className="trig-slider-val"
-                      style={{ color: cat.accent, background: cat.dim, borderColor: cat.accent + '55' }}
-                    >{confidence}%</div>
-                  </div>
-                  <div className="trig-preview">
-                    The AI will hand off when it's less than {confidence}% sure about the right response.
-                  </div>
-                  <Button variant="secondary" size="sm" icon={Plus} onClick={() => addTrigger('confidence')}>
-                    Add this trigger
-                  </Button>
-                </div>
-              )}
-
-              {/* ─ Score or threshold ─ */}
-              {cat.id === 'score' && (
-                <div className="trig-acc-body">
-                  <div className="trig-field-label">When…</div>
-                  <div className="trig-score-row">
-                    <select className="trig-sel" value={scoreType} onChange={e => setScoreType(e.target.value)}>
-                      {SCORE_TYPES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-                    </select>
-                    <span className="trig-score-is">is</span>
-                    <select className="trig-sel" value={scoreDir} onChange={e => setScoreDir(e.target.value)}>
-                      <option value="below">below</option>
-                      <option value="above">above</option>
-                    </select>
-                    <input
-                      type="text"
-                      className="trig-score-num"
-                      placeholder="e.g. 3"
-                      value={scoreVal}
-                      onChange={e => setScoreVal(e.target.value)}
-                    />
-                  </div>
-                  {scoreVal && (
-                    <div className="trig-preview">
-                      This Pack fires when {scoreLabel(scoreType, scoreDir, scoreVal).toLowerCase()}.
-                    </div>
-                  )}
-                  <Button
-                    variant="secondary" size="sm" icon={Plus}
-                    onClick={() => addTrigger('score')}
-                    disabled={!scoreVal.trim()}
-                  >Add this trigger</Button>
-                </div>
-              )}
-
-              {/* ─ Specific event ─ */}
-              {cat.id === 'event' && (
-                <div className="trig-acc-body">
-                  <div className="trig-field-label">Select all that apply:</div>
-                  <div className="trig-event-list">
-                    {EVENT_OPTS.map(ev => (
-                      <label key={ev.id} className="trig-event-row">
-                        <div
-                          className={`trig-ev-box${selEvents.includes(ev.id) ? ' trig-ev-box--on' : ''}`}
-                          style={selEvents.includes(ev.id)
-                            ? { borderColor: cat.accent, background: cat.dim }
-                            : {}}
-                          onClick={() => toggleEvent(ev.id)}
-                        >
-                          {selEvents.includes(ev.id) &&
-                            <Check size={10} style={{ color: cat.accent }} strokeWidth={3} />}
-                        </div>
-                        <span className="trig-ev-label">{ev.label}</span>
-                        {ev.id === 'status' && selEvents.includes('status') && (
-                          <select
-                            className="trig-sel trig-sel--sm"
-                            value={evStatus}
-                            onChange={e => setEvStatus(e.target.value)}
-                            onClick={e => e.stopPropagation()}
-                          >
-                            {['Escalated','Resolved','On Hold','Closed','Pending'].map(s =>
-                              <option key={s}>{s}</option>)}
-                          </select>
-                        )}
-                        {ev.id === 'tag' && selEvents.includes('tag') && (
-                          <input className="trig-text-input trig-text-input--sm"
-                            placeholder="tag name" value={evTag}
-                            onChange={e => setEvTag(e.target.value)} />
-                        )}
-                        {ev.id === 'custom' && selEvents.includes('custom') && (
-                          <input className="trig-text-input trig-text-input--sm"
-                            placeholder="Describe the event…" value={evCustom}
-                            onChange={e => setEvCustom(e.target.value)} />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                  {selEvents.length > 0 && (
-                    <div className="trig-preview">
-                      This Pack fires when: {eventLabel(selEvents, evStatus, evTag, evCustom)}.
-                    </div>
-                  )}
-                  <Button
-                    variant="secondary" size="sm" icon={Plus}
-                    onClick={() => addTrigger('event')}
-                    disabled={selEvents.length === 0}
-                  >Add this trigger</Button>
-                </div>
-              )}
-            </div>
+      {/* ── Zone 1: Active triggers ─────────────────────────────────────── */}
+      <div className="trig2-zone">
+        {draft.triggers.length === 0 ? (
+          <div className="trig2-empty">
+            <span className="trig2-empty-icon">⚡</span>
+            <div className="trig2-empty-title">No triggers added yet</div>
+            <div className="trig2-empty-sub">Add triggers from the catalog to define when this Pack fires.</div>
+            <button className="trig2-add-btn-center" onClick={() => setShowCatalog(true)}>
+              <Plus size={13} /> Add trigger
+            </button>
           </div>
-        )
-      })}
-
-      {/* ── Active triggers — structured logic list ───────────────────── */}
-      <div className="trig-summary">
-        {draft.triggers.length > 0 ? (
+        ) : (
           <>
-            <div className="trig-summary-lbl">
-              {draft.triggers.slice(0,-1).every(t => (t.connector||'OR')==='AND')
-                ? 'This Pack fires only when ALL of these are true:'
-                : 'This Pack fires when any of these match:'}
-            </div>
-            <div className="trig-logic-list">
+            <div className="trig2-list">
               {draft.triggers.map((t, i) => {
-                const isLast = i === draft.triggers.length - 1
-                const conn   = (t.connector || 'OR')
+                const isLast   = i === draft.triggers.length - 1
+                const conn     = t.connector || 'OR'
+                const sc       = TRIG_STUDIO_CFG[t.studio || 'All Studios'] || TRIG_STUDIO_CFG['All Studios']
+                const badgeVar = TRIG_TYPE_BADGE[t.type] || 'blue'
+                const icon     = TRIG_TYPE_ICON[t.type]  || '⚡'
+                const desc     = getDesc(t)
                 return (
-                  <div key={t.id}>
-                    <div className="trig-logic-row">
-                      <span className="trig-logic-icon">{TRIG_ICONS[t.type] || '⚡'}</span>
-                      <span className="trig-logic-lbl">{t.label || t.value}</span>
-                      <button className="trig-pill-x" onClick={() => removeTrigger(t.id)}>
-                        <X size={11} />
+                  <div key={t.id} className="trig2-item-wrap">
+                    <div className="trig2-row">
+                      <span className="trig2-row-icon">{icon}</span>
+                      <div className="trig2-row-body">
+                        <div className="trig2-row-top">
+                          <span className="trig2-row-name">{t.label || t.value}</span>
+                          {t.studio && (
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px' }}>
+                              {t.studio}
+                            </span>
+                          )}
+                          <Badge label={t.type || 'trigger'} variant={badgeVar} size="sm" />
+                        </div>
+                        {desc && <div className="trig2-row-desc">{desc}</div>}
+                      </div>
+                      <button className="trig2-remove-btn" onClick={() => removeTrigger(t.id)}>
+                        <X size={12} />
                       </button>
                     </div>
                     {!isLast && (
@@ -698,67 +617,31 @@ function Step2Triggers({ draft, update }) {
                 )
               })}
             </div>
-            {/* Plain-language summary */}
-            <div className="rt-summary" style={{ marginTop: 10, padding: '10px 13px' }}>
+            {/* Live summary */}
+            <div className="rt-summary" style={{ marginTop: 12, padding: '10px 13px' }}>
               <Info size={12} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 2 }} />
               <span className="rt-summary-txt" style={{ fontSize: 12 }}>
                 {buildLogicSummary(draft.triggers)}
               </span>
             </div>
           </>
-        ) : (
-          <div className="trig-empty">Add at least one trigger above to continue.</div>
         )}
       </div>
 
-      {/* ── Add trigger group (shown when 2+ triggers) ────────────────── */}
-      {draft.triggers.length >= 2 && (
-        <div className="trig-adv-row" style={{ marginBottom: 0 }}>
-          <button className="trig-adv-link" onClick={() => setShowGroupNote(g => !g)}>
-            {showGroupNote ? '↑ Hide grouping' : '+ Add trigger group'}
-          </button>
-        </div>
-      )}
-      {showGroupNote && (
-        <div className="trig-adv-panel" style={{ marginBottom: 8 }}>
-          <div className="trig-field-label" style={{ marginBottom: 6 }}>Grouping (advanced)</div>
-          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-            Groups let you apply higher-level logic — e.g.{' '}
-            <em>(customer asks to cancel <strong>AND</strong> CSAT &lt; 3) <strong>OR</strong> AI confidence &lt; 60%</em>.
-            Use the AND / OR connectors above for most cases. Grouped logic is available in a future update.
-          </div>
-        </div>
+      {/* ── Zone 2: Add from catalog ────────────────────────────────────── */}
+      <button className="trig2-catalog-btn" onClick={() => setShowCatalog(true)}>
+        <Plus size={13} /> Add trigger from catalog
+      </button>
+
+      {/* ── Catalog modal ───────────────────────────────────────────────── */}
+      {showCatalog && (
+        <TriggerCatalogModal
+          draft={draft}
+          onAdd={handleAddFromCatalog}
+          onClose={() => setShowCatalog(false)}
+        />
       )}
 
-      {/* ── Advanced mode ─────────────────────────────────────────────── */}
-      <div className="trig-adv-row">
-        <button className="trig-adv-link" onClick={() => setAdvMode(a => !a)}>
-          {advMode ? '↑ Hide advanced mode' : 'Advanced mode'}
-        </button>
-      </div>
-      {advMode && (
-        <div className="trig-adv-panel">
-          <div className="trig-field-label" style={{ marginBottom: 8 }}>Enter trigger expressions directly</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              className="trig-text-input"
-              style={{ flex: 1 }}
-              placeholder="e.g. CSAT signal < 3 or 'cancel account'"
-              value={advText}
-              onChange={e => setAdvText(e.target.value)}
-            />
-            <Button
-              variant="secondary" size="sm" icon={Plus}
-              onClick={() => {
-                if (!advText.trim()) return
-                update('triggers', [...draft.triggers,
-                  { id: Date.now(), type: 'advanced', label: advText.trim(), value: advText.trim() }])
-                setAdvText('')
-              }}
-            >Add</Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -3015,21 +2898,160 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
   )
 }
 
+// ─── Attach modal ─────────────────────────────────────────────────────────────
+const ATTACH_STUDIO_CFG = {
+  'Agentic Studio':           { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+  'Helix Governance Studio':  { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+  'Helix Data Studio':        { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+  'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
+}
+
+function AttachModal({ currentPackId, connectedWorkflows, connectedAgents, onAttach, onClose }) {
+  const [search,   setSearch]   = useState('')
+  const [selected, setSelected] = useState(new Set())
+
+  const q = search.toLowerCase()
+  const filteredWf  = availableWorkflows.filter(w => !q || w.name.toLowerCase().includes(q) || w.studio.toLowerCase().includes(q))
+  const filteredAgt = availableAgents.filter(a => !q || a.name.toLowerCase().includes(q) || a.studio.toLowerCase().includes(q))
+
+  const toggle = (id) => setSelected(s => {
+    const next = new Set(s)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const handleAttach = () => {
+    const newWfIds  = [...selected].filter(id => id.startsWith('wf-'))
+    const newAgtIds = [...selected].filter(id => id.startsWith('agt-'))
+    onAttach(newWfIds, newAgtIds)
+  }
+
+  const renderItem = (item, isWorkflow, isAttached) => {
+    const sc  = ATTACH_STUDIO_CFG[item.studio] || ATTACH_STUDIO_CFG['All Studios']
+    const sel = selected.has(item.id)
+    const hasConflict = !isAttached && item.attachedPackIds?.length > 0
+
+    return (
+      <div key={item.id}>
+        <div
+          className={`wt-modal-row${isAttached ? ' wt-modal-row--disabled' : ''}${sel ? ' wt-modal-row--sel' : ''}`}
+          onClick={() => !isAttached && toggle(item.id)}
+        >
+          <input
+            type="checkbox"
+            className="wt-modal-cb"
+            checked={sel || isAttached}
+            disabled={isAttached}
+            onChange={() => {}}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ fontSize: 13, fontWeight: 500, color: isAttached ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
+                {item.name}
+              </span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px' }}>
+                {item.studio}
+              </span>
+              {isWorkflow && (
+                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{item.nodes} nodes</span>
+              )}
+              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>·</span>
+              <span style={{ fontSize: 11, color: isAttached ? 'var(--text-tertiary)' : 'var(--accent-teal)' }}>
+                {item.status === 'active' ? 'Active' : item.status}
+              </span>
+              {isAttached && (
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>
+                  Already attached
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        {hasConflict && (
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent-amber)', padding: '3px 16px 6px 44px', lineHeight: 1.5 }}>
+            ⚠ "Hot Lead Closure Pack uses the same trigger. Both will fire if conditions match."
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="wt-modal-overlay" onClick={onClose} />
+      <div className="wt-modal">
+        {/* Header */}
+        <div className="wt-modal-hdr">
+          <div>
+            <div className="wt-modal-title">Attach this Pack</div>
+            <div className="wt-modal-sub">Search for a workflow or agent to attach this Pack to. It will govern all HITL nodes inside it.</div>
+          </div>
+          <button className="wt-modal-close" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {/* Body */}
+        <div className="wt-modal-body">
+          <input
+            className="wt-modal-search"
+            placeholder="Search workflows and agents..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            autoFocus
+          />
+
+          <div className="wt-modal-results">
+            {filteredWf.length > 0 && (
+              <div className="wt-modal-section">
+                <div className="wt-modal-section-label">WORKFLOWS</div>
+                <div className="wt-modal-section-rule" />
+                {filteredWf.map(w => renderItem(w, true, connectedWorkflows.has(w.id)))}
+              </div>
+            )}
+            {filteredAgt.length > 0 && (
+              <div className="wt-modal-section" style={{ marginTop: filteredWf.length > 0 ? 20 : 0 }}>
+                <div className="wt-modal-section-label">AGENTS</div>
+                <div className="wt-modal-section-rule" />
+                {filteredAgt.map(a => renderItem(a, false, connectedAgents.has(a.id)))}
+              </div>
+            )}
+            {filteredWf.length === 0 && filteredAgt.length === 0 && (
+              <div style={{ fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '32px 0' }}>
+                No results match "{search}"
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="wt-modal-foot">
+          <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {selected.size > 0 ? `${selected.size} selected` : 'None selected'}
+          </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="wt-modal-cancel" onClick={onClose}>Cancel</button>
+            <button className="wt-modal-confirm" disabled={selected.size === 0} onClick={handleAttach}>
+              Attach selected →
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Workflows tab ────────────────────────────────────────────────────────────
 function WorkflowsTab({ sourcePack }) {
-  const canConnect = true
-
   const initialWfIds = packWorkflowBindings[sourcePack?.id ?? ""] ?? []
   const [connectedWorkflows, setConnectedWorkflows] = useState(new Set(initialWfIds))
-  const [pinned,          setPinned]          = useState({})
-  const [showWfPicker,    setShowWfPicker]    = useState(false)
-  const [connectedAgents, setConnectedAgents] = useState(
-    new Set(packAgentBindings[sourcePack?.id] ?? [])
-  )
-  const [showAgentPicker, setShowAgentPicker] = useState(false)
-  const [agentSearch,     setAgentSearch]     = useState('')
+  const [connectedAgents,    setConnectedAgents]    = useState(new Set(packAgentBindings[sourcePack?.id] ?? []))
+  const [pinned,             setPinned]             = useState({})
+  const [extraWorkflows,     setExtraWorkflows]     = useState([])
+  const [extraAgents,        setExtraAgents]        = useState([])
+  const [showAttachModal,    setShowAttachModal]    = useState(false)
+  const [localToast,         setLocalToast]         = useState(null)
 
   function relT(iso) {
+    if (!iso) return 'Never'
     const diff = Date.now() - new Date(iso).getTime()
     const m = Math.floor(diff / 60000)
     if (m < 1)  return 'just now'
@@ -3041,21 +3063,52 @@ function WorkflowsTab({ sourcePack }) {
 
   const TABLE_COLS = '1fr 120px 56px 80px 68px 130px 70px'
 
-  const visibleWorkflows = networks.filter(n => connectedWorkflows.has(n.id))
+  const visibleWorkflows = [
+    ...networks.filter(n => connectedWorkflows.has(n.id)),
+    ...extraWorkflows,
+  ]
+  const visibleAgents = [
+    ...agents.filter(a => connectedAgents.has(a.id)),
+    ...extraAgents,
+  ]
+
+  const handleAttach = (newWfIds, newAgtIds) => {
+    setConnectedWorkflows(s => new Set([...s, ...newWfIds]))
+    setConnectedAgents(s => new Set([...s, ...newAgtIds]))
+
+    setExtraWorkflows(prev => [
+      ...prev,
+      ...newWfIds.map(id => {
+        const wf = availableWorkflows.find(w => w.id === id)
+        return { id, name: wf.name, studio: wf.studio, bindingNode: 'HITL Approval', lastTriggered: null, triggerCount30d: 0 }
+      }),
+    ])
+    setExtraAgents(prev => [
+      ...prev,
+      ...newAgtIds.map(id => {
+        const agt = availableAgents.find(a => a.id === id)
+        return { id, name: agt.name, studio: agt.studio, model: '—', owner: '—', lastRun: null, runs30d: 0, capabilities: [] }
+      }),
+    ])
+
+    const parts = []
+    if (newWfIds.length)  parts.push(`${newWfIds.length} workflow${newWfIds.length  !== 1 ? 's' : ''}`)
+    if (newAgtIds.length) parts.push(`${newAgtIds.length} agent${newAgtIds.length !== 1 ? 's' : ''}`)
+    setLocalToast(`Pack attached to ${parts.join(' / ')}.`)
+    setTimeout(() => setLocalToast(null), 2500)
+
+    setShowAttachModal(false)
+  }
 
   const sections = [
     {
-      key:     'workflows',
-      title:   'Connected Workflows',
-      sub:     'Agentic workflows that trigger this Pack at a HITL node',
-      btnLabel:'Attach workflow',
-      showPicker: showWfPicker,
-      openPicker: () => setShowWfPicker(true),
-      closePicker:() => setShowWfPicker(false),
-      cols:    TABLE_COLS,
-      hdrCells:['Workflow / Studio', 'Binding Node', 'Version', 'Last Triggered', 'Items 30d', 'Pin Version', ''],
-      rows:    visibleWorkflows,
-      emptyText: 'No workflows attached.',
+      key:      'workflows',
+      title:    'Connected Workflows',
+      sub:      'Agentic workflows that trigger this Pack at a HITL node',
+      cols:     TABLE_COLS,
+      hdrCells: ['Workflow / Studio', 'Binding Node', 'Version', 'Last Triggered', 'Items 30d', 'Pin Version', ''],
+      rows:     visibleWorkflows,
+      emptyText:'No workflows attached.',
       renderRow: (net) => (
         <div key={net.id} className="wt-row" style={{ gridTemplateColumns: TABLE_COLS }}>
           <div>
@@ -3080,45 +3133,24 @@ function WorkflowsTab({ sourcePack }) {
             <Toggle on={!!pinned[net.id]} onChange={v => setPinned(p => ({ ...p, [net.id]: v }))} />
           </div>
           <div>
-            <button className="wt-detach-btn" onClick={() => setConnectedWorkflows(s => { const n = new Set(s); n.delete(net.id); return n })}>
+            <button className="wt-detach-btn" onClick={() => {
+              setConnectedWorkflows(s => { const n = new Set(s); n.delete(net.id); return n })
+              setExtraWorkflows(prev => prev.filter(w => w.id !== net.id))
+            }}>
               Detach
             </button>
           </div>
         </div>
       ),
-      pickerContent: (
-        <div className="wt-picker">
-          <div className="wt-picker-label">Attach a workflow</div>
-          {networks
-            .filter(n => !connectedWorkflows.has(n.id))
-            .map(n => (
-              <div
-                key={n.id}
-                className="wt-picker-row"
-                onClick={() => {
-                  setConnectedWorkflows(s => new Set([...s, n.id]))
-                  setShowWfPicker(false)
-                }}
-              >
-                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{n.name}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{n.studio}</span>
-              </div>
-            ))}
-        </div>
-      ),
     },
     {
-      key:     'agents',
-      title:   'Connected AI Agents',
-      sub:     'Agents that run alongside this Pack — enriching data, drafting content, or writing back to systems',
-      btnLabel:'Connect agent',
-      showPicker: showAgentPicker,
-      openPicker: () => setShowAgentPicker(true),
-      closePicker:() => { setShowAgentPicker(false); setAgentSearch('') },
-      cols:    TABLE_COLS,
-      hdrCells:['Agent / Studio', 'Model', 'Owner', 'Last Run', 'Runs 30d', 'Capabilities', ''],
-      rows:    agents.filter(a => connectedAgents.has(a.id)),
-      emptyText: 'No agents connected.',
+      key:      'agents',
+      title:    'Connected AI Agents',
+      sub:      'Agents that run alongside this Pack — enriching data, drafting content, or writing back to systems',
+      cols:     TABLE_COLS,
+      hdrCells: ['Agent / Studio', 'Model', 'Owner', 'Last Run', 'Runs 30d', 'Capabilities', ''],
+      rows:     visibleAgents,
+      emptyText:'No agents connected.',
       renderRow: (agent) => (
         <div key={agent.id} className="wt-row" style={{ gridTemplateColumns: TABLE_COLS }}>
           <div>
@@ -3145,38 +3177,13 @@ function WorkflowsTab({ sourcePack }) {
             ))}
           </div>
           <div>
-            <button className="wt-detach-btn" onClick={() => setConnectedAgents(s => { const next = new Set(s); next.delete(agent.id); return next })}>
+            <button className="wt-detach-btn" onClick={() => {
+              setConnectedAgents(s => { const next = new Set(s); next.delete(agent.id); return next })
+              setExtraAgents(prev => prev.filter(a => a.id !== agent.id))
+            }}>
               Disconnect
             </button>
           </div>
-        </div>
-      ),
-      pickerContent: (
-        <div className="wt-picker">
-          <div className="wt-picker-label">Connect an agent</div>
-          <input
-            className="wt-picker-search"
-            placeholder="Search agents…"
-            value={agentSearch}
-            onChange={e => setAgentSearch(e.target.value)}
-          />
-          {agents
-            .filter(a => !connectedAgents.has(a.id))
-            .filter(a => !agentSearch || a.name.toLowerCase().includes(agentSearch.toLowerCase()))
-            .map(a => (
-              <div
-                key={a.id}
-                className="wt-picker-row"
-                onClick={() => {
-                  setConnectedAgents(s => new Set([...s, a.id]))
-                  setShowAgentPicker(false)
-                  setAgentSearch('')
-                }}
-              >
-                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{a.name}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{a.studio}</span>
-              </div>
-            ))}
         </div>
       ),
     },
@@ -3184,6 +3191,17 @@ function WorkflowsTab({ sourcePack }) {
 
   return (
     <div>
+      {/* ── Tab header ─────────────────────────────────────────────────── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+          Workflows & Agents
+        </span>
+        <button className="wt-attach-btn" onClick={() => setShowAttachModal(true)}>
+          <Plus size={13} />
+          Attach to workflow or agent
+        </button>
+      </div>
+
       {visibleWorkflows.length > 0 && (
         <div className="pb-banner pb-banner--warning" style={{ marginBottom: 20 }}>
           <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -3201,37 +3219,38 @@ function WorkflowsTab({ sourcePack }) {
               <div className="wt-section-title">{sec.title}</div>
               <div className="wt-section-sub">{sec.sub}</div>
             </div>
-            {canConnect && (
-              <button className="wt-attach-btn" onClick={sec.openPicker}>
-                <Plus size={13} />
-                {sec.btnLabel}
-              </button>
-            )}
           </div>
-
-          {sec.showPicker && sec.pickerContent}
-
           {sec.rows.length === 0 ? (
-            <div className="wt-empty">
-              {sec.emptyText}{' '}
-              {canConnect && (
-                <button className="wt-empty-link" onClick={sec.openPicker}>
-                  {sec.btnLabel}
-                </button>
-              )}
-            </div>
+            <div className="wt-empty">{sec.emptyText}</div>
           ) : (
             <>
               <div className="wt-table-hdr" style={{ gridTemplateColumns: sec.cols }}>
-                {sec.hdrCells.map((cell, i) => (
-                  <span key={i}>{cell}</span>
-                ))}
+                {sec.hdrCells.map((cell, i) => <span key={i}>{cell}</span>)}
               </div>
               {sec.rows.map(row => sec.renderRow(row))}
             </>
           )}
         </div>
       ))}
+
+      {/* ── Attach modal ───────────────────────────────────────────────── */}
+      {showAttachModal && (
+        <AttachModal
+          currentPackId={sourcePack?.id}
+          connectedWorkflows={connectedWorkflows}
+          connectedAgents={connectedAgents}
+          onAttach={handleAttach}
+          onClose={() => setShowAttachModal(false)}
+        />
+      )}
+
+      {/* ── Local toast ────────────────────────────────────────────────── */}
+      {localToast && (
+        <div className="pb-toast">
+          <CheckCircle size={15} style={{ color: 'var(--accent-teal)' }} />
+          {localToast}
+        </div>
+      )}
     </div>
   )
 }
@@ -3439,8 +3458,6 @@ export default function PackBuilder() {
       case 2:  return <Step2Triggers         {...p} />
       case 3:  return <StepRoutingResponse   {...p} />
       case 4:  return <Step4Destination      {...p} />
-      case 5:  return <Step5HandoffPacket    draft={draft} updatePacket={updatePacket} />
-      case 6:  return <Step6ComposerScope    {...p} />
       case 7:  return <Step7Macros           />
       case 8:  return <Step9SensitiveSignals {...p} />
       case 9:  return <Step10Notifications   {...p} />

@@ -14,6 +14,27 @@ const TYPE_CFG = {
 }
 const TYPE_TABS = ['Customer behavior', 'AI confidence', 'Score threshold', 'Specific event']
 
+const STUDIOS = ['Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio', 'All Studios']
+const STUDIO_CFG = {
+  'Agentic Studio':           { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+  'Helix Governance Studio':  { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+  'Helix Data Studio':        { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+  'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
+}
+
+function StudioBadge({ studio }) {
+  const sc = STUDIO_CFG[studio] || STUDIO_CFG['All Studios']
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)', fontSize: 10,
+      background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
+      borderRadius: 4, padding: '2px 6px', whiteSpace: 'nowrap',
+    }}>
+      {studio}
+    </span>
+  )
+}
+
 // ─── Specific event — reference data ─────────────────────────────────────────
 const FORMS_CATALOG = [
   { id: 'purchase-intent-form',   label: 'Purchase Intent Form',        desc: 'Submitted when a prospect signals purchase readiness' },
@@ -47,6 +68,7 @@ const TAGS_CATALOG = [
 // ─── Drawer ───────────────────────────────────────────────────────────────────
 function TriggerDrawer({ trigger, onSave, onClose }) {
   const [name,        setName]        = useState(trigger?.name        || '')
+  const [studio,      setStudio]      = useState(trigger?.studio      || 'All Studios')
   const [type,        setType]        = useState(trigger?.type        || 'Customer behavior')
   const [status,      setStatus]      = useState(trigger?.status      || 'active')
   const [description, setDescription] = useState(trigger?.description || '')
@@ -107,7 +129,7 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
 
   const handleSave = () => {
     if (!name.trim()) return
-    const base = { name, type, status }
+    const base = { name, studio, type, status }
     let extra = {}
     if (type === 'Customer behavior') extra = { description, keywords, examples, exclusions, sensitivity }
     if (type === 'AI confidence')     extra = { threshold }
@@ -122,7 +144,7 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
       <div className="tl-drawer">
         {/* Header */}
         <div className="tl-drawer-hdr">
-          <span className="tl-drawer-title">{trigger ? 'Edit Trigger' : 'New Trigger'}</span>
+          <span className="tl-drawer-title">{trigger ? 'Edit Condition' : 'New Condition'}</span>
           <button className="tl-drawer-close" onClick={onClose}><X size={16} /></button>
         </div>
 
@@ -138,6 +160,22 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
               value={name}
               onChange={e => setName(e.target.value)}
             />
+          </div>
+
+          {/* Studio */}
+          <div className="tl-field">
+            <label className="tl-label">Studio</label>
+            <div className="tl-assign-row">
+              {STUDIOS.map(s => (
+                <button
+                  key={s}
+                  className={`tl-assign-btn${studio === s ? ' tl-assign-btn--sel' : ''}`}
+                  onClick={() => setStudio(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Type */}
@@ -280,7 +318,7 @@ The customer may be angry, disappointed, or simply making an administrative requ
                       onClick={() => setSensitivity(s.id)}
                     >
                       <span style={{ fontSize: 12, fontWeight: 600 }}>{s.label}</span>
-                      <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400, whiteSpace: 'nowrap' }}>{s.hint}</span>
+                      <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400, textAlign: 'center' }}>{s.hint}</span>
                     </button>
                   ))}
                 </div>
@@ -520,7 +558,7 @@ The customer may be angry, disappointed, or simply making an administrative requ
         <div className="tl-drawer-foot">
           <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
           <Button variant="primary" size="sm" onClick={handleSave} disabled={!name.trim()}>
-            Save Trigger
+            Save Condition
           </Button>
         </div>
       </div>
@@ -533,6 +571,7 @@ export default function Triggers() {
   const [triggers,     setTriggers]     = useState(triggerLibrary)
   const [search,       setSearch]       = useState('')
   const [typeFilter,   setTypeFilter]   = useState('All')
+  const [studioFilter, setStudioFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [drawerOpen,   setDrawerOpen]   = useState(false)
   const [editId,       setEditId]       = useState(null)
@@ -540,8 +579,9 @@ export default function Triggers() {
 
   const filtered = triggers.filter(t => {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) && !(t.description || '').toLowerCase().includes(search.toLowerCase())) return false
-    if (typeFilter   !== 'All' && t.type   !== typeFilter)   return false
-    if (statusFilter !== 'All' && t.status !== statusFilter) return false
+    if (typeFilter   !== 'All' && t.type              !== typeFilter)   return false
+    if (studioFilter !== 'All' && (t.studio || 'All Studios') !== studioFilter) return false
+    if (statusFilter !== 'All' && t.status             !== statusFilter) return false
     return true
   })
 
@@ -564,15 +604,15 @@ export default function Triggers() {
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="page-header-row">
         <div className="page-header">
-          <h1 className="page-title">Triggers</h1>
+          <h1 className="page-title">Conditions</h1>
           <p className="page-subtitle">
-            Define reusable trigger conditions. Once created, they're available to select
-            in any Pack's Triggers step — no need to rebuild the same logic each time.
+            Define reusable conditions. Once created, they're available to select
+            in any Pack's Conditions step — no need to rebuild the same logic each time.
           </p>
         </div>
         <div className="page-actions">
           <Button variant="primary" size="sm" icon={Plus} onClick={openNew}>
-            New Trigger
+            New Condition
           </Button>
         </div>
       </div>
@@ -582,7 +622,7 @@ export default function Triggers() {
         <div className="tl-search-wrap">
           <input
             className="tl-search-input"
-            placeholder="Search triggers…"
+            placeholder="Search conditions…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -591,20 +631,24 @@ export default function Triggers() {
           <option value="All">All Types</option>
           {TYPE_TABS.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
+        <select className="tl-sel" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
+          <option value="All">All Studios</option>
+          {STUDIOS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
         <select className="tl-sel" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
           <option value="All">All Statuses</option>
           <option value="active">Active</option>
           <option value="draft">Draft</option>
         </select>
         <span className="tl-count">
-          {filtered.length} trigger{filtered.length !== 1 ? 's' : ''}
+          {filtered.length} condition{filtered.length !== 1 ? 's' : ''}
         </span>
       </div>
 
       {/* ── Trigger list ──────────────────────────────────────────────────── */}
       <div className="tl-list">
         {filtered.length === 0 && (
-          <div className="tl-empty">No triggers match the current filters.</div>
+          <div className="tl-empty">No conditions match the current filters.</div>
         )}
         {filtered.map(t => {
           const cfg = TYPE_CFG[t.type] || TYPE_CFG['Customer behavior']
@@ -621,6 +665,7 @@ export default function Triggers() {
                 )}
                 <div className="tl-row-meta">
                   <Badge label={t.type} variant={cfg.variant} size="sm" />
+                  {t.studio && <StudioBadge studio={t.studio} />}
                   <div
                     className="tl-packs-chip"
                     onMouseEnter={() => setHoveredPacks(t.id)}

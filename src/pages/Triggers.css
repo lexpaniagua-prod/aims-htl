@@ -395,6 +395,16 @@
   line-height: 1.55;
 }
 
+/* Studio selector (drawer) */
+.tl-assign-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.tl-assign-btn {
+  flex: 1; padding: 7px 10px; border: 1.5px solid var(--border); border-radius: 7px;
+  font-size: 12px; font-family: inherit;
+  background: var(--bg-card); color: var(--text-secondary);
+  cursor: pointer; transition: all 0.12s; white-space: nowrap;
+}
+.tl-assign-btn--sel { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--accent-blue); font-weight: 500; }
+
 /* Status toggle */
 .tl-status-row { display: flex; gap: 8px; }
 .tl-status-btn {

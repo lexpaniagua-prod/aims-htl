@@ -73,15 +73,17 @@ function TeamDrawer({ team, onSave, onClose }) {
   const [memberSearch, setMemberSearch] = useState('')
 
   const TYPE_TABS  = ['queue', 'roster', 'role', 'rotation']
-  const ASSIGN_OPT = ['round-robin', 'skill-based', 'least-busy']
+  const ASSIGN_OPT = ['round-robin', 'expertise-based', 'least-busy']
 
   const addMember = (name) => {
     if (!members.find(m => m.name === name)) {
-      setMembers(ms => [...ms, { name, role: 'Agent', status: 'online' }])
+      setMembers(ms => [...ms, { name, role: 'Agent', status: 'online', expertiseLevel: 'Mid-level' }])
     }
     setMemberSearch('')
   }
   const removeMember = (name) => setMembers(ms => ms.filter(m => m.name !== name))
+  const updateMemberExpertise = (name, level) =>
+    setMembers(ms => ms.map(m => m.name === name ? { ...m, expertiseLevel: level } : m))
 
   const filteredPool = PEOPLE_POOL.filter(p =>
     !members.find(m => m.name === p) &&
@@ -130,7 +132,7 @@ function TeamDrawer({ team, onSave, onClose }) {
               })}
             </div>
             <div className="tq-type-hint">
-              {type === 'queue'    && 'Round-robin or skill-based — any available member picks it up.'}
+              {type === 'queue'    && 'Round-robin or expertise-based — any available member picks it up.'}
               {type === 'roster'   && 'Specific named people — any roster member can receive items.'}
               {type === 'role'     && 'A single role — the designated person receives all items.'}
               {type === 'rotation' && 'Auto-rotates on a schedule — different person each cycle.'}
@@ -323,11 +325,36 @@ function TeamDrawer({ team, onSave, onClose }) {
                       <div className="tq-avatar-sm">{initials(m.name)}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.role}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.role}</span>
+                          {/* Expertise selector — visible only for expertise-based teams.
+                              Routing priority: Expert → Lead → Senior → Mid-level → Junior */}
+                          {assignment === 'expertise-based' && (
+                            <>
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>·</span>
+                              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Expertise:</span>
+                              <select
+                                className="tq-sel"
+                                style={{ fontSize: 11, padding: '1px 4px', height: 20 }}
+                                value={m.expertiseLevel || 'Mid-level'}
+                                onChange={e => updateMemberExpertise(m.name, e.target.value)}
+                              >
+                                {['Junior', 'Mid-level', 'Senior', 'Lead', 'Expert'].map(l => (
+                                  <option key={l}>{l}</option>
+                                ))}
+                              </select>
+                            </>
+                          )}
+                        </div>
                       </div>
                       <button className="tq-remove-btn" onClick={() => removeMember(m.name)}><X size={11} /></button>
                     </div>
                   ))}
+                </div>
+              )}
+              {assignment === 'expertise-based' && members.length > 0 && (
+                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                  Members will be assigned items in order of expertise level — Expert first, then Lead, Senior, and so on. If the top tier is unavailable, the next level takes over.
                 </div>
               )}
               <input
@@ -356,7 +383,7 @@ function TeamDrawer({ team, onSave, onClose }) {
               <div className="tq-assign-row">
                 {ASSIGN_OPT.map(a => (
                   <button key={a} className={`tq-assign-btn${assignment === a ? ' tq-assign-btn--sel' : ''}`} onClick={() => setAssignment(a)}>
-                    {a === 'round-robin' ? 'Round-robin' : a === 'skill-based' ? 'Skill-based' : 'Least busy'}
+                    {a === 'round-robin' ? 'Round-robin' : a === 'expertise-based' ? 'Expertise-based' : 'Least busy'}
                   </button>
                 ))}
               </div>
