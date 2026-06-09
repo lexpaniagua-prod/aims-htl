@@ -72,7 +72,6 @@ const NAV = [
       { label: 'Teams & Queues',    path: '/settings/teams',         icon: Users      },
       { label: 'Destinations',      path: '/configure/destinations', icon: Navigation },
       { label: 'Sensitive Signals', path: '/configure/signals',      icon: Radio      },
-      { label: 'Channels',          path: '/configure/channels',     icon: Hash       },
       { label: 'OOO & Coverage',    path: '/settings/ooo',           icon: CalendarOff},
     ]
   },

@@ -76,7 +76,6 @@ function PackMenu({ pack, pos, onClose, onEdit, onClone, onArchive }) {
     { icon: Eye,      label: 'View details',   action: onEdit },
     { icon: Pencil,   label: 'Edit pack',       action: onEdit },
     { icon: Copy,     label: 'Duplicate',       action: onClone },
-    { icon: GitFork,  label: 'Branch version',  action: onClone },
     null,
     { icon: Archive,  label: 'Archive pack',    action: onArchive },
     { icon: Trash2,   label: 'Delete pack',     action: onArchive, danger: true },
