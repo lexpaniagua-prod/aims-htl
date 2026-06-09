@@ -1,5 +1,65 @@
 /* ─── Pack Library ─────────────────────────────────────────────────────────── */
 
+/* Compact stat strip — 2 × 2 grid replacing the tall KPI cards */
+.pl-stat-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-card);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.pl-stat-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.pl-stat-cell:nth-child(2),
+.pl-stat-cell:nth-child(4) { border-right: none; }
+.pl-stat-cell:nth-child(3),
+.pl-stat-cell:nth-child(4) { border-bottom: none; }
+
+.pl-stat-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pl-stat-icon--blue   { background: var(--accent-blue-dim);   color: var(--accent-blue);   }
+.pl-stat-icon--green  { background: var(--accent-green-dim);  color: var(--accent-green);  }
+.pl-stat-icon--coral  { background: var(--accent-coral-dim);  color: var(--accent-coral);  }
+.pl-stat-icon--purple { background: var(--accent-purple-dim); color: var(--accent-purple); }
+
+.pl-stat-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1;
+  white-space: nowrap;
+}
+.pl-stat-value {
+  font-family: 'Syne', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.pl-stat-delta {
+  font-size: 10px;
+  color: var(--accent-teal);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
 /* Filter bar */
 .pl-filter-bar {
   display: flex;

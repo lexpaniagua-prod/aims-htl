@@ -323,33 +323,29 @@ export default function PackLibrary() {
         </div>
       </div>
 
-      {/* ── KPI strip ─────────────────────────────────────────────────────── */}
-      <div className="kpi-grid" style={{ marginBottom: 20 }}>
-        <KPICard
-          label="Total Packs"
-          value={totalPacks}
-          tint="blue"
-          icon={Package2}
-        />
-        <KPICard
-          label="Active Packs"
-          value={activePacks}
-          tint="green"
-          icon={GitBranch}
-          delta={`${activePacks} of ${totalPacks}`}
-        />
-        <KPICard
-          label="Sensitive Signal"
-          value={sensitivePacks}
-          tint="coral"
-          icon={Shield}
-        />
-        <KPICard
-          label="Attached Workflows"
-          value={totalWorkflows}
-          tint="purple"
-          icon={Workflow}
-        />
+      {/* ── Stat strip ────────────────────────────────────────────────────── */}
+      <div className="pl-stat-bar">
+        <div className="pl-stat-cell">
+          <span className="pl-stat-icon pl-stat-icon--blue"><Package2 size={12}/></span>
+          <span className="pl-stat-label">Total Packs</span>
+          <span className="pl-stat-value">{totalPacks}</span>
+        </div>
+        <div className="pl-stat-cell">
+          <span className="pl-stat-icon pl-stat-icon--green"><GitBranch size={12}/></span>
+          <span className="pl-stat-label">Active Packs</span>
+          <span className="pl-stat-value">{activePacks}</span>
+          <span className="pl-stat-delta">↑ {activePacks} of {totalPacks} vs last 7d</span>
+        </div>
+        <div className="pl-stat-cell">
+          <span className="pl-stat-icon pl-stat-icon--coral"><Shield size={12}/></span>
+          <span className="pl-stat-label">Sensitive Signal</span>
+          <span className="pl-stat-value">{sensitivePacks}</span>
+        </div>
+        <div className="pl-stat-cell">
+          <span className="pl-stat-icon pl-stat-icon--purple"><Workflow size={12}/></span>
+          <span className="pl-stat-label">Attached Workflows</span>
+          <span className="pl-stat-value">{totalWorkflows}</span>
+        </div>
       </div>
 
       {/* ── Filter bar ────────────────────────────────────────────────────── */}
