@@ -1534,17 +1534,19 @@ export const packAgentBindings = {
 }
 
 export const integrations = [
-  { id: 'int-salesforce', name: 'Salesforce CRM',    type: 'CRM',       status: 'connected', lastSync: ago(5)    },
-  { id: 'int-zendesk',    name: 'Zendesk',            type: 'Ticketing', status: 'connected', lastSync: ago(34)   },
-  { id: 'int-jira',       name: 'Jira Projects',      type: 'Ticketing', status: 'connected', lastSync: ago(120)  },
-  { id: 'int-netsuite',   name: 'NetSuite',           type: 'ERP',       status: 'error',     lastSync: ago(1440) },
+  { id: 'int-salesforce', name: 'Salesforce CRM',  type: 'CRM',       status: 'connected', lastSync: ago(5),    actions: ['Create opportunity', 'Update contact', 'Log activity', 'Custom'] },
+  { id: 'int-zendesk',    name: 'Zendesk',          type: 'Ticketing', status: 'connected', lastSync: ago(34),   actions: ['Create ticket', 'Update ticket', 'Close ticket', 'Custom'] },
+  { id: 'int-jira',       name: 'Jira Projects',    type: 'Ticketing', status: 'connected', lastSync: ago(120),  actions: ['Create issue', 'Update issue', 'Log comment', 'Custom'] },
+  { id: 'int-netsuite',   name: 'NetSuite ERP',     type: 'ERP',       status: 'error',     lastSync: ago(1440), actions: ['Create record', 'Update vendor', 'Log transaction', 'Custom'] },
 ]
 
 export const lightweightChannels = [
-  { id: 'ch-slack',     name: 'Slack Connect',       activePacks: 2 },
-  { id: 'ch-email',     name: 'Email Support',       activePacks: 4 },
-  { id: 'ch-whatsapp',  name: 'WhatsApp Business',   activePacks: 2 },
-  { id: 'ch-sms',       name: 'SMS',                 activePacks: 0 },
+  { id: 'ch-slack',    name: 'Slack Connect',      type: 'slack',    activePacks: 2, status: 'active' },
+  { id: 'ch-email',    name: 'Email Support',      type: 'email',    activePacks: 4, status: 'active' },
+  { id: 'ch-whatsapp', name: 'WhatsApp Business',  type: 'whatsapp', activePacks: 2, status: 'active' },
+  { id: 'ch-inapp',    name: 'In-App Messenger',   type: 'in_app',   activePacks: 0, status: 'active' },
+  { id: 'ch-sms',      name: 'SMS',                type: 'sms',      activePacks: 0, status: 'active' },
+  { id: 'ch-twitter',  name: 'Twitter/X DMs',      type: 'social',   activePacks: 0, status: 'paused' },
 ]
 
 export const teamsAndQueues = [

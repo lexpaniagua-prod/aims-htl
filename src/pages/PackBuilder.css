@@ -1036,14 +1036,27 @@
 .rt-fb-body {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.rt-timeout-row {
+  display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 .rt-after-lbl {
   font-size: 12px;
   color: var(--text-tertiary);
   flex-shrink: 0;
+}
+.rt-primary-timeout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
 }
 .rt-remove-btn {
   width: 26px;
@@ -1162,6 +1175,48 @@
 .rt-summary-icon { color: var(--accent-blue); flex-shrink: 0; margin-top: 1px; }
 .rt-summary-txt  { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
 
+/* ── Step 3 — Recipient selector field ────────────────────────────────────── */
+.rcp-sel-wrap  { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.rcp-sel-field { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--bg-card-elevated); border: 1.5px solid var(--border-strong); border-radius: 10px; cursor: pointer; transition: border-color 0.12s; min-width: 200px; }
+.rcp-sel-field:hover { border-color: var(--accent-blue-border); }
+.rcp-sel-icon  { font-size: 15px; flex-shrink: 0; }
+.rcp-sel-name  { flex: 1; font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.rcp-sel-clear { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border-radius: 4px; font-size: 15px; line-height: 1; color: var(--text-tertiary); flex-shrink: 0; transition: color 0.1s, background 0.1s; }
+.rcp-sel-clear:hover { color: var(--accent-coral); background: var(--accent-coral-dim); }
+.rcp-sel-change { font-size: 12px; font-weight: 500; color: var(--accent-blue); background: transparent; border: none; cursor: pointer; flex-shrink: 0; padding: 0; font-family: inherit; white-space: nowrap; }
+.rcp-sel-change:hover { text-decoration: underline; }
+.rcp-sel-empty { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border: 1.5px dashed var(--border-strong); border-radius: 10px; font-size: 13px; color: var(--text-tertiary); background: transparent; cursor: pointer; font-family: inherit; transition: border-color 0.12s, color 0.12s, background 0.12s; }
+.rcp-sel-empty:hover { border-color: var(--accent-blue-border); color: var(--accent-blue); background: var(--accent-blue-dim); border-style: solid; }
+
+/* ── Step 3 — Teams catalog modal ─────────────────────────────────────────── */
+.rcp-modal-filters { padding: 12px 20px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; background: var(--bg-card-elevated); }
+.rcp-group { margin-bottom: 2px; }
+.rcp-group-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-tertiary); padding: 10px 0 4px; }
+.rcp-group-rule  { height: 1px; background: var(--border); margin-bottom: 4px; }
+.rcp-row { display: flex; align-items: center; gap: 10px; padding: 10px 10px; border-radius: 8px; cursor: pointer; transition: background 0.1s; position: relative; }
+.rcp-row:hover { background: var(--bg-row); }
+.rcp-row--sel { background: var(--accent-blue-dim); }
+.rcp-row--sel:hover { background: var(--accent-blue-dim); }
+.rcp-radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-strong); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.rcp-radio-dot { width: 8px; height: 8px; border-radius: 50%; transition: background 0.1s; }
+.rcp-radio-dot--on { background: var(--accent-blue); }
+.rcp-row-icon { font-size: 16px; flex-shrink: 0; }
+.rcp-row-body { flex: 1; min-width: 0; }
+.rcp-row-top  { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.rcp-row-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.rcp-row-meta { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
+.rcp-avail-wrap { position: relative; flex-shrink: 0; display: flex; align-items: center; margin-left: 4px; }
+.rcp-avail-dot  { width: 9px; height: 9px; border-radius: 50%; }
+.rcp-avail-pop  { position: absolute; right: 0; top: calc(100% + 6px); min-width: 190px; background: var(--bg-card-elevated); border: 1px solid var(--border-strong); border-radius: 9px; padding: 10px 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.22); z-index: 50; pointer-events: none; }
+.rcp-avail-pop-title { font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 7px; }
+.rcp-avail-member    { display: flex; align-items: center; gap: 7px; padding: 3px 0; }
+.rcp-member-dot         { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.rcp-member-dot--online  { background: var(--accent-teal); }
+.rcp-member-dot--busy    { background: var(--accent-amber); }
+.rcp-member-dot--offline { background: var(--text-tertiary); }
+.rcp-member-status { font-size: 10px; color: var(--text-tertiary); text-transform: capitalize; margin-left: auto; }
+.rcp-create-link { font-size: 12px; color: var(--text-tertiary); padding: 16px 0 6px; }
+
 /* ── Step 3 — Advanced mode (IF/THEN, kept for power users) ──────────────── */
 .routing-rule {
   background: var(--bg-row);
@@ -1230,129 +1285,80 @@
 }
 .fallback-reorder button:hover { background: var(--bg-card-elevated); color: var(--text-primary); }
 
-/* ── Step 4 — Destination (toggle rows + notifications) ─────────────────── */
+/* ── Step 4 — Destination ───────────────────────────────────────────────── */
 .dst-locked-row { display:flex; align-items:center; gap:12px; padding:13px 16px; background:var(--accent-teal-dim); border:1px solid var(--accent-teal-border); border-left:3px solid var(--accent-teal); border-radius:10px; margin-bottom:4px; }
 .dst-locked-body { flex:1; display:flex; flex-direction:column; gap:2px; }
 .dst-locked-name { font-size:13px; font-weight:600; color:var(--text-primary); }
 .dst-locked-sub  { font-size:11px; color:var(--text-tertiary); }
 .dst-locked-badge { font-size:11px; font-weight:600; color:var(--accent-teal); background:var(--bg-card-elevated); border:1px solid var(--accent-teal-border); border-radius:20px; padding:3px 10px; flex-shrink:0; }
-.dst-toggle-list { display:flex; flex-direction:column; gap:6px; margin-bottom:8px; }
-.dst-toggle-row { display:flex; align-items:center; gap:12px; padding:11px 14px; background:var(--bg-row); border:1px solid var(--border); border-radius:9px; transition:background 0.12s, border-color 0.12s; }
-.dst-toggle-row--on  { background:var(--accent-blue-dim); border-color:var(--accent-blue-border); }
-.dst-toggle-row--err { background:var(--accent-amber-dim); border-color:var(--accent-amber-border); }
-.dst-toggle-body { flex:1; display:flex; flex-direction:column; gap:2px; }
-.dst-toggle-name { font-size:13px; font-weight:500; color:var(--text-primary); }
-.dst-toggle-meta { font-size:11px; color:var(--text-tertiary); }
-.dst-badge-ok { font-size:11px; font-weight:500; color:var(--accent-teal); flex-shrink:0; background:var(--accent-teal-dim); border:1px solid var(--accent-teal-border); border-radius:6px; padding:2px 8px; }
-.dst-badge-err { display:flex; align-items:center; flex-shrink:0; font-size:11px; font-weight:500; color:var(--accent-coral); background:var(--accent-coral-dim); border:1px solid var(--accent-coral-border); border-radius:6px; padding:2px 8px; }
-.dst-manage-link { font-size:12px; color:var(--text-tertiary); margin-bottom:4px; padding:0 2px; }
+.dst-badge-ok  { font-size:11px; font-weight:500; color:var(--accent-teal); flex-shrink:0; background:var(--accent-teal-dim); border:1px solid var(--accent-teal-border); border-radius:6px; padding:2px 8px; }
+.dst-badge-err { display:flex; align-items:center; gap:3px; flex-shrink:0; font-size:11px; font-weight:500; color:var(--accent-coral); background:var(--accent-coral-dim); border:1px solid var(--accent-coral-border); border-radius:6px; padding:2px 8px; }
 
-/* ── Step 4 — Destination (legacy card styles kept) ─────────────────────── */
+/* Section zones */
+.d4-section { margin-top: 22px; }
+.d4-section-label { font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.07em; color: var(--text-tertiary); text-transform: uppercase; margin-bottom: 4px; }
+.d4-section-sub { font-size: 12px; color: var(--text-tertiary); line-height: 1.5; margin-bottom: 12px; }
 
-/* Inbox — always-on card */
-.dest-inbox-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  background: var(--accent-teal-dim);
-  border: 2px solid var(--accent-teal-border);
-  border-radius: 12px;
-  margin-bottom: 24px;
-  gap: 16px;
-}
-.dest-inbox-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.dest-inbox-emoji { font-size: 24px; flex-shrink: 0; }
-.dest-inbox-name  { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
-.dest-inbox-desc  { font-size: 12px; color: var(--text-secondary); line-height: 1.45; }
-.dest-inbox-check {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--accent-teal);
-  background: var(--bg-card-elevated);
-  border: 1px solid var(--accent-teal-border);
-  border-radius: 20px;
-  padding: 4px 10px;
-}
+/* Empty state */
+.d4-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 11px; padding: 16px; background: var(--bg-row); border: 1px dashed var(--border); border-radius: 9px; }
+.d4-empty-text { font-size: 12px; color: var(--text-tertiary); }
 
-/* Add-ons section */
-.dest-addons-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 12px;
-}
-.dest-addons-label span {
-  font-weight: 400;
-  color: var(--text-tertiary);
-  font-size: 12px;
+/* Active list */
+.d4-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
+.d4-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg-row); border: 1px solid var(--border); border-radius: 9px; transition: background 0.12s; }
+.d4-item:hover { background: var(--bg-card-elevated); }
+.d4-item-int-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: var(--font-mono); flex-shrink: 0; }
+.d4-item-chan-icon { width: 30px; height: 30px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; background: var(--bg-card-elevated); border: 1px solid var(--border); }
+.d4-item-body { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.d4-item-name { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d4-item-sub  { font-size: 11px; color: var(--text-tertiary); }
+.d4-remove-btn { display: flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; color: var(--text-tertiary); flex-shrink: 0; opacity: 0; transition: opacity 0.12s, background 0.12s, color 0.12s; }
+.d4-item:hover .d4-remove-btn { opacity: 1; }
+.d4-remove-btn:hover { background: var(--accent-coral-dim); color: var(--accent-coral); }
+
+/* Add button */
+.d4-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--text-secondary); background: transparent; cursor: pointer; transition: border-color 0.12s, color 0.12s, background 0.12s; font-family: inherit; }
+.d4-add-btn:hover { border-color: var(--accent-blue-border); color: var(--accent-blue); background: var(--accent-blue-dim); }
+
+/* Chips */
+.d4-chip { font-size: 10px; font-weight: 500; border-radius: 10px; padding: 1px 7px; flex-shrink: 0; border: 1px solid; }
+.d4-chip--muted { color: var(--text-tertiary); background: var(--bg-card-elevated); border-color: var(--border); }
+.d4-chip--amber { color: var(--accent-amber); background: var(--accent-amber-dim); border-color: var(--accent-amber-border); }
+
+/* Warning note */
+.d4-warn-note { font-size: 11px; color: var(--accent-amber); margin-top: 5px; line-height: 1.45; }
+
+/* Catalog modal panel */
+.d4-catalog-modal {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  max-width: calc(100vw - 32px); max-height: 80vh;
+  background: var(--bg-sidebar); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 24px 64px rgba(0,0,0,0.35);
+  z-index: 301; display: flex; flex-direction: column;
+  animation: wt-modal-in 0.18s ease; overflow: hidden;
 }
 
-.dest-addons-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-  margin-bottom: 20px;
-}
+/* Type filter select */
+.d4-filter-sel { padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 12px; background: var(--bg-input); color: var(--text-primary); cursor: pointer; min-width: 110px; font-family: inherit; }
 
-.dest-addon-card {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 18px;
-  cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.dest-addon-card:hover { border-color: var(--border-strong); }
-.dest-addon-card--on   { border-color: var(--accent-blue); background: var(--accent-blue-dim); }
+/* Modal rows */
+.d4-modal-row { display: flex; align-items: flex-start; gap: 10px; padding: 11px 10px; border-radius: 8px; cursor: pointer; transition: background 0.1s; }
+.d4-modal-row:hover:not(.d4-modal-row--disabled) { background: var(--bg-row); }
+.d4-modal-row--sel { background: var(--accent-blue-dim); }
+.d4-modal-row--sel:hover { background: var(--accent-blue-dim); }
+.d4-modal-row--disabled { cursor: default; opacity: 0.55; }
 
-.dest-addon-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 4px;
-}
-.dest-addon-emoji { font-size: 22px; }
-.dest-addon-check {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid var(--border-strong);
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.12s, border-color 0.12s;
-}
-.dest-addon-check--on { background: var(--accent-blue); border-color: var(--accent-blue); }
+/* Integration icon in modal */
+.d4-int-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; font-family: var(--font-mono); flex-shrink: 0; margin-top: 1px; }
 
-.dest-addon-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.dest-addon-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+/* Channel icon in modal */
+.d4-chan-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
-/* Active destination summary pill */
-.dest-summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-  font-size: 13px;
-}
-.dest-summary-label { color: var(--text-tertiary); }
-.dest-summary-value {
-  font-weight: 600;
-  color: var(--accent-blue);
-  background: var(--accent-blue-dim);
-  border: 1px solid var(--accent-blue-border);
-  border-radius: 6px;
-  padding: 2px 9px;
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-}
+/* Config card (action select phase) */
+.d4-config-card { background: var(--bg-row); border: 1px solid var(--border); border-radius: 9px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.d4-config-card-hdr { display: flex; align-items: center; gap: 10px; }
+.d4-action-sel { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; background: var(--bg-card); color: var(--text-primary); width: 100%; cursor: pointer; font-family: inherit; }
+.d4-action-sel:focus { border-color: var(--border-focus); outline: none; }
 
 /* Step 5 — Handoff Packet */
 .packet-layout {

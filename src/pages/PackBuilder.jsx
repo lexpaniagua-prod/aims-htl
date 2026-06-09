@@ -271,9 +271,8 @@ function Step1Pattern({ draft, update }) {
 
 // ─── Routing recipient display names (shared between Step 3 and Review) ──────
 const ROUTING_RECIPIENT_NAMES = {
-  assigned: 'assigned agent',
-  person:   'assigned person',
-  // team IDs are resolved via RT_RECIPIENTS label lookup
+  assigned: 'the person who triggered this',
+  person:   'a specific person',
 }
 
 // ─── Step 2: Triggers ────────────────────────────────────────────────────────
@@ -648,61 +647,54 @@ function Step2Triggers({ draft, update }) {
 
 // ─── Merged: Routing & Response Rules ──────────────────────────────────────────
 function StepRoutingResponse({ draft, update }) {
-  const primary       = draft.routingPrimary        || "tier1"
+  const primary       = draft.routingPrimary        ?? null
   const primaryCustom = draft.routingPrimaryCustom  || ""
   const condition     = draft.routingCondition      || "always"
   const condValue     = draft.routingConditionValue || ""
-  const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: "tier2", customRecipient: "", afterMin: 15 }]
-  const finalAction   = Array.isArray(draft.routingFinalAction) ? draft.routingFinalAction : [draft.routingFinalAction || "requeue"]
-  const stages        = draft.slaStages || [{ id:1,delayMinutes:0,delayUnit:"minutes",action:"escalate_next",customTeam:"" },{ id:2,delayMinutes:30,delayUnit:"minutes",action:"notify_manager",customTeam:"" }]
-  const hours         = Math.floor(draft.slaMinutes / 60)
-  const mins          = draft.slaMinutes % 60
-  const [hasResTarget,setHasResTarget] = useState(false)
-  const [resHours,setResHours]         = useState(4)
-  const [resMins,setResMins]           = useState(0)
+  const fallbacks        = draft.routingFallbacks         || [{ id: 1, recipient: null, customRecipient: "", afterMin: 15 }]
+  const primaryAfterMin  = draft.routingPrimaryAfterMin  ?? 30
+  const finalAction      = Array.isArray(draft.routingFinalAction) ? draft.routingFinalAction : [draft.routingFinalAction || "requeue"]
 
-  const setStages   = s => update("slaStages", s)
-  const addStage    = () => setStages([...stages,{ id: stages.reduce((m,s)=>Math.max(m,s.id),0)+1, delayMinutes:60, delayUnit:"minutes", action:"notify_senior", customTeam:"" }])
-  const removeStage = id => setStages(stages.filter(s=>s.id!==id))
-  const updateStage = (id,k,v) => setStages(stages.map(s=>s.id===id?{...s,[k]:v}:s))
-  const rName = (id,custom) => ROUTING_RECIPIENT_NAMES[id]||custom||RT_RECIPIENTS.find(r=>r.id===id)?.label||id
-  const toMin = s => s.delayUnit==="hours"?s.delayMinutes*60:s.delayMinutes
-  const fmtMin= m => m>=1440?(m/1440).toFixed(1)+"d":m>=60?(m/60).toFixed(1)+"h":m+"m"
-  const setPrimary       = v => update("routingPrimary",v)
-  const setPrimaryCustom = v => update("routingPrimaryCustom",v)
-  const setCondition     = v => update("routingCondition",v)
-  const setCondValue     = v => update("routingConditionValue",v)
-  const setFallbacks     = fb => { update("routingFallbacks",fb); update("fallbackChain",fb.map(f=>rName(f.recipient,f.customRecipient))) }
-  const toggleFinalAction = v => { const next=finalAction.includes(v)?finalAction.filter(x=>x!==v):[...finalAction,v]; if(next.length>0)update("routingFinalAction",next) }
-  const setHoursF = h => update("slaMinutes",Math.max(0,parseInt(h)||0)*60+mins)
-  const setMinsF  = m => update("slaMinutes",hours*60+Math.min(59,Math.max(0,parseInt(m)||0)))
+  const rName    = (id,custom) => teamsAndQueues.find(t=>t.id===id)?.name || ROUTING_RECIPIENT_NAMES[id] || custom || id || '—'
+  const fmtMin   = m => m < 60 ? m+' min' : m % 60 === 0 ? (m/60)+(m/60===1?' hour':' hours') : Math.floor(m/60)+'h '+m%60+'m'
+  const setPrimary          = v => update("routingPrimary",v)
+  const setPrimaryCustom    = v => update("routingPrimaryCustom",v)
+  const setPrimaryAfterMin  = v => update("routingPrimaryAfterMin",v)
+  const setCondition        = v => update("routingCondition",v)
+  const setCondValue        = v => update("routingConditionValue",v)
+  const setFallbacks        = fb => { update("routingFallbacks",fb); update("fallbackChain",fb.map(f=>rName(f.recipient,f.customRecipient))) }
+  const toggleFinalAction   = v => { const next=finalAction.includes(v)?finalAction.filter(x=>x!==v):[...finalAction,v]; if(next.length>0)update("routingFinalAction",next) }
   const moveFallback   = (i,dir) => { const a=[...fallbacks];const j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];setFallbacks(a) }
-  const addFallback    = () => setFallbacks([...fallbacks,{ id:fallbacks.reduce((m,f)=>Math.max(m,f.id),0)+1, recipient:"tier2", customRecipient:"", afterMin:30 }])
+  const addFallback    = () => setFallbacks([...fallbacks,{ id:fallbacks.reduce((m,f)=>Math.max(m,f.id),0)+1, recipient:null, customRecipient:"", afterMin:30 }])
   const removeFallback = id => setFallbacks(fallbacks.filter(f=>f.id!==id))
   const updateFallback = (id,k,v) => setFallbacks(fallbacks.map(f=>f.id===id?{...f,[k]:v}:f))
-  const primaryOpt = RT_RECIPIENTS.find(r=>r.id===primary)
   const condOpt    = RT_CONDITIONS.find(c=>c.id===condition)
-  const humanWindow = m => { const h=Math.floor(m/60),mn=m%60; return [h>0&&(h+" hour"+(h!==1?"s":"")),mn>0&&(mn+" minute"+(mn!==1?"s":""))].filter(Boolean).join(" and ")||"immediately" }
-  const buildSummary = () => { let s="This item goes to "+rName(primary,primaryCustom)+" first."; for(const fb of fallbacks)s+=" If no one responds in "+fmtMin(fb.afterMin)+"m, it moves to "+rName(fb.recipient,fb.customRecipient)+"."; const m={requeue:"the next available agent handles it",notify:"the team manager is notified",slack:"a lightweight alert is sent",wait:"the item stays open"}; s+=" If still unhandled: "+finalAction.map(a=>m[a]).filter(Boolean).join(", and ")+"."; return s }
-  const stageTimes = stages.reduce((acc,s,i)=>{ const cum=i===0?draft.slaMinutes:acc[i-1].cumMin+toMin(s); return [...acc,{...s,cumMin:cum}] },[])
-  const TL_COLORS = SLA_STAGE_COLORS
-  const inputSty = {width:64,padding:"6px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--bg-input)",color:"var(--text-primary)",fontSize:14,fontFamily:"DM Mono",textAlign:"center"}
+  const buildSummary = () => { let s="This item goes to "+rName(primary,primaryCustom)+" first."; if(fallbacks.length>0)s+=" If not responded in "+fmtMin(primaryAfterMin)+", it moves to "+rName(fallbacks[0].recipient,fallbacks[0].customRecipient)+"."; for(let i=1;i<fallbacks.length;i++)s+=" If not responded in "+fmtMin(fallbacks[i-1].afterMin)+", it moves to "+rName(fallbacks[i].recipient,fallbacks[i].customRecipient)+"."; const m={requeue:"the next available agent handles it",notify:"the team manager is notified",slack:"a lightweight alert is sent",wait:"the item stays open"}; s+=" If still unhandled: "+finalAction.map(a=>m[a]).filter(Boolean).join(", and ")+"."; return s }
 
   return (
     <div>
       <div className="pb-step-header">
-        <div className="pb-step-title">Routing &amp; Response Rules</div>
-        <div className="pb-step-desc">Define who receives this item, how long they have to act, and what happens automatically if they don't.</div>
+        <div className="pb-step-title">Routing Rules</div>
+        <div className="pb-step-desc">Define who receives this item and what happens if they don't respond.</div>
       </div>
 
       <div className="rr-section-label">WHO GETS THIS ITEM?</div>
       <div className="rt-block">
         <div className="rt-block-label">Send this item to</div>
         <div className="rt-primary-row">
-          <select className="rt-sel rt-sel--lg" value={primary} onChange={e=>setPrimary(e.target.value)}>
-            {RT_RECIPIENTS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}
+          <RecipientSelector
+            value={primary}
+            onChange={setPrimary}
+            customValue={primaryCustom}
+            onCustomChange={setPrimaryCustom}
+            otherIds={fallbacks.map(f=>f.recipient).filter(Boolean)}
+          />
+        </div>
+        <div className="rt-primary-timeout">
+          <span className="rt-after-lbl">Move to next step if not taken after</span>
+          <select className="rt-sel" value={primaryAfterMin} onChange={e=>setPrimaryAfterMin(Number(e.target.value))}>
+            {RT_TIMEOUTS.map(t=><option key={t} value={t}>{fmtTimeout(t)}</option>)}
           </select>
-          {primaryOpt?.needsInput&&<SearchableSelect value={primaryCustom} onChange={setPrimaryCustom} options={primary==="team"?RT_TEAMS:RT_PERSONS} placeholder={primary==="team"?"Search team…":"Search person…"}/>}
         </div>
         <div className="rt-condition-row">
           <span className="rt-cond-prefix">Only if</span>
@@ -714,19 +706,30 @@ function StepRoutingResponse({ draft, update }) {
 
       <div className="rr-sub-label">If they're unavailable or don't respond in time, try:</div>
       <div className="rt-fallbacks">
-        {fallbacks.map((fb,i)=>{ const fbOpt=RT_RECIPIENTS.find(r=>r.id===fb.recipient); return (
+        {fallbacks.map((fb,i)=>(
           <div key={fb.id} className="rt-fb-card">
             <div className="rt-fb-num">{i+1}</div>
             <div className="rt-fb-reorder"><button className="rt-reorder-btn" onClick={()=>moveFallback(i,-1)} disabled={i===0}><ArrowUp size={11}/></button><button className="rt-reorder-btn" onClick={()=>moveFallback(i,1)} disabled={i===fallbacks.length-1}><ArrowDown size={11}/></button></div>
             <div className="rt-fb-body">
-              <select className="rt-sel" value={fb.recipient} onChange={e=>updateFallback(fb.id,"recipient",e.target.value)}>{RT_RECIPIENTS.map(r=><option key={r.id} value={r.id}>{r.label}</option>)}</select>
-              {fbOpt?.needsInput&&<SearchableSelect key={fb.recipient} value={fb.customRecipient} onChange={val=>updateFallback(fb.id,"customRecipient",val)} options={fb.recipient==="team"?RT_TEAMS:RT_PERSONS} placeholder={fb.recipient==="team"?"Search team…":"Search person…"} className="rt-text-input--sm"/>}
-              <span className="rt-after-lbl">then try next after</span>
-              <select className="rt-sel" value={fb.afterMin} onChange={e=>updateFallback(fb.id,"afterMin",Number(e.target.value))}>{RT_TIMEOUTS.map(t=><option key={t} value={t}>{t} min</option>)}</select>
+              <RecipientSelector
+                value={fb.recipient}
+                onChange={val=>updateFallback(fb.id,"recipient",val)}
+                customValue={fb.customRecipient}
+                onCustomChange={val=>updateFallback(fb.id,"customRecipient",val)}
+                otherIds={[primary,...fallbacks.filter(f=>f.id!==fb.id).map(f=>f.recipient)].filter(Boolean)}
+              />
+              <div className="rt-timeout-row">
+                <span className="rt-after-lbl">
+                  {i < fallbacks.length - 1 ? 'Move to next step if not taken after' : 'Escalate if not responded after'}
+                </span>
+                <select className="rt-sel" value={fb.afterMin} onChange={e=>updateFallback(fb.id,"afterMin",Number(e.target.value))}>
+                  {RT_TIMEOUTS.map(t=><option key={t} value={t}>{fmtTimeout(t)}</option>)}
+                </select>
+              </div>
             </div>
             <button className="rt-remove-btn" onClick={()=>removeFallback(fb.id)} title="Remove"><X size={13}/></button>
           </div>
-        )})}
+        ))}
         <button className="rt-add-fb" onClick={addFallback}><Plus size={13}/> Add another fallback</button>
       </div>
 
@@ -740,48 +743,6 @@ function StepRoutingResponse({ draft, update }) {
         )})}
       </div>
       <div className="rt-summary"><Info size={13} className="rt-summary-icon"/><span className="rt-summary-txt">{buildSummary()}</span></div>
-
-      <div className="rr-divider"><span>RESPONSE WINDOW</span></div>
-      <div className="rr-section-label">HOW LONG DOES EACH PERSON HAVE?</div>
-      <div className="rr-section-sub">This is the total time window for this item to be resolved — not the time per fallback. Fallback timeouts are defined above.</div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-        <div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={hours} min={0} max={168} onChange={e=>setHoursF(e.target.value)} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>h</span></div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={mins}  min={0} max={59}  onChange={e=>setMinsF(e.target.value)}  style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>min</span></div>
-        <span style={{fontSize:12,color:"var(--accent-blue)",fontFamily:"DM Mono",background:"var(--accent-blue-dim)",border:"1px solid var(--accent-blue-border)",borderRadius:4,padding:"3px 8px"}}>= {fmtMin(draft.slaMinutes)}</span>
-      </div>
-      <div className="sla-echo">Agents have <strong>{humanWindow(draft.slaMinutes)}</strong> total to resolve items from this Pack.</div>
-      <label className="sla-res-toggle"><input type="checkbox" checked={hasResTarget} onChange={e=>setHasResTarget(e.target.checked)} style={{accentColor:"var(--accent-blue)",marginRight:6}}/>Set a resolution target (optional)</label>
-      {hasResTarget&&(<div className="sla-res-target"><div style={{fontSize:12,color:"var(--text-tertiary)",marginBottom:10}}>How long can the full interaction take before it's overdue?</div><div style={{display:"flex",alignItems:"center",gap:12}}><div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={resHours} min={0} max={168} onChange={e=>setResHours(Math.max(0,parseInt(e.target.value)||0))} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>h</span></div><div style={{display:"flex",alignItems:"center",gap:8}}><input type="number" value={resMins} min={0} max={59} onChange={e=>setResMins(Math.min(59,Math.max(0,parseInt(e.target.value)||0)))} style={inputSty}/><span style={{fontSize:13,color:"var(--text-secondary)"}}>min</span></div><span style={{fontSize:12,color:"var(--accent-purple)",fontFamily:"DM Mono",background:"var(--accent-purple-dim)",border:"1px solid var(--accent-purple-border)",borderRadius:4,padding:"3px 8px"}}>= {fmtMin(resHours*60+resMins)}</span></div></div>)}
-
-      <div className="rr-divider"><span>IF TIME RUNS OUT</span></div>
-      <div className="rr-section-label">WHAT HAPPENS AUTOMATICALLY IF TIME RUNS OUT?</div>
-      <div className="rr-section-sub">These actions fire on their own — no one needs to do anything. They run in order, one stage at a time.</div>
-      <div className="sla-stages">
-        {stages.map((stage,i)=>{ const isFirst=i===0;const isLast=i===stages.length-1;const color=TL_COLORS[Math.min(i,TL_COLORS.length-1)];const actionOpt=SLA_ACTIONS.find(a=>a.id===stage.action); return (
-          <div key={stage.id} className="sla-stage">
-            {!isLast&&<div className="sla-stage-line"/>}
-            <div className="sla-stage-card">
-              <div className="sla-stage-hdr">
-                <div className="sla-stage-badge" style={{background:color}}>{i+1}</div>
-                <div className="sla-stage-hdr-txt">{isFirst?(<span style={{fontSize:13}}><strong style={{color:"var(--text-primary)"}}>At the response window deadline</strong><span style={{color:"var(--text-tertiary)"}}> — when the total window expires</span></span>):(<span style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontSize:13,color:"var(--text-secondary)"}}>If still unresolved after<input type="number" value={stage.delayMinutes} min={1} max={10080} onChange={e=>updateStage(stage.id,"delayMinutes",Math.max(1,parseInt(e.target.value)||1))} style={{...inputSty,width:52,fontSize:13,padding:"4px 8px"}}/><select className="rt-sel rt-sel--sm" value={stage.delayUnit} onChange={e=>updateStage(stage.id,"delayUnit",e.target.value)}><option value="minutes">minutes</option><option value="hours">hours</option></select>from Stage {i}:</span>)}</div>
-                {!isFirst&&<button className="sla-stage-rm" onClick={()=>removeStage(stage.id)}><X size={12}/></button>}
-              </div>
-              <div className="sla-stage-action"><span style={{fontSize:12,color:"var(--text-tertiary)",flexShrink:0}}>Action:</span><select className="rt-sel" value={stage.action} onChange={e=>updateStage(stage.id,"action",e.target.value)} style={{flex:1}}>{SLA_ACTIONS.filter(a=>i>0||a.id!=="notify_senior").map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select>{actionOpt?.needsInput&&<input className="trig-text-input trig-text-input--sm" placeholder="Team name…" value={stage.customTeam} onChange={e=>updateStage(stage.id,"customTeam",e.target.value)}/>}</div>
-              {isLast&&stages.length>1&&<div className="sla-stage-final">⚠ Final action — if this fires, the item is critically overdue</div>}
-            </div>
-          </div>
-        )})}
-        <button className="sla-add-stage" onClick={addStage}><Plus size={13}/> Add another stage</button>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:20}}>
-        {[{key:"requireAck",label:"Start the response clock only after the agent accepts the item",hint:"Useful when agents need time to review before the clock starts."},{key:"allowReassign",label:"Let agents pass this item to a colleague themselves",hint:"Agents can transfer without waiting for a manager."}].map(opt=>(
-          <div key={opt.key} className="ep-toggle-row"><div><div className="ep-toggle-label">{opt.label}</div><div className="ep-toggle-hint">{opt.hint}</div></div><Toggle on={!!draft[opt.key]} onChange={val=>update(opt.key,val)}/></div>
-        ))}
-      </div>
-      <div className="sla-tl-preview">
-        <div className="sla-tl-item"><div className="sla-tl-dot" style={{borderColor:"var(--border-strong)",color:"var(--text-tertiary)"}}>0:00</div><div className="sla-tl-lbl">Item arrives</div></div>
-        {stageTimes.map((s,i)=>{ const color=TL_COLORS[Math.min(i,TL_COLORS.length-1)]; return (<span key={s.id} style={{display:"contents"}}><div className="sla-tl-track" style={{background:color+"44"}}/><div className="sla-tl-item"><div className="sla-tl-dot" style={{borderColor:color,background:color+"22",color}}>{i===0?fmtMin(s.cumMin):"+"+fmtMin(toMin(s))}</div><div className="sla-tl-lbl" style={{color}}>{i===0?"Response window":"Stage "+(i+1)}</div></div></span>) })}
-      </div>
     </div>
   )
 }
@@ -841,13 +802,6 @@ function SearchableSelect({ value, onChange, options, placeholder, className }) 
   )
 }
 
-// Recipients pulled from teamsAndQueues + special options
-const RT_RECIPIENTS = [
-  ...teamsAndQueues.filter(t => t.status === 'active').map(t => ({ id: t.id, label: t.name })),
-  { id: 'person',   label: 'A specific person', needsInput: true },
-  { id: 'assigned', label: 'The person who triggered this' },
-]
-
 const RT_CONDITIONS = [
   { id: 'always',    label: 'Always (no condition)' },
   { id: 'available', label: 'They are available right now' },
@@ -855,7 +809,8 @@ const RT_CONDITIONS = [
   { id: 'priority',  label: 'The item priority is',   needsSelect: ['High', 'Medium', 'Low'] },
 ]
 
-const RT_TIMEOUTS     = [5, 10, 15, 30, 60]
+const RT_TIMEOUTS     = [5, 10, 15, 30, 60, 90, 120, 180, 240, 360, 480]
+const fmtTimeout      = m => m < 60 ? m+' min' : m % 60 === 0 ? (m/60)+(m/60===1?' hour':' hours') : Math.floor(m/60)+'h '+m%60+'m'
 
 const RT_FINAL_ACTIONS = [
   { id: 'requeue', label: 'Re-queue for the next available agent' },
@@ -864,20 +819,304 @@ const RT_FINAL_ACTIONS = [
   { id: 'wait',    label: 'Keep waiting (item stays open)' },
 ]
 
+// ── Recipient catalog constants ────────────────────────────────────────────────
+const TEAM_STUDIO_MAP = {
+  'team-001': 'Agentic Studio',
+  'team-002': 'Agentic Studio',
+  'team-003': 'Agentic Studio',
+  'team-004': 'Helix Governance Studio',
+  'team-005': 'Agentic Studio',
+  'team-006': 'Helix Governance Studio',
+}
+const REC_TYPE_OPTS    = ['All', 'queue', 'role', 'roster', 'rotation']
+const REC_STUDIO_OPTS  = ['All Studios', 'Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio']
+const TYPE_GROUP_ORDER = ['queue', 'role', 'roster', 'rotation']
+const TYPE_ICON        = { queue: '👥', roster: '📋', role: '👤', rotation: '🔄' }
+const TYPE_LABEL       = { queue: 'Queues', roster: 'Rosters', role: 'Roles', rotation: 'Rotations' }
+const METHOD_LABEL     = { 'round-robin': 'Round-robin', 'expertise-based': 'Expertise-based', 'least-busy': 'Least busy' }
+const REC_STUDIO_CFG   = {
+  'Agentic Studio':          { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
+  'Helix Governance Studio': { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
+  'Helix Data Studio':       { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
+}
+
+const AVAIL_DOT_CFG = {
+  online:  { color: 'var(--accent-teal)',   label: 'Members online now' },
+  busy:    { color: 'var(--accent-amber)',  label: 'All members busy' },
+  offline: { color: 'var(--text-tertiary)', label: 'All members offline' },
+}
+
+function TeamCatalogModal({ currentId, otherIds = [], onClose, onSelect }) {
+  const [q,            setQ]            = useState('')
+  const [typeFilter,   setTypeFilter]   = useState('All')
+  const [studioFilter, setStudioFilter] = useState('All Studios')
+  const [pending,      setPending]      = useState(currentId || null)
+  const [hoveredId,    setHoveredId]    = useState(null)
+
+  const otherSet = new Set(otherIds)
+  const allTeams = teamsAndQueues.filter(t => t.status === 'active')
+
+  const filtered = allTeams.filter(t => {
+    const mQ = !q || t.name.toLowerCase().includes(q.toLowerCase())
+    const mT = typeFilter === 'All' || t.type === typeFilter
+    const studio = TEAM_STUDIO_MAP[t.id] || 'Agentic Studio'
+    const mS = studioFilter === 'All Studios' || studio === studioFilter
+    return mQ && mT && mS
+  })
+
+  const groups = {}
+  filtered.forEach(t => {
+    if (!groups[t.type]) groups[t.type] = []
+    groups[t.type].push(t)
+  })
+
+  const getAvail = team => {
+    const ms = team.members || []
+    if (ms.some(m => m.status === 'online')) return 'online'
+    if (ms.some(m => m.status === 'busy'))   return 'busy'
+    return 'offline'
+  }
+
+  const pendingTeam = teamsAndQueues.find(t => t.id === pending)
+
+  return (
+    <div className="wt-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="d4-catalog-modal" style={{ width: 600 }}>
+        <div className="wt-modal-hdr">
+          <div>
+            <div className="wt-modal-title">Select recipient</div>
+            <div className="wt-modal-sub">
+              Choose who receives this item.{' '}
+              <a href="/aims-htl/settings/teams" target="_blank" rel="noopener" className="av-link">Configure teams in Settings → Teams & Queues →</a>
+            </div>
+          </div>
+          <button className="wt-modal-close" onClick={onClose}><X size={14} /></button>
+        </div>
+
+        {/* Sticky search + filters */}
+        <div className="rcp-modal-filters">
+          <input
+            className="wt-modal-search"
+            placeholder="Search teams and queues..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <select className="d4-filter-sel" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+              {REC_TYPE_OPTS.map(t => (
+                <option key={t} value={t}>{t === 'All' ? 'All Types' : TYPE_LABEL[t]}</option>
+              ))}
+            </select>
+            <select className="d4-filter-sel" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
+              {REC_STUDIO_OPTS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Scrollable results */}
+        <div className="wt-modal-body" style={{ gap: 0, paddingTop: 8 }}>
+          {TYPE_GROUP_ORDER.map(type => {
+            const items = groups[type]
+            if (!items?.length) return null
+            return (
+              <div key={type} className="rcp-group">
+                <div className="rcp-group-label">{TYPE_LABEL[type]}</div>
+                <div className="rcp-group-rule" />
+                {items.map(team => {
+                  const isPending = pending === team.id
+                  const isOther   = otherSet.has(team.id)
+                  const avail     = getAvail(team)
+                  const dot       = AVAIL_DOT_CFG[avail]
+                  const studio    = TEAM_STUDIO_MAP[team.id] || 'Agentic Studio'
+                  const sCfg      = REC_STUDIO_CFG[studio] || {}
+                  return (
+                    <div
+                      key={team.id}
+                      className={`rcp-row${isPending ? ' rcp-row--sel' : ''}`}
+                      onClick={() => setPending(team.id)}
+                      onMouseEnter={() => setHoveredId(team.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                    >
+                      <div className="rcp-radio">
+                        <div className={`rcp-radio-dot${isPending ? ' rcp-radio-dot--on' : ''}`} />
+                      </div>
+                      <div className="rcp-row-icon">{TYPE_ICON[team.type] || '👥'}</div>
+                      <div className="rcp-row-body">
+                        <div className="rcp-row-top">
+                          <span className="rcp-row-name">{team.name}</span>
+                          {isOther && <span className="d4-chip d4-chip--amber">Already in chain</span>}
+                        </div>
+                        <div className="rcp-row-meta">
+                          {METHOD_LABEL[team.assignmentMethod] || team.assignmentMethod} · {team.members?.length || 0} member{team.members?.length !== 1 ? 's' : ''} · {team.activeItems} active item{team.activeItems !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 10, fontWeight: 500, color: sCfg.color, background: sCfg.bg, border: `1px solid ${sCfg.border}`, borderRadius: 10, padding: '2px 8px', flexShrink: 0 }}>
+                        {studio}
+                      </span>
+                      <div className="rcp-avail-wrap">
+                        <div className="rcp-avail-dot" style={{ background: dot.color }} title={dot.label} />
+                        {hoveredId === team.id && (
+                          <div className="rcp-avail-pop">
+                            <div className="rcp-avail-pop-title">{dot.label}</div>
+                            {(team.members || []).map(m => (
+                              <div key={m.name} className="rcp-avail-member">
+                                <div className={`rcp-member-dot rcp-member-dot--${m.status}`} />
+                                <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1 }}>{m.name}</span>
+                                <span className="rcp-member-status">{m.status}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
+
+          {/* Individual group — only show when not filtered by type */}
+          {typeFilter === 'All' && (
+            <div className="rcp-group">
+              <div className="rcp-group-label">Individual</div>
+              <div className="rcp-group-rule" />
+              {[
+                { id: 'person',   icon: '👤', name: 'Specific person...', meta: 'Opens a people picker after selection' },
+                { id: 'assigned', icon: '🔁', name: 'The person who triggered this', meta: 'Routes back to the originating agent' },
+              ].map(opt => (
+                <div
+                  key={opt.id}
+                  className={`rcp-row${pending === opt.id ? ' rcp-row--sel' : ''}`}
+                  onClick={() => setPending(opt.id)}
+                >
+                  <div className="rcp-radio">
+                    <div className={`rcp-radio-dot${pending === opt.id ? ' rcp-radio-dot--on' : ''}`} />
+                  </div>
+                  <div className="rcp-row-icon">{opt.icon}</div>
+                  <div className="rcp-row-body">
+                    <div className="rcp-row-name">{opt.name}</div>
+                    <div className="rcp-row-meta">{opt.meta}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No results */}
+          {filtered.length === 0 && typeFilter !== 'All' && (
+            <div style={{ padding: '24px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
+              No teams match your filters.
+            </div>
+          )}
+
+          <div className="rcp-create-link">
+            Don't see the right team?{' '}
+            <a href="/aims-htl/settings/teams" target="_blank" rel="noopener" className="av-link">
+              Create one in Settings → Teams & Queues →
+            </a>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="wt-modal-foot">
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+            {pendingTeam ? (
+              <span>Selected: <strong style={{ color: 'var(--text-primary)' }}>{pendingTeam.name}</strong></span>
+            ) : pending === 'person' ? (
+              <span>Selected: <strong style={{ color: 'var(--text-primary)' }}>Specific person</strong></span>
+            ) : pending === 'assigned' ? (
+              <span>Selected: <strong style={{ color: 'var(--text-primary)' }}>Person who triggered this</strong></span>
+            ) : (
+              <span>None selected</span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="wt-modal-cancel" onClick={onClose}>Cancel</button>
+            <button className="wt-modal-confirm" disabled={!pending} onClick={() => onSelect(pending)}>
+              Select →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function RecipientSelector({ value, onChange, customValue, onCustomChange, otherIds = [] }) {
+  const [showModal, setShowModal] = useState(false)
+
+  const team     = teamsAndQueues.find(t => t.id === value)
+  const isPerson = value === 'person'
+  const isAssign = value === 'assigned'
+
+  const typeIcon    = isPerson || isAssign ? '👤' : (TYPE_ICON[team?.type] || '👥')
+  const displayName = isPerson  ? (customValue || 'Specific person...')
+                    : isAssign  ? 'Person who triggered this'
+                    : team?.name
+
+  const open  = () => setShowModal(true)
+  const close = () => setShowModal(false)
+
+  return (
+    <>
+      {value ? (
+        <div className="rcp-sel-wrap">
+          <div className="rcp-sel-field" onClick={open}>
+            <span className="rcp-sel-icon">{typeIcon}</span>
+            <span className="rcp-sel-name">{displayName}</span>
+            <button
+              className="rcp-sel-clear"
+              onClick={e => { e.stopPropagation(); onChange(null) }}
+              title="Clear"
+            >×</button>
+            <button
+              className="rcp-sel-change"
+              onClick={e => { e.stopPropagation(); open() }}
+            >Change →</button>
+          </div>
+          {isPerson && (
+            <SearchableSelect
+              value={customValue}
+              onChange={onCustomChange}
+              options={RT_PERSONS}
+              placeholder="Search person..."
+            />
+          )}
+        </div>
+      ) : (
+        <button className="rcp-sel-empty" onClick={open}>
+          + Select a team or queue
+        </button>
+      )}
+      {showModal && (
+        <TeamCatalogModal
+          currentId={value}
+          otherIds={otherIds}
+          onClose={close}
+          onSelect={id => { onChange(id); close() }}
+        />
+      )}
+    </>
+  )
+}
+
 function Step3Routing({ draft, update }) {
   const [advMode, setAdvMode] = useState(false)
 
-  const primary       = draft.routingPrimary        || 'tier1'
+  const primary       = draft.routingPrimary        ?? null
   const primaryCustom = draft.routingPrimaryCustom  || ''
   const condition     = draft.routingCondition      || 'always'
   const condValue     = draft.routingConditionValue || ''
-  const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: 'tier2', customRecipient: '', afterMin: 15 }]
+  const fallbacks     = draft.routingFallbacks      || [{ id: 1, recipient: null, customRecipient: '', afterMin: 15 }]
   const finalAction   = Array.isArray(draft.routingFinalAction)
     ? draft.routingFinalAction
     : [draft.routingFinalAction || 'requeue']
 
   const rName = (id, custom) =>
-    ROUTING_RECIPIENT_NAMES[id] || custom || RT_RECIPIENTS.find(r => r.id === id)?.label || id
+    teamsAndQueues.find(t => t.id === id)?.name ||
+    ROUTING_RECIPIENT_NAMES[id] ||
+    custom ||
+    id || '—'
 
   // Sync draft.routing (string) so review step stays accurate
   const sync = (pri, priC, cond, condV) => {
@@ -908,14 +1147,17 @@ function Step3Routing({ draft, update }) {
     if (j < 0 || j >= arr.length) return
     ;[arr[i], arr[j]] = [arr[j], arr[i]]; setFallbacks(arr)
   }
-  const addFallback     = () => setFallbacks([...fallbacks, { id: Date.now(), recipient: 'tier2', customRecipient: '', afterMin: 30 }])
+  const addFallback     = () => setFallbacks([...fallbacks, { id: Date.now(), recipient: null, customRecipient: '', afterMin: 30 }])
   const removeFallback  = id => setFallbacks(fallbacks.filter(f => f.id !== id))
   const updateFallback  = (id, key, val) => setFallbacks(fallbacks.map(f => f.id === id ? { ...f, [key]: val } : f))
 
   const buildSummary = () => {
-    let s = `This item will go to ${rName(primary, primaryCustom)} first.`
-    for (const fb of fallbacks)
-      s += ` If no one responds in ${fb.afterMin} minutes, it moves to ${rName(fb.recipient, fb.customRecipient)}.`
+    const pname = rName(primary, primaryCustom)
+    let s = primary ? `This item will go to ${pname} first.` : 'No primary recipient selected yet.'
+    for (const fb of fallbacks) {
+      if (fb.recipient)
+        s += ` If no one responds in ${fb.afterMin} min, it moves to ${rName(fb.recipient, fb.customRecipient)}.`
+    }
     const endingMap = {
       requeue: 'the next available agent handles it',
       notify:  'the team manager is notified',
@@ -927,14 +1169,13 @@ function Step3Routing({ draft, update }) {
     return s
   }
 
-  const primaryOpt  = RT_RECIPIENTS.find(r => r.id === primary)
-  const condOpt     = RT_CONDITIONS.find(c => c.id === condition)
+  const condOpt = RT_CONDITIONS.find(c => c.id === condition)
 
   // Machine-readable IF/THEN for advanced view
   const advRules = [
-    { cond: `queue.${primary}.available == true`,   action: `Route to ${rName(primary, primaryCustom)}` },
+    { cond: `queue.${primary ?? 'unset'}.available == true`, action: `Route to ${rName(primary, primaryCustom)}` },
     ...fallbacks.map(fb => ({
-      cond: `queue.${fb.recipient}.available == true`,
+      cond: `queue.${fb.recipient ?? 'unset'}.available == true`,
       action: `Route to ${rName(fb.recipient, fb.customRecipient)} after ${fb.afterMin}m`,
     })),
     { cond: `fallback.all_exhausted == true`, action: `${finalAction}` },
@@ -954,17 +1195,13 @@ function Step3Routing({ draft, update }) {
       <div className="rt-block">
         <div className="rt-block-label">Send this item to</div>
         <div className="rt-primary-row">
-          <select className="rt-sel rt-sel--lg" value={primary} onChange={e => setPrimary(e.target.value)}>
-            {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-          </select>
-          {primaryOpt?.needsInput && (
-            <SearchableSelect
-              value={primaryCustom}
-              onChange={setPrimaryCustom}
-              options={primary === 'team' ? RT_TEAMS : RT_PERSONS}
-              placeholder={primary === 'team' ? 'Search team…' : 'Search person…'}
-            />
-          )}
+          <RecipientSelector
+            value={primary}
+            onChange={setPrimary}
+            customValue={primaryCustom}
+            onCustomChange={setPrimaryCustom}
+            otherIds={fallbacks.map(f => f.recipient).filter(Boolean)}
+          />
         </div>
         <div className="rt-condition-row">
           <span className="rt-cond-prefix">Only if</span>
@@ -990,40 +1227,31 @@ function Step3Routing({ draft, update }) {
       {/* ── Fallback chain ────────────────────────────────────────────── */}
       <div className="rt-section-hd">If they're unavailable, try next:</div>
       <div className="rt-fallbacks">
-        {fallbacks.map((fb, i) => {
-          const fbOpt = RT_RECIPIENTS.find(r => r.id === fb.recipient)
-          return (
-            <div key={fb.id} className="rt-fb-card">
-              <div className="rt-fb-num">{i + 1}</div>
-              <div className="rt-fb-reorder">
-                <button className="rt-reorder-btn" onClick={() => moveFallback(i, -1)} disabled={i === 0}><ArrowUp size={11} /></button>
-                <button className="rt-reorder-btn" onClick={() => moveFallback(i, 1)}  disabled={i === fallbacks.length - 1}><ArrowDown size={11} /></button>
-              </div>
-              <div className="rt-fb-body">
-                <select className="rt-sel" value={fb.recipient} onChange={e => updateFallback(fb.id, 'recipient', e.target.value)}>
-                  {RT_RECIPIENTS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                </select>
-                {fbOpt?.needsInput && (
-                  <SearchableSelect
-                    key={fb.recipient}
-                    value={fb.customRecipient}
-                    onChange={val => updateFallback(fb.id, 'customRecipient', val)}
-                    options={fb.recipient === 'team' ? RT_TEAMS : RT_PERSONS}
-                    placeholder={fb.recipient === 'team' ? 'Search team…' : 'Search person…'}
-                    className="rt-text-input--sm"
-                  />
-                )}
-                <span className="rt-after-lbl">then try next after</span>
-                <select className="rt-sel" value={fb.afterMin} onChange={e => updateFallback(fb.id, 'afterMin', Number(e.target.value))}>
-                  {RT_TIMEOUTS.map(t => <option key={t} value={t}>{t} min</option>)}
-                </select>
-              </div>
-              <button className="rt-remove-btn" onClick={() => removeFallback(fb.id)} title="Remove">
-                <X size={13} />
-              </button>
+        {fallbacks.map((fb, i) => (
+          <div key={fb.id} className="rt-fb-card">
+            <div className="rt-fb-num">{i + 1}</div>
+            <div className="rt-fb-reorder">
+              <button className="rt-reorder-btn" onClick={() => moveFallback(i, -1)} disabled={i === 0}><ArrowUp size={11} /></button>
+              <button className="rt-reorder-btn" onClick={() => moveFallback(i, 1)}  disabled={i === fallbacks.length - 1}><ArrowDown size={11} /></button>
             </div>
-          )
-        })}
+            <div className="rt-fb-body">
+              <RecipientSelector
+                value={fb.recipient}
+                onChange={val => updateFallback(fb.id, 'recipient', val)}
+                customValue={fb.customRecipient}
+                onCustomChange={val => updateFallback(fb.id, 'customRecipient', val)}
+                otherIds={[primary, ...fallbacks.filter(f => f.id !== fb.id).map(f => f.recipient)].filter(Boolean)}
+              />
+              <span className="rt-after-lbl">then try next after</span>
+              <select className="rt-sel" value={fb.afterMin} onChange={e => updateFallback(fb.id, 'afterMin', Number(e.target.value))}>
+                {RT_TIMEOUTS.map(t => <option key={t} value={t}>{fmtTimeout(t)}</option>)}
+              </select>
+            </div>
+            <button className="rt-remove-btn" onClick={() => removeFallback(fb.id)} title="Remove">
+              <X size={13} />
+            </button>
+          </div>
+        ))}
         <button className="rt-add-fb" onClick={addFallback}>
           <Plus size={13} /> Add another fallback
         </button>
@@ -1082,195 +1310,421 @@ function Step3Routing({ draft, update }) {
 }
 
 // ─── Step 4: Destination ──────────────────────────────────────────────────────
-const DEST_ADDONS = [
-  {
-    id:   'lightweight',
-    emoji: '🪶',
-    name: 'Lightweight',
-    desc: 'Also send a minimal approval card alongside the inbox item — approve or reject only, no full context view.',
-  },
-  {
-    id:   'external',
-    emoji: '🔗',
-    name: 'External',
-    desc: 'Also route to an external webhook — for CRM write-back, ticketing systems, or Slack notifications.',
-  },
-]
+const DEST_TYPE_OPTS = ['All Types', 'CRM', 'Ticketing', 'ERP', 'Custom']
 
-function Step4Destination({ draft, update }) {
-  // Integration toggles
-  const [intToggles,  setIntToggles]  = useState({})
-  // Lightweight channel toggles
-  const [chanToggles, setChanToggles] = useState({})
-  // Notification event toggles (absorbed from Step 10)
-  const [notifOn,     setNotifOn]     = useState({ notifyOnAssign: true, notifyOnSlaBreach: true, notifyOnResolve: false })
-  // Notification channel toggles
-  const [notifCh,     setNotifCh]     = useState({ email: true, slack: false, inApp: true, sms: false })
+const INT_ICON = {
+  'int-salesforce': { label: 'SF', bg: '#e8f4fb', color: '#00a1e0' },
+  'int-zendesk':    { label: 'ZD', bg: '#e6f4f2', color: '#1b5e4f' },
+  'int-jira':       { label: 'JR', bg: '#e6eeff', color: '#0052cc' },
+  'int-netsuite':   { label: 'NS', bg: '#fdecea', color: '#c0392b' },
+}
 
-  const toggleInt  = id => setIntToggles(p  => ({ ...p,  [id]: !p[id]  }))
-  const toggleChan = id => setChanToggles(p => ({ ...p,  [id]: !p[id]  }))
-  const toggleNotifEv = k => setNotifOn(p   => ({ ...p,  [k]:  !p[k]   }))
-  const toggleNotifCh = k => setNotifCh(p   => ({ ...p,  [k]:  !p[k]   }))
+const CHAN_ICON = {
+  'ch-slack':    '💬',
+  'ch-email':    '📧',
+  'ch-whatsapp': '📱',
+  'ch-inapp':    '🔔',
+  'ch-sms':      '📱',
+  'ch-twitter':  '🐦',
+}
 
-  const activeCh = Object.entries(notifCh).filter(([,v]) => v).map(([k]) =>
-    ({ email: 'Email', slack: 'Slack', inApp: 'In-app', sms: 'SMS' }[k])
-  )
+const fmtSyncTime = iso => {
+  const diff = +new Date(iso) ? Date.now() - new Date(iso).getTime() : 0
+  const m = Math.floor(diff / 60000)
+  if (m < 60) return m + 'm ago'
+  const h = Math.floor(m / 60)
+  if (h < 24) return h + 'h ago'
+  return Math.floor(h / 24) + 'd ago'
+}
 
-  const fmtSync = iso => {
-    const diff = (+new Date(iso) ? (new Date()).getTime() - (new Date(iso)).getTime() : 0)
-    const m = Math.floor(diff / 60000)
-    if (m < 60) return m + 'm ago'
-    const h = Math.floor(m / 60)
-    if (h < 24) return h + 'h ago'
-    return Math.floor(h / 24) + 'd ago'
+function TaskDestCatalogModal({ active, onClose, onAdd }) {
+  const [q,          setQ]          = useState('')
+  const [typeFilter, setTypeFilter] = useState('All Types')
+  const [selected,   setSelected]   = useState(new Set())
+  const [phase,      setPhase]      = useState('select') // 'select' | 'config'
+  const [actionSels, setActionSels] = useState({})
+
+  const activeSet = new Set(active)
+
+  const filtered = integrations.filter(int => {
+    const mQ = !q || int.name.toLowerCase().includes(q.toLowerCase())
+    const mT = typeFilter === 'All Types' || int.type === typeFilter
+    return mQ && mT
+  })
+
+  const toggleSel = id => {
+    if (activeSet.has(id)) return
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
-  const NOTIF_EVENTS = [
-    { key: 'notifyOnAssign',    label: 'On assignment',  hint: 'Notify the agent when this item lands in their queue', Icon: Bell       },
-    { key: 'notifyOnSlaBreach', label: 'On SLA breach',  hint: 'Alert agent and supervisor when time runs out',        Icon: Clock      },
-    { key: 'notifyOnResolve',   label: 'On resolution',  hint: 'Confirm to the originating agent when closed',         Icon: CheckCircle},
-  ]
+  const selectedInts = integrations.filter(i => selected.has(i.id))
 
-  const NOTIF_CHANNELS = [
-    { key: 'email',  label: 'Email'   },
-    { key: 'slack',  label: 'Slack'   },
-    { key: 'inApp',  label: 'In-app'  },
-    { key: 'sms',    label: 'SMS'     },
-  ]
+  const handleNext = () => {
+    if (!selected.size) return
+    const initial = {}
+    selectedInts.forEach(i => { initial[i.id] = (i.actions || [])[0] || '' })
+    setActionSels(initial)
+    setPhase('config')
+  }
+
+  const handleAdd = () => {
+    onAdd(selectedInts.map(i => ({
+      id: i.id, name: i.name, status: i.status, type: i.type,
+      action: actionSels[i.id] || '',
+    })))
+  }
+
+  return (
+    <div className="wt-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="d4-catalog-modal" style={{ width: 600 }}>
+        <div className="wt-modal-hdr">
+          <div>
+            <div className="wt-modal-title">Add task destination</div>
+            <div className="wt-modal-sub">
+              {phase === 'select'
+                ? <>Select an integration to create a record when this Pack fires. <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link">Manage integrations →</a></>
+                : 'Configure what should happen in each destination when this Pack fires.'
+              }
+            </div>
+          </div>
+          <button className="wt-modal-close" onClick={onClose}><X size={14} /></button>
+        </div>
+
+        <div className="wt-modal-body">
+          {phase === 'select' ? (
+            <>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="wt-modal-search"
+                  style={{ flex: 1 }}
+                  placeholder="Search integrations..."
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                />
+                <select
+                  className="d4-filter-sel"
+                  value={typeFilter}
+                  onChange={e => setTypeFilter(e.target.value)}
+                >
+                  {DEST_TYPE_OPTS.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="wt-modal-results">
+                {filtered.length === 0 && (
+                  <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>
+                    No integrations match your search.
+                  </div>
+                )}
+                {filtered.map(int => {
+                  const alreadyAdded = activeSet.has(int.id)
+                  const isSel        = selected.has(int.id)
+                  const isErr        = int.status === 'error'
+                  const ico          = INT_ICON[int.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+                  return (
+                    <div
+                      key={int.id}
+                      className={`d4-modal-row${isSel ? ' d4-modal-row--sel' : ''}${alreadyAdded ? ' d4-modal-row--disabled' : ''}`}
+                      onClick={() => !alreadyAdded && toggleSel(int.id)}
+                    >
+                      <input type="checkbox" className="wt-modal-cb" checked={isSel || alreadyAdded} readOnly disabled={alreadyAdded} />
+                      <div className="d4-int-icon" style={{ background: ico.bg, color: ico.color }}>{ico.label}</div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: alreadyAdded ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{int.name}</span>
+                          {alreadyAdded && <span className="d4-chip d4-chip--muted">Already added</span>}
+                          {isErr && !alreadyAdded && <span className="d4-chip d4-chip--amber">⚠ Error</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                          {int.type} · {isErr ? '⚠ Error — fix before using' : `Connected · Last sync ${fmtSyncTime(int.lastSync)}`}
+                        </div>
+                        {isErr && isSel && (
+                          <div className="d4-warn-note">
+                            ⚠ This integration has a connection error. Fix it in{' '}
+                            <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link">Settings → Integrations</a>{' '}
+                            before items can be delivered here.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {selectedInts.map(int => {
+                const ico = INT_ICON[int.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+                return (
+                  <div key={int.id} className="d4-config-card">
+                    <div className="d4-config-card-hdr">
+                      <div className="d4-int-icon" style={{ background: ico.bg, color: ico.color }}>{ico.label}</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{int.name}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>What should happen when this Pack fires?</div>
+                      </div>
+                    </div>
+                    <select
+                      className="d4-action-sel"
+                      value={actionSels[int.id] || ''}
+                      onChange={e => setActionSels(prev => ({ ...prev, [int.id]: e.target.value }))}
+                    >
+                      {(int.actions || []).map(a => <option key={a}>{a}</option>)}
+                    </select>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="wt-modal-foot">
+          <button className="wt-modal-cancel" onClick={onClose}>Cancel</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {phase === 'config' && (
+              <button className="wt-modal-cancel" onClick={() => setPhase('select')}>← Back</button>
+            )}
+            {phase === 'select' ? (
+              <button className="wt-modal-confirm" disabled={!selected.size} onClick={handleNext}>Add destination →</button>
+            ) : (
+              <button className="wt-modal-confirm" onClick={handleAdd}>Add destination →</button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NotifChannelCatalogModal({ active, onClose, onAdd }) {
+  const [q,        setQ]        = useState('')
+  const [selected, setSelected] = useState(new Set())
+
+  const activeSet = new Set(active)
+
+  const filtered = lightweightChannels.filter(ch =>
+    !q || ch.name.toLowerCase().includes(q.toLowerCase())
+  )
+
+  const toggleSel = id => {
+    if (activeSet.has(id)) return
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleAdd = () => {
+    onAdd(lightweightChannels
+      .filter(ch => selected.has(ch.id))
+      .map(ch => ({ id: ch.id, name: ch.name, type: ch.type, status: ch.status }))
+    )
+  }
+
+  return (
+    <div className="wt-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="d4-catalog-modal" style={{ width: 560 }}>
+        <div className="wt-modal-hdr">
+          <div>
+            <div className="wt-modal-title">Add notification channel</div>
+            <div className="wt-modal-sub">
+              Select a channel to alert recipients when this Pack fires.{' '}
+              <a href="/aims-htl/settings/channels" target="_blank" rel="noopener" className="av-link">Manage channels →</a>
+            </div>
+          </div>
+          <button className="wt-modal-close" onClick={onClose}><X size={14} /></button>
+        </div>
+
+        <div className="wt-modal-body">
+          <input
+            className="wt-modal-search"
+            placeholder="Search channels..."
+            value={q}
+            onChange={e => setQ(e.target.value)}
+          />
+          <div className="wt-modal-results">
+            {filtered.map(ch => {
+              const alreadyAdded = activeSet.has(ch.id)
+              const isSel        = selected.has(ch.id)
+              const isPaused     = ch.status === 'paused'
+              const ico          = CHAN_ICON[ch.id] || '📡'
+              return (
+                <div
+                  key={ch.id}
+                  className={`d4-modal-row${isSel ? ' d4-modal-row--sel' : ''}${alreadyAdded ? ' d4-modal-row--disabled' : ''}`}
+                  onClick={() => !alreadyAdded && toggleSel(ch.id)}
+                >
+                  <input type="checkbox" className="wt-modal-cb" checked={isSel || alreadyAdded} readOnly disabled={alreadyAdded} />
+                  <div className="d4-chan-icon">{ico}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: alreadyAdded ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>{ch.name}</span>
+                      {alreadyAdded && <span className="d4-chip d4-chip--muted">Already added</span>}
+                      {isPaused     && <span className="d4-chip d4-chip--amber">Paused</span>}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                      {ch.type} · {ch.activePacks > 0 ? `${ch.activePacks} packs active` : 'No active packs'} · {isPaused ? '⚠ Paused' : 'Active'}
+                    </div>
+                    {isPaused && isSel && (
+                      <div className="d4-warn-note">
+                        This channel is currently paused. Resume it in{' '}
+                        <a href="/aims-htl/settings/channels" target="_blank" rel="noopener" className="av-link">Settings → Channels</a>.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="wt-modal-foot">
+          <button className="wt-modal-cancel" onClick={onClose}>Cancel</button>
+          <button className="wt-modal-confirm" disabled={!selected.size} onClick={handleAdd}>Add channel →</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Step4Destination({ draft, update }) {
+  const [taskDests,     setTaskDests]     = useState([])
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [notifChans,    setNotifChans]    = useState([])
+  const [showChanModal, setShowChanModal] = useState(false)
+
+  const removeTaskDest = id => setTaskDests(ds => ds.filter(d => d.id !== id))
+  const addTaskDests   = items => {
+    setTaskDests(ds => {
+      const seen = new Set(ds.map(d => d.id))
+      return [...ds, ...items.filter(i => !seen.has(i.id))]
+    })
+    setShowTaskModal(false)
+  }
+
+  const removeNotifChan = id => setNotifChans(cs => cs.filter(c => c.id !== id))
+  const addNotifChans   = items => {
+    setNotifChans(cs => {
+      const seen = new Set(cs.map(c => c.id))
+      return [...cs, ...items.filter(i => !seen.has(i.id))]
+    })
+    setShowChanModal(false)
+  }
 
   return (
     <div>
       <div className="pb-step-header">
         <div className="pb-step-title">Where should this item be delivered?</div>
         <div className="pb-step-desc">
-          Inbox is always on. Add any active integration or channel on top of it.
+          Inbox is always on. Add external task destinations and notification channels on top of it.
         </div>
       </div>
 
-      {/* ── Inbox — always on ──────────────────────────────── */}
+      {/* ── Zone A: Inbox locked ─────────────────────────── */}
       <div className="dst-locked-row">
         <Lock size={13} style={{ color: 'var(--accent-teal)', flexShrink: 0 }} />
         <div className="dst-locked-body">
-          <span className="dst-locked-name">Inbox — AIMS</span>
-          <span className="dst-locked-sub">Every item lands in the agent's Inbox. Cannot be disabled.</span>
+          <span className="dst-locked-name">AIMS Inbox</span>
+          <span className="dst-locked-sub">Every item lands in the agent's Inbox.</span>
         </div>
         <span className="dst-locked-badge">Always on</span>
       </div>
 
-      {/* ── Active integrations ────────────────────────────── */}
-      <div className="pb-section-label" style={{ marginTop: 20 }}>Active Integrations</div>
-      <div className="dst-toggle-list">
-        {integrations.map(int => {
-          const on  = !!intToggles[int.id]
-          const err = int.status === 'error'
-          return (
-            <div key={int.id} className={`dst-toggle-row${on ? ' dst-toggle-row--on' : ''}${err ? ' dst-toggle-row--err' : ''}`}>
-              <Toggle on={on && !err} onChange={() => !err && toggleInt(int.id)} />
-              <div className="dst-toggle-body">
-                <span className="dst-toggle-name">{int.name}</span>
-                <span className="dst-toggle-meta">{int.type} · Last sync {fmtSync(int.lastSync)}</span>
-              </div>
-              {err ? (
-                <div className="dst-badge-err">
-                  <span>Error</span>
-                  <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link" style={{ marginLeft: 6, fontSize: 11 }}>Fix →</a>
-                </div>
-              ) : (
-                <span className="dst-badge-ok">Connected ✓</span>
-              )}
-            </div>
-          )
-        })}
-      </div>
-      <div className="dst-manage-link">
-        Don't see an integration?{' '}
-        <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link">Manage integrations →</a>
-      </div>
+      {/* ── Zone B: Task Destinations ────────────────────── */}
+      <div className="d4-section">
+        <div className="d4-section-label">TASK DESTINATIONS</div>
+        <div className="d4-section-sub">These systems will receive a record when this Pack fires — a ticket, a CRM entry, or a task in an external tool.</div>
 
-      {/* ── Lightweight channels ──────────────────────────── */}
-      <div className="pb-section-label" style={{ marginTop: 20 }}>Lightweight Channels</div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 12 }}>
-        Deliver a message directly via these channels. Recipients don't need to log into AIMS.
-      </div>
-      <div className="dst-toggle-list">
-        {lightweightChannels.map(ch => {
-          const on = !!chanToggles[ch.id]
-          return (
-            <div key={ch.id} className={`dst-toggle-row${on ? ' dst-toggle-row--on' : ''}`}>
-              <Toggle on={on} onChange={() => toggleChan(ch.id)} />
-              <div className="dst-toggle-body">
-                <span className="dst-toggle-name">{ch.name}</span>
-                <span className="dst-toggle-meta">{ch.activePacks > 0 ? `${ch.activePacks} packs active` : '—'}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      <div className="dst-manage-link">
-        Don't see a channel?{' '}
-        <a href="/aims-htl/settings/channels" target="_blank" rel="noopener" className="av-link">Manage channels →</a>
-      </div>
-
-      {/* ── Notifications (absorbed) ──────────────────────── */}
-      <div className="rr-divider"><span>NOTIFICATIONS</span></div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 16 }}>
-        Choose which events alert the assigned agent, and through which channels.
-      </div>
-
-      {/* Event toggles */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-        {NOTIF_EVENTS.map(({ key, label, hint, Icon }) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', background: 'var(--bg-row)', border: '1px solid var(--border)', borderRadius: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                <Icon size={14} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{label}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{hint}</div>
-              </div>
-            </div>
-            <Toggle on={notifOn[key]} onChange={() => toggleNotifEv(key)} />
+        {taskDests.length === 0 ? (
+          <div className="d4-empty">
+            <span className="d4-empty-text">No external task destinations added. Inbox only.</span>
+            <button className="d4-add-btn" onClick={() => setShowTaskModal(true)}>+ Add task destination</button>
           </div>
-        ))}
-      </div>
-
-      {/* Channel toggles */}
-      <div className="pb-section-label">Deliver via</div>
-      <div className="pb-2col" style={{ marginBottom: 12 }}>
-        {NOTIF_CHANNELS.map(ch => {
-          const on = notifCh[ch.key]
-          return (
-            <div key={ch.key} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '10px 14px',
-              background: on ? 'var(--accent-teal-dim)' : 'var(--bg-row)',
-              border: `1px solid ${on ? 'var(--accent-teal-border)' : 'var(--border)'}`,
-              borderRadius: 8, transition: 'background 0.15s, border-color 0.15s',
-            }}>
-              <span style={{ fontSize: 13, fontWeight: on ? 500 : 400, color: on ? 'var(--text-primary)' : 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 7 }}>
-                {ch.label}
-                {on && <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-teal)', background: 'var(--accent-teal-dim)', border: '1px solid var(--accent-teal-border)', borderRadius: 10, padding: '1px 6px' }}>✓ ON</span>}
-              </span>
-              <Toggle on={on} onChange={() => toggleNotifCh(ch.key)} />
+        ) : (
+          <>
+            <div className="d4-list">
+              {taskDests.map(dest => {
+                const ico = INT_ICON[dest.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+                return (
+                  <div key={dest.id} className="d4-item">
+                    <div className="d4-item-int-icon" style={{ background: ico.bg, color: ico.color }}>{ico.label}</div>
+                    <div className="d4-item-body">
+                      <span className="d4-item-name">{dest.name}</span>
+                      {dest.action && <span className="d4-item-sub">{dest.action}</span>}
+                    </div>
+                    {dest.status === 'error' ? (
+                      <div className="dst-badge-err">
+                        <AlertTriangle size={10} />⚠ Error
+                        <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link" style={{ marginLeft: 5 }}>Fix →</a>
+                      </div>
+                    ) : (
+                      <span className="dst-badge-ok">Connected ✓</span>
+                    )}
+                    <button className="d4-remove-btn" onClick={() => removeTaskDest(dest.id)} title="Remove"><X size={12} /></button>
+                  </div>
+                )
+              })}
             </div>
-          )
-        })}
+            <button className="d4-add-btn" onClick={() => setShowTaskModal(true)}>+ Add task destination</button>
+          </>
+        )}
       </div>
 
-      {/* Live echo */}
-      {activeCh.length > 0 ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12, color: 'var(--text-secondary)' }}>
-          <span>Notifications will be sent via:</span>
-          {activeCh.map(c => (
-            <span key={c} style={{ padding: '2px 9px', borderRadius: 10, fontSize: 11, fontWeight: 500, background: 'var(--accent-teal-dim)', color: 'var(--accent-teal)', border: '1px solid var(--accent-teal-border)' }}>{c}</span>
-          ))}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--accent-amber)' }}>
-          <AlertTriangle size={12} />
-          No channels selected — agents won't be notified.
-        </div>
+      {/* ── Zone C: Notification Channels ───────────────── */}
+      <div className="d4-section">
+        <div className="d4-section-label">NOTIFICATION CHANNELS</div>
+        <div className="d4-section-sub">These channels send a notification when this Pack fires. Recipients get an alert — not the full item. The item always lives in the Inbox.</div>
+
+        {notifChans.length === 0 ? (
+          <div className="d4-empty">
+            <span className="d4-empty-text">No notification channels added.</span>
+            <button className="d4-add-btn" onClick={() => setShowChanModal(true)}>+ Add notification channel</button>
+          </div>
+        ) : (
+          <>
+            <div className="d4-list">
+              {notifChans.map(ch => {
+                const ico      = CHAN_ICON[ch.id] || '📡'
+                const isPaused = ch.status === 'paused'
+                return (
+                  <div key={ch.id} className="d4-item">
+                    <div className="d4-item-chan-icon">{ico}</div>
+                    <div className="d4-item-body">
+                      <span className="d4-item-name">{ch.name}</span>
+                      <span className="d4-item-sub">{ch.type}</span>
+                    </div>
+                    {isPaused
+                      ? <span className="d4-chip d4-chip--amber" style={{ flexShrink: 0 }}>⚠ Paused</span>
+                      : <span className="dst-badge-ok">Active</span>
+                    }
+                    <button className="d4-remove-btn" onClick={() => removeNotifChan(ch.id)} title="Remove"><X size={12} /></button>
+                  </div>
+                )
+              })}
+            </div>
+            <button className="d4-add-btn" onClick={() => setShowChanModal(true)}>+ Add notification channel</button>
+          </>
+        )}
+      </div>
+
+      {showTaskModal && (
+        <TaskDestCatalogModal
+          active={taskDests.map(d => d.id)}
+          onClose={() => setShowTaskModal(false)}
+          onAdd={addTaskDests}
+        />
+      )}
+      {showChanModal && (
+        <NotifChannelCatalogModal
+          active={notifChans.map(c => c.id)}
+          onClose={() => setShowChanModal(false)}
+          onAdd={addNotifChans}
+        />
       )}
     </div>
   )
