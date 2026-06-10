@@ -6,11 +6,97 @@ import { Plus, CheckCircle, AlertTriangle, ExternalLink, Send, FileText, Zap, Se
 import './Destinations.css'
 
 const EXTERNAL_SYSTEMS = [
-  { id: 'sf',  name: 'Salesforce CRM',  type: 'CRM',       status: 'Connected', lastHandoff: '8m ago',  logo: 'SF', color: '#00A1E0', mappedFields: 12 },
-  { id: 'zd',  name: 'Zendesk',         type: 'Ticketing', status: 'Connected', lastHandoff: '34m ago', logo: 'ZD', color: '#03363D', mappedFields: 8  },
-  { id: 'jp',  name: 'Jira Projects',   type: 'Ticketing', status: 'Connected', lastHandoff: '2h ago',  logo: 'JP', color: '#0052CC', mappedFields: 6  },
-  { id: 'ns',  name: 'NetSuite',        type: 'ERP',       status: 'Error',     lastHandoff: '2d ago',  logo: 'NS', color: '#B5451B', mappedFields: 15 },
+  { id: 'sf', name: 'Salesforce CRM', type: 'CRM',       status: 'Connected', lastHandoff: '8m ago',  logo: 'SF', color: '#00A1E0', usedInPacks: 4 },
+  { id: 'zd', name: 'Zendesk',        type: 'Ticketing', status: 'Connected', lastHandoff: '34m ago', logo: 'ZD', color: '#03363D', usedInPacks: 3 },
+  { id: 'jp', name: 'Jira Projects',  type: 'Ticketing', status: 'Connected', lastHandoff: '2h ago',  logo: 'JP', color: '#0052CC', usedInPacks: 2 },
+  { id: 'ns', name: 'NetSuite',       type: 'ERP',       status: 'Error',     lastHandoff: '2d ago',  logo: 'NS', color: '#B5451B', usedInPacks: 1 },
 ]
+
+// Per-system action definitions
+const SYSTEM_ACTIONS = {
+  sf: [
+    { id: 'create_opportunity', label: 'Create opportunity' },
+    { id: 'update_contact',     label: 'Update contact'     },
+    { id: 'log_activity',       label: 'Log activity'       },
+    { id: 'custom',             label: 'Custom'             },
+  ],
+  zd: [
+    { id: 'create_ticket', label: 'Create ticket' },
+    { id: 'update_ticket', label: 'Update ticket' },
+  ],
+  jp: [
+    { id: 'create_issue', label: 'Create issue' },
+    { id: 'update_issue', label: 'Update issue' },
+  ],
+  ns: [
+    { id: 'create_record', label: 'Create record' },
+  ],
+}
+
+// Default mappings — action-scoped
+const DEFAULT_MAPPINGS = {
+  sf: {
+    create_opportunity: [
+      { htlField: 'item_subject',  destField: 'Opportunity.Name'        },
+      { htlField: 'customer_name', destField: 'Opportunity.AccountId'   },
+      { htlField: 'priority',      destField: 'Opportunity.Priority__c' },
+      { htlField: 'ai_summary',    destField: 'Opportunity.Description' },
+      { htlField: 'agent_name',    destField: 'Opportunity.OwnerId'     },
+    ],
+    update_contact: [
+      { htlField: 'customer_name',   destField: 'Contact.Name'             },
+      { htlField: 'customer_email',  destField: 'Contact.Email'            },
+      { htlField: 'item_status',     destField: 'Contact.HTL_Status__c'    },
+      { htlField: 'ai_summary',      destField: 'Contact.Description'      },
+      { htlField: 'sentiment_score', destField: 'Contact.HTL_Sentiment__c' },
+    ],
+    log_activity: [
+      { htlField: 'item_subject', destField: 'Task.Subject'            },
+      { htlField: 'ai_summary',   destField: 'Task.Description'        },
+      { htlField: 'ai_reasoning', destField: 'Task.HTL_AI_Reasoning__c'},
+      { htlField: 'agent_name',   destField: 'Task.OwnerId'            },
+      { htlField: 'item_status',  destField: 'Task.Status'             },
+    ],
+    custom: [],
+  },
+  zd: {
+    create_ticket: [
+      { htlField: 'item_subject',   destField: 'Ticket.subject'          },
+      { htlField: 'customer_name',  destField: 'Ticket.requester.name'   },
+      { htlField: 'customer_email', destField: 'Ticket.requester.email'  },
+      { htlField: 'priority',       destField: 'Ticket.priority'         },
+      { htlField: 'ai_summary',     destField: 'Ticket.description'      },
+      { htlField: 'agent_name',     destField: 'Ticket.assignee_id'      },
+    ],
+    update_ticket: [
+      { htlField: 'item_status',  destField: 'Ticket.status'      },
+      { htlField: 'agent_name',   destField: 'Ticket.assignee_id' },
+      { htlField: 'item_subject', destField: 'Ticket.subject'     },
+    ],
+  },
+  jp: {
+    create_issue: [
+      { htlField: 'item_subject', destField: 'Issue.summary'            },
+      { htlField: 'ai_summary',   destField: 'Issue.description'        },
+      { htlField: 'priority',     destField: 'Issue.priority.name'      },
+      { htlField: 'agent_name',   destField: 'Issue.assignee.accountId' },
+    ],
+    update_issue: [
+      { htlField: 'item_status',  destField: 'Issue.status.name'        },
+      { htlField: 'item_subject', destField: 'Issue.summary'            },
+      { htlField: 'agent_name',   destField: 'Issue.assignee.accountId' },
+    ],
+  },
+  ns: {
+    create_record: [
+      { htlField: 'item_subject',   destField: 'transaction.memo'           },
+      { htlField: 'customer_name',  destField: 'entity.companyName'         },
+      { htlField: 'agent_name',     destField: 'transaction.approvedBy'     },
+      { htlField: 'ai_summary',     destField: 'transaction.notes'          },
+      { htlField: 'item_status',    destField: 'transaction.approvalStatus' },
+    ],
+  },
+}
 
 const CHANNELS = [
   { id: 'slack', name: 'Slack',  detail: 'AIMS Team workspace · #htl-escalations', status: 'Connected', icon: '💬', template: 'New item: {{pack_name}} · SLA {{sla_minutes}}m · Assigned to {{agent_name}}' },
@@ -32,7 +118,7 @@ const CONNECTOR_TYPES = [
   { id: 'webhook',    name: 'Webhook',    type: 'Custom',    icon: '🔗' },
 ]
 
-const typeVariant = { CRM: 'blue', Ticketing: 'purple', ERP: 'amber', Messaging: 'teal', Custom: 'gray' }
+const typeVariant   = { CRM: 'blue', Ticketing: 'purple', ERP: 'amber', Messaging: 'teal', Custom: 'gray' }
 const statusVariant = { Connected: 'teal', Active: 'blue', Error: 'coral' }
 
 // HTL source fields available for mapping
@@ -40,7 +126,7 @@ const HTL_FIELDS = [
   { id: 'item_subject',    label: 'Item subject',          desc: 'The title / subject of the inbox item' },
   { id: 'pack_name',       label: 'Pack name',             desc: 'The HTL pack that fired this handoff' },
   { id: 'pack_id',         label: 'Pack ID',               desc: 'Internal pack identifier' },
-  { id: 'priority',        label: 'Priority',              desc: 'High / Medium / Low' },
+  { id: 'priority',        label: 'Item priority',         desc: 'High / Medium / Low' },
   { id: 'customer_name',   label: 'Customer name',         desc: 'Name of the end customer' },
   { id: 'customer_email',  label: 'Customer email',        desc: 'Customer email address' },
   { id: 'agent_name',      label: 'Assigned agent',        desc: 'Agent who received the handoff' },
@@ -54,56 +140,6 @@ const HTL_FIELDS = [
   { id: 'resolution_notes',label: 'Resolution notes',      desc: 'Agent notes on resolution' },
   { id: 'sensitive_signal',label: 'Sensitive signal class',desc: 'If a sensitive class was detected' },
 ]
-
-// Realistic default mappings per connector
-const DEFAULT_MAPPINGS = {
-  sf: [
-    { htlField: 'item_subject',    destField: 'Case.Subject',                writable: true  },
-    { htlField: 'priority',        destField: 'Case.Priority',               writable: true  },
-    { htlField: 'customer_name',   destField: 'Contact.Name',                writable: false },
-    { htlField: 'customer_email',  destField: 'Contact.Email',               writable: false },
-    { htlField: 'agent_name',      destField: 'Case.OwnerId',                writable: true  },
-    { htlField: 'ai_summary',      destField: 'Case.Description',            writable: true  },
-    { htlField: 'ai_reasoning',    destField: 'Case.HTL_AI_Reasoning__c',    writable: true  },
-    { htlField: 'sentiment_score', destField: 'Case.HTL_Sentiment__c',       writable: true  },
-    { htlField: 'item_status',     destField: 'Case.Status',                 writable: true  },
-    { htlField: 'pack_name',       destField: 'Case.Type',                   writable: true  },
-    { htlField: 'pack_id',         destField: 'Case.HTL_Pack_ID__c',         writable: true  },
-    { htlField: 'handoff_ts',      destField: 'Case.CreatedDate',            writable: false },
-  ],
-  zd: [
-    { htlField: 'item_subject',    destField: 'ticket.subject',              writable: true  },
-    { htlField: 'priority',        destField: 'ticket.priority',             writable: true  },
-    { htlField: 'customer_name',   destField: 'ticket.requester.name',       writable: false },
-    { htlField: 'customer_email',  destField: 'ticket.requester.email',      writable: false },
-    { htlField: 'agent_name',      destField: 'ticket.assignee.name',        writable: true  },
-    { htlField: 'ai_summary',      destField: 'ticket.comment.body',         writable: true  },
-    { htlField: 'pack_name',       destField: 'ticket.custom_fields.htl_pack', writable: true },
-    { htlField: 'item_status',     destField: 'ticket.status',               writable: true  },
-  ],
-  jp: [
-    { htlField: 'item_subject',    destField: 'issue.fields.summary',        writable: true  },
-    { htlField: 'priority',        destField: 'issue.fields.priority.name',  writable: true  },
-    { htlField: 'customer_name',   destField: 'issue.fields.reporter.displayName', writable: false },
-    { htlField: 'ai_summary',      destField: 'issue.fields.description',    writable: true  },
-    { htlField: 'pack_name',       destField: 'issue.fields.labels',         writable: true  },
-    { htlField: 'agent_name',      destField: 'issue.fields.assignee.name',  writable: true  },
-  ],
-  ns: [
-    { htlField: 'item_subject',    destField: 'transaction.memo',            writable: true  },
-    { htlField: 'customer_name',   destField: 'entity.companyName',          writable: false },
-    { htlField: 'customer_email',  destField: 'entity.email',                writable: false },
-    { htlField: 'agent_name',      destField: 'transaction.approvedBy',      writable: true  },
-    { htlField: 'priority',        destField: 'transaction.htlPriority',     writable: true  },
-    { htlField: 'ai_summary',      destField: 'transaction.notes',           writable: true  },
-    { htlField: 'item_status',     destField: 'transaction.approvalStatus',  writable: true  },
-    { htlField: 'handoff_ts',      destField: 'transaction.tranDate',        writable: false },
-    { htlField: 'sla_minutes',     destField: 'transaction.expectedSLAMins', writable: true  },
-    { htlField: 'pack_id',         destField: 'transaction.externalId',      writable: true  },
-    { htlField: 'resolution_notes',destField: 'transaction.resolutionNote',  writable: true  },
-    { htlField: 'sensitive_signal',destField: 'transaction.complianceFlag',  writable: true  },
-  ],
-}
 
 function extractVars(template) {
   const matches = template.match(/\{\{(\w+)\}\}/g) || []
@@ -119,6 +155,20 @@ function groupBy(arr, key) {
   }, {})
 }
 
+// Return total mapped count + per-action counts for a system, using live state or defaults
+function getMappedSummary(systemId, liveMappings) {
+  const actions  = SYSTEM_ACTIONS[systemId] || []
+  const sysMaps  = liveMappings[systemId] || {}
+  const perAction = {}
+  let total = 0
+  for (const action of actions) {
+    const rows = sysMaps[action.id] ?? DEFAULT_MAPPINGS[systemId]?.[action.id] ?? []
+    perAction[action.id] = rows.length
+    total += rows.length
+  }
+  return { total, perAction, actions }
+}
+
 export default function Destinations() {
   const [tab, setTab] = useState('external')
   const [addDrawerOpen, setAddDrawerOpen] = useState(false)
@@ -127,35 +177,57 @@ export default function Destinations() {
   const [selectedConnector, setSelectedConnector] = useState(null)
   const [fieldMappingOpen, setFieldMappingOpen] = useState(false)
   const [mappingSystem, setMappingSystem] = useState(null)
+  // { systemId: { actionId: [ { htlField, destField } ] } }
   const [mappings, setMappings] = useState({})
+  // { systemId: activeActionId }
+  const [activeAction, setActiveAction] = useState({})
 
   function openFieldMapping(system) {
     setMappingSystem(system)
-    setMappings(prev => ({
+    // Initialise this system's mappings if not yet touched
+    setMappings(prev => {
+      if (prev[system.id]) return prev
+      const actions = SYSTEM_ACTIONS[system.id] || []
+      const init = {}
+      for (const action of actions) {
+        init[action.id] = (DEFAULT_MAPPINGS[system.id]?.[action.id] || []).map(m => ({ ...m }))
+      }
+      return { ...prev, [system.id]: init }
+    })
+    setActiveAction(prev => ({
       ...prev,
-      [system.id]: (prev[system.id] || DEFAULT_MAPPINGS[system.id] || []).map(m => ({ ...m })),
+      [system.id]: prev[system.id] || SYSTEM_ACTIONS[system.id]?.[0]?.id,
     }))
     setFieldMappingOpen(true)
   }
 
-  function updateMappingDest(systemId, idx, value) {
+  function addMapping(systemId, actionId) {
     setMappings(prev => ({
       ...prev,
-      [systemId]: prev[systemId].map((m, i) => i === idx ? { ...m, destField: value } : m),
+      [systemId]: {
+        ...prev[systemId],
+        [actionId]: [...(prev[systemId]?.[actionId] || []), { htlField: 'item_subject', destField: '' }],
+      },
     }))
   }
 
-  function addMapping(systemId) {
+  function removeMapping(systemId, actionId, idx) {
     setMappings(prev => ({
       ...prev,
-      [systemId]: [...(prev[systemId] || []), { htlField: 'item_subject', destField: '', writable: true }],
+      [systemId]: {
+        ...prev[systemId],
+        [actionId]: prev[systemId][actionId].filter((_, i) => i !== idx),
+      },
     }))
   }
 
-  function removeMapping(systemId, idx) {
+  function updateMappingField(systemId, actionId, idx, key, value) {
     setMappings(prev => ({
       ...prev,
-      [systemId]: prev[systemId].filter((_, i) => i !== idx),
+      [systemId]: {
+        ...prev[systemId],
+        [actionId]: prev[systemId][actionId].map((m, i) => i === idx ? { ...m, [key]: value } : m),
+      },
     }))
   }
 
@@ -165,8 +237,7 @@ export default function Destinations() {
   }
 
   const previewChannel = selectedChannel ?? CHANNELS[0]
-  const previewVars = extractVars(previewChannel.template)
-
+  const previewVars    = extractVars(previewChannel.template)
   const connectorGroups = groupBy(CONNECTOR_TYPES, 'type')
 
   return (
@@ -201,53 +272,75 @@ export default function Destinations() {
       {tab === 'external' && (
         <div>
           <div className="ext-cards-grid">
-            {EXTERNAL_SYSTEMS.map(system => (
-              <div
-                key={system.id}
-                className={`ext-card${system.status === 'Error' ? ' ext-card--error' : ''}`}
-              >
-                <div className="ext-card-top">
-                  <div
-                    className="ext-logo"
-                    style={{
-                      background: system.color + '33',
-                      color: system.color,
-                    }}
-                  >
-                    {system.logo}
+            {EXTERNAL_SYSTEMS.map(system => {
+              const { total, perAction, actions } = getMappedSummary(system.id, mappings)
+              return (
+                <div
+                  key={system.id}
+                  className={`ext-card${system.status === 'Error' ? ' ext-card--error' : ''}`}
+                >
+                  <div className="ext-card-top">
+                    <div
+                      className="ext-logo"
+                      style={{ background: system.color + '33', color: system.color }}
+                    >
+                      {system.logo}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="ext-card-name">{system.name}</div>
+                      <Badge label={system.type} variant={typeVariant[system.type] ?? 'gray'} size="sm" />
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ext-card-name">{system.name}</div>
-                    <Badge label={system.type} variant={typeVariant[system.type] ?? 'gray'} size="sm" />
+
+                  <div className={`ext-status ext-status--${system.status === 'Error' ? 'error' : 'connected'}`}>
+                    {system.status === 'Error'
+                      ? <AlertTriangle size={13} />
+                      : <CheckCircle size={13} />
+                    }
+                    <span>{system.status}</span>
+                  </div>
+
+                  {system.status === 'Error' && (
+                    <div className="ext-error-banner">
+                      Connection error — last sync failed 2d ago. Check API credentials.
+                    </div>
+                  )}
+
+                  <div className="ext-meta">
+                    <span>Last handoff: {system.lastHandoff}</span>
+
+                    {/* Mapped fields with hover popover */}
+                    <div className="ext-fields-wrap">
+                      <span className="ext-fields-label">
+                        {total} mapped fields across {actions.length} action{actions.length !== 1 ? 's' : ''}
+                      </span>
+                      <div className="ext-fields-pop">
+                        <div className="ext-fields-pop-title">Field mappings by action</div>
+                        {actions.map(a => (
+                          <div key={a.id} className="ext-fields-pop-row">
+                            <span>{a.label}</span>
+                            <span className="ext-fields-pop-count">
+                              {perAction[a.id] > 0 ? `${perAction[a.id]} fields` : '—'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Used in packs chip */}
+                  <div className="ext-used-chip">
+                    Used in {system.usedInPacks} pack{system.usedInPacks !== 1 ? 's' : ''}
+                  </div>
+
+                  <div className="ext-actions">
+                    <Button variant="secondary" size="sm" icon={Settings} onClick={() => openFieldMapping(system)}>
+                      Field Mapping
+                    </Button>
                   </div>
                 </div>
-
-                <div className={`ext-status ext-status--${system.status === 'Error' ? 'error' : 'connected'}`}>
-                  {system.status === 'Error'
-                    ? <AlertTriangle size={13} />
-                    : <CheckCircle size={13} />
-                  }
-                  <span>{system.status}</span>
-                </div>
-
-                {system.status === 'Error' && (
-                  <div className="ext-error-banner">
-                    Connection error — last sync failed 2d ago. Check API credentials.
-                  </div>
-                )}
-
-                <div className="ext-meta">
-                  <span>Last handoff: {system.lastHandoff}</span>
-                  <span>{system.mappedFields} mapped fields</span>
-                </div>
-
-                <div className="ext-actions">
-                  <Button variant="secondary" size="sm" icon={Settings} onClick={() => openFieldMapping(system)}>
-                    Field Mapping
-                  </Button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
@@ -313,7 +406,7 @@ export default function Destinations() {
         </div>
       )}
 
-      {/* Add Connector Drawer */}
+      {/* ── Add Connector Drawer ──────────────────────────────────────────────── */}
       <Drawer
         open={addDrawerOpen}
         onClose={() => { setAddDrawerOpen(false); setSelectedConnector(null) }}
@@ -331,7 +424,6 @@ export default function Destinations() {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-          {/* Info note */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 9, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
             <span>
@@ -346,14 +438,7 @@ export default function Destinations() {
 
           {Object.entries(connectorGroups).map(([groupType, items]) => (
             <div key={groupType}>
-              <div style={{
-                fontSize: 10,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: 'var(--text-tertiary)',
-                marginBottom: 8,
-              }}>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
                 {groupType}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -362,21 +447,14 @@ export default function Destinations() {
                     key={connector.id}
                     onClick={() => setSelectedConnector(connector.id)}
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '10px 12px',
-                      borderRadius: 8,
+                      display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8,
                       border: `1px solid ${selectedConnector === connector.id ? 'var(--accent-blue-border)' : 'var(--border)'}`,
                       background: selectedConnector === connector.id ? 'var(--accent-blue-dim)' : 'var(--bg-card)',
-                      cursor: 'pointer',
-                      transition: 'background 0.12s, border-color 0.12s',
+                      cursor: 'pointer', transition: 'background 0.12s, border-color 0.12s',
                     }}
                   >
                     <span style={{ fontSize: 20 }}>{connector.icon}</span>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>
-                      {connector.name}
-                    </span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{connector.name}</span>
                     <Badge label={connector.type} variant={typeVariant[connector.type] ?? 'gray'} size="sm" />
                   </div>
                 ))}
@@ -386,12 +464,12 @@ export default function Destinations() {
         </div>
       </Drawer>
 
-      {/* Field Mapping Drawer */}
+      {/* ── Field Mapping Drawer ──────────────────────────────────────────────── */}
       <Drawer
         open={fieldMappingOpen}
         onClose={() => setFieldMappingOpen(false)}
         title={`Field Mapping — ${mappingSystem?.name ?? ''}`}
-        subtitle="Map HTL item fields to destination fields. The integration connection is managed in Settings → Integrations."
+        subtitle="Map HTL fields to destination fields per action type. Connection credentials are managed in Settings → Integrations."
         footer={
           <>
             <Button variant="secondary" onClick={() => setFieldMappingOpen(false)}>Cancel</Button>
@@ -399,82 +477,96 @@ export default function Destinations() {
           </>
         }
       >
-        {mappingSystem && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Context note */}
-            <div style={{ padding: '10px 13px', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-              These mappings define which HTL fields are written to <strong style={{ color: 'var(--text-secondary)' }}>{mappingSystem.name}</strong> when an item is handed off.
-              The integration credentials and connection are configured in{' '}
-              <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" style={{ color: 'var(--accent-blue)' }}>Settings → Integrations ↗</a>.
-            </div>
+        {mappingSystem && (() => {
+          const actions       = SYSTEM_ACTIONS[mappingSystem.id] || []
+          const currentAction = activeAction[mappingSystem.id] || actions[0]?.id
+          const sysMaps       = mappings[mappingSystem.id] || {}
+          const currentRows   = sysMaps[currentAction] ?? DEFAULT_MAPPINGS[mappingSystem.id]?.[currentAction] ?? []
 
-            {/* Column headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 16px 1fr 28px', gap: 8, padding: '0 2px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>HTL field</div>
-              <div />
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)' }}>{mappingSystem.name} field</div>
-              <div />
-            </div>
-
-            {/* Mapping rows */}
-            {(mappings[mappingSystem.id] || []).map((m, idx) => {
-              const htlField = HTL_FIELDS.find(f => f.id === m.htlField)
-              return (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 16px 1fr 28px', gap: 8, alignItems: 'center' }}>
-                  {/* HTL field picker */}
-                  <select
-                    value={m.htlField}
-                    onChange={e => setMappings(prev => ({ ...prev, [mappingSystem.id]: prev[mappingSystem.id].map((r, i) => i === idx ? { ...r, htlField: e.target.value } : r) }))}
-                    style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'inherit', outline: 'none' }}
-                    title={htlField?.desc}
-                  >
-                    {HTL_FIELDS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
-                  </select>
-
-                  {/* Arrow */}
-                  <div style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 }}>→</div>
-
-                  {/* Destination field */}
-                  <input
-                    value={m.destField}
-                    onChange={e => updateMappingDest(mappingSystem.id, idx, e.target.value)}
-                    placeholder="destination.field.path"
-                    style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'DM Mono, monospace', outline: 'none' }}
-                  />
-
-                  {/* Remove */}
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Action tabs */}
+              <div className="fm-tabs">
+                {actions.map(action => (
                   <button
-                    onClick={() => removeMapping(mappingSystem.id, idx)}
-                    style={{ width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5, color: 'var(--text-tertiary)', transition: 'color 0.1s' }}
-                    onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-coral)'}
-                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
+                    key={action.id}
+                    className={`fm-tab${currentAction === action.id ? ' fm-tab--active' : ''}`}
+                    onClick={() => setActiveAction(prev => ({ ...prev, [mappingSystem.id]: action.id }))}
                   >
-                    <ExternalLink size={12} style={{ display: 'none' }} />
-                    ✕
+                    {action.label}
                   </button>
-                </div>
-              )
-            })}
+                ))}
+              </div>
 
-            {/* Add row */}
-            <button
-              onClick={() => addMapping(mappingSystem.id)}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 14px', border: '1.5px dashed var(--border-strong)', borderRadius: 8, background: 'transparent', color: 'var(--text-secondary)', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', transition: 'border-color 0.12s, color 0.12s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-blue-border)'; e.currentTarget.style.color = 'var(--accent-blue)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-            >
-              + Add field mapping
-            </button>
+              {/* Column headers */}
+              <div className="fm-col-hdrs">
+                <div className="fm-col-hdr">HTL field</div>
+                <div />
+                <div className="fm-col-hdr">{mappingSystem.name} field</div>
+                <div />
+              </div>
 
-            {/* Mapped count */}
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'right', paddingTop: 4 }}>
-              {(mappings[mappingSystem.id] || []).length} field{(mappings[mappingSystem.id] || []).length !== 1 ? 's' : ''} mapped
+              {/* Empty state */}
+              {currentRows.length === 0 && (
+                <div className="fm-empty">No mappings yet for this action. Add one below.</div>
+              )}
+
+              {/* Mapping rows */}
+              {currentRows.map((m, idx) => {
+                const htlField = HTL_FIELDS.find(f => f.id === m.htlField)
+                return (
+                  <div key={idx} className="fm-row">
+                    <select
+                      value={m.htlField}
+                      onChange={e => updateMappingField(mappingSystem.id, currentAction, idx, 'htlField', e.target.value)}
+                      className="fm-select"
+                      title={htlField?.desc}
+                    >
+                      {HTL_FIELDS.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}
+                    </select>
+
+                    <div className="fm-arrow">→</div>
+
+                    <input
+                      value={m.destField}
+                      onChange={e => updateMappingField(mappingSystem.id, currentAction, idx, 'destField', e.target.value)}
+                      placeholder="destination.field.path"
+                      className="fm-dest-input"
+                    />
+
+                    <button
+                      className="fm-remove-btn"
+                      onClick={() => removeMapping(mappingSystem.id, currentAction, idx)}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-coral)'}
+                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )
+              })}
+
+              {/* Add row */}
+              <button
+                className="fm-add-btn"
+                onClick={() => addMapping(mappingSystem.id, currentAction)}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-blue-border)'; e.currentTarget.style.color = 'var(--accent-blue)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
+              >
+                + Add field mapping
+              </button>
+
+              {/* Count footer */}
+              <div className="fm-count">
+                {currentRows.length} field{currentRows.length !== 1 ? 's' : ''} mapped
+                {' '}for <strong>{actions.find(a => a.id === currentAction)?.label}</strong>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        })()}
       </Drawer>
 
-      {/* Edit Template Drawer */}
+      {/* ── Edit Template Drawer ──────────────────────────────────────────────── */}
       <Drawer
         open={templateDrawerOpen}
         onClose={() => setTemplateDrawerOpen(false)}
@@ -494,46 +586,18 @@ export default function Destinations() {
         {selectedChannel && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
-              <label style={{
-                display: 'block',
-                fontSize: 11,
-                fontWeight: 600,
-                color: 'var(--text-secondary)',
-                marginBottom: 6,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Template
               </label>
               <textarea
                 defaultValue={selectedChannel.template}
                 rows={6}
-                style={{
-                  width: '100%',
-                  background: 'var(--bg-input)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  fontFamily: 'DM Mono',
-                  fontSize: 12,
-                  color: 'var(--text-primary)',
-                  lineHeight: 1.6,
-                  resize: 'vertical',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
+                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
 
             <div>
-              <div style={{
-                fontSize: 11,
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                color: 'var(--text-tertiary)',
-                marginBottom: 10,
-              }}>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 10 }}>
                 Available Variables
               </div>
               <div className="template-vars">
