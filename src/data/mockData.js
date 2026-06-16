@@ -1753,3 +1753,23 @@ export const packWorkflowBindings = {
   'pk-wb-compliance':  ['net-compliance-routing'],
   'pk-proc-midmarket': ['net-finance-approval', 'net-contract-analysis'],
 }
+
+export const instanceConfigOptions = {
+  jira_create_issue: {
+    projects:   ['Product (PROD)', 'Support (HSK)', 'Engineering (ENG)'],
+    issueTypes: ['Bug', 'Task', 'Story', 'Epic'],
+    priorities: ['Highest', 'High', 'Medium', 'Low', 'Lowest'],
+  },
+  salesforce_create_opportunity: {
+    stages:      ['Prospecting', 'Qualification', 'Proposal', 'Closed Won', 'Closed Lost'],
+    recordTypes: ['Standard Opportunity', 'Enterprise Deal', 'Renewal'],
+  },
+  zendesk_create_ticket: {
+    forms:  ['Standard Support', 'Enterprise Support', 'Billing Issue'],
+    groups: ['Support Tier 1', 'Support Tier 2', 'Billing Team'],
+  },
+  netsuite_create_record: {
+    recordTypes:  ['Task', 'Case', 'Opportunity'],
+    subsidiaries: ['Northfield US', 'Northfield EU'],
+  },
+}

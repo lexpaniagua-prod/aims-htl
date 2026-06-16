@@ -2805,3 +2805,105 @@
 }
 .wt-modal-confirm:disabled { opacity: 0.4; cursor: default; }
 .wt-modal-confirm:not(:disabled):hover { opacity: 0.85; }
+
+/* ── "Edit config" inline link in dest row ────────────────────────────────── */
+.d4-edit-cfg-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent-blue); font-size: 11px; font-family: inherit;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.d4-edit-cfg-link:hover { opacity: 0.75; }
+
+/* ─── Instance Config Slideout ─────────────────────────────────────────────── */
+.ic-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 200;
+}
+.ic-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 440px;
+  background: var(--bg-card); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 201;
+  animation: slide-in 0.2s ease;
+}
+@keyframes slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+.ic-hdr {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.ic-title {
+  font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.3;
+  margin-bottom: 4px;
+}
+.ic-sub {
+  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+}
+.ic-close {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-row); color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ic-close:hover { background: var(--bg-row-hover); color: var(--text-primary); }
+.ic-int-badge {
+  display: flex; align-items: center; gap: 10px; padding: 12px 20px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-card-elevated);
+}
+.ic-body {
+  flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px;
+}
+.ic-field { display: flex; flex-direction: column; gap: 5px; }
+.ic-label { font-size: 12px; font-weight: 500; color: var(--text-primary); }
+.ic-req   { color: var(--accent-red, #e05252); }
+.ic-hint  { font-size: 11px; color: var(--text-tertiary); }
+.ic-sel {
+  height: 34px; border: 1px solid var(--border); border-radius: 7px;
+  background: var(--bg-card); color: var(--text-primary); font-size: 13px;
+  padding: 0 10px; font-family: inherit; cursor: pointer;
+  transition: border-color 0.12s;
+}
+.ic-sel:focus { border-color: var(--accent-blue); outline: none; }
+.ic-sel:disabled { opacity: 0.5; cursor: default; }
+.ic-sel-sm {
+  height: 28px; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-card); color: var(--text-primary); font-size: 12px;
+  padding: 0 8px; font-family: inherit; cursor: pointer; flex: 1;
+}
+.ic-toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg-card-elevated); padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.ic-toggle {
+  width: 34px; height: 18px; border-radius: 9px; background: var(--border);
+  cursor: pointer; transition: background 0.2s; position: relative; flex-shrink: 0;
+}
+.ic-toggle--on { background: var(--accent-blue); }
+.ic-toggle-knob {
+  position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+  border-radius: 50%; background: #fff;
+  transition: left 0.18s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.ic-toggle--on .ic-toggle-knob { left: 18px; }
+.ic-prio-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.ic-prio-row  { display: flex; align-items: center; gap: 10px; }
+.ic-prio-htl  { font-size: 12px; color: var(--text-secondary); width: 72px; }
+.ic-prio-arrow{ font-size: 12px; color: var(--text-tertiary); }
+.ic-checkboxes { display: flex; flex-direction: column; gap: 8px; }
+.ic-checkbox-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; color: var(--text-secondary); cursor: pointer;
+}
+.ic-fallback {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 32px 20px; text-align: center;
+}
+.ic-fallback-icon { font-size: 28px; }
+.ic-fallback-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+.ic-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
+  background: var(--bg-card-elevated);
+}
+

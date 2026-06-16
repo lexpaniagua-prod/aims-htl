@@ -39,6 +39,8 @@ import Audit from './pages/Audit.jsx'
 import PackBuilder from './pages/PackBuilder.jsx'
 import Triggers from './pages/Triggers.jsx'
 import TeamsAndQueues from './pages/TeamsAndQueues.jsx'
+import TeamDetail from './pages/TeamDetail.jsx'
+import ConditionDetail from './pages/ConditionDetail.jsx'
 
 const NAV = [
   {
@@ -72,7 +74,6 @@ const NAV = [
       { label: 'Teams & Queues',    path: '/settings/teams',         icon: Users      },
       { label: 'Destinations',      path: '/configure/destinations', icon: Navigation },
       { label: 'Sensitive Signals', path: '/configure/signals',      icon: Radio      },
-      { label: 'OOO & Coverage',    path: '/settings/ooo',           icon: CalendarOff},
     ]
   },
 ]
@@ -88,6 +89,7 @@ function useBreadcrumb(path) {
     queue: 'Queue', handled: 'Handled', escalations: 'Escalations', continuation: 'Continuation', items: 'Item',
     overview: 'Overview', sla: 'SLA', 'routing-log': 'Routing Log', 'train-me': 'Train Me',
     templates: 'Templates', ooo: 'OOO & Coverage', integrations: 'Integrations', audit: 'Audit',
+    conditions: 'Conditions', teams: 'Teams & Queues',
   }
   return ['HTL', ...parts.map(p => labels[p] || p)]
 }
@@ -336,7 +338,9 @@ export default function App() {
             <Route path="/settings/templates" element={<Templates />} />
             <Route path="/settings/ooo" element={<OOOCoverage />} />
             <Route path="/settings/triggers" element={<Triggers />} />
+            <Route path="/settings/conditions/:id" element={<ConditionDetail />} />
             <Route path="/settings/teams" element={<TeamsAndQueues />} />
+            <Route path="/settings/teams/:id" element={<TeamDetail />} />
             <Route path="/settings/integrations" element={<Integrations />} />
             <Route path="/settings/audit" element={<Audit />} />
           </Routes>

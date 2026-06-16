@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus, Pencil, X, MoreHorizontal } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Pencil, X, MoreHorizontal, Search, Check } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import { triggerLibrary } from '../data/mockData.js'
@@ -13,6 +14,13 @@ const TYPE_CFG = {
   'Specific event':    { variant: 'teal',   icon: '⚡' },
 }
 const TYPE_TABS = ['Customer behavior', 'AI confidence', 'Score threshold', 'Specific event']
+
+const TYPE_LIST = [
+  { id: 'Customer behavior', icon: '💬', name: 'Customer behavior', desc: 'Detects intent or language patterns in customer messages' },
+  { id: 'AI confidence',     icon: '🤖', name: 'AI confidence',     desc: "Fires when the AI's certainty drops below a threshold"   },
+  { id: 'Score threshold',   icon: '📊', name: 'Score threshold',   desc: 'Triggers when a numeric score crosses a defined value'   },
+  { id: 'Specific event',    icon: '⚡', name: 'Specific event',    desc: 'Activates when a concrete system event occurs'           },
+]
 
 const STUDIOS = ['Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio', 'All Studios']
 const STUDIO_CFG = {
@@ -70,6 +78,7 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
   const [name,        setName]        = useState(trigger?.name        || '')
   const [studio,      setStudio]      = useState(trigger?.studio      || 'All Studios')
   const [type,        setType]        = useState(trigger?.type        || 'Customer behavior')
+  const [typeSearch,  setTypeSearch]  = useState('')
   const [status,      setStatus]      = useState(trigger?.status      || 'active')
   const [description, setDescription] = useState(trigger?.description || '')
   const [keywords,    setKeywords]    = useState(trigger?.keywords    || [])
@@ -181,21 +190,55 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
           {/* Type */}
           <div className="tl-field">
             <label className="tl-label">Type <span className="tl-req">*</span></label>
-            <div className="tl-type-grid">
-              {TYPE_TABS.map(t => {
-                const sel = type === t
-                const cfg = TYPE_CFG[t]
+            <div className="tl-type-search-wrap">
+              <Search size={13} className="tl-type-search-icon" />
+              <input
+                className="tl-type-search-input"
+                placeholder="Search condition types…"
+                value={typeSearch}
+                onChange={e => setTypeSearch(e.target.value)}
+              />
+            </div>
+            <div className="tl-type-list">
+              {(() => {
+                const q = typeSearch.trim().toLowerCase()
+                const visible = q
+                  ? TYPE_LIST.filter(t => t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q))
+                  : TYPE_LIST
                 return (
-                  <button
-                    key={t}
-                    className={`tl-type-btn${sel ? ' tl-type-btn--sel' : ''}`}
-                    onClick={() => setType(t)}
-                  >
-                    <span>{cfg.icon}</span>
-                    <span>{t}</span>
-                  </button>
+                  <>
+                    {visible.length === 0 && (
+                      <div className="tl-type-no-results">No types match your search.</div>
+                    )}
+                    {visible.map(t => {
+                      const sel = type === t.id
+                      return (
+                        <div
+                          key={t.id}
+                          className={`tl-type-opt${sel ? ' tl-type-opt--sel' : ''}`}
+                          onClick={() => setType(t.id)}
+                        >
+                          <span className="tl-type-opt-icon">{t.icon}</span>
+                          <div className="tl-type-opt-body">
+                            <div className="tl-type-opt-name">{t.name}</div>
+                            <div className="tl-type-opt-desc">{t.desc}</div>
+                          </div>
+                          {sel && <Check size={14} className="tl-type-opt-check" />}
+                        </div>
+                      )
+                    })}
+                    {!q && (
+                      <div className="tl-type-opt tl-type-opt--more">
+                        <span className="tl-type-opt-icon tl-type-opt-icon--more">+</span>
+                        <div className="tl-type-opt-body">
+                          <div className="tl-type-opt-name tl-type-opt-name--more">More condition types</div>
+                          <div className="tl-type-opt-desc">Additional types will be available as the platform expands</div>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )
-              })}
+              })()}
             </div>
           </div>
 
@@ -566,6 +609,119 @@ The customer may be angry, disappointed, or simply making an administrative requ
   )
 }
 
+// ─── Preview slideout (read-only) ────────────────────────────────────────────
+function TriggerPreview({ trigger, onClose }) {
+  const navigate = useNavigate()
+  const cfg = TYPE_CFG[trigger.type] || TYPE_CFG['Customer behavior']
+
+  const detectText = () => {
+    const t = trigger
+    if (t.type === 'AI confidence')   return `Fires when AI confidence drops below ${t.threshold}%`
+    if (t.type === 'Score threshold') return `Fires when ${t.scoreType} goes ${t.operator} ${t.value}`
+    if (t.type === 'Specific event') {
+      if (t.event === 'form_submit')   return t.formId ? `Fires when the "${t.formId}" form is submitted` : 'Fires when a form is submitted'
+      if (t.event === 'status_change') return `Fires when item status changes`
+      if (t.event === 'tag_applied')   return t.tags?.length > 0 ? `Fires when tag [${t.tags.join(', ')}] is applied` : 'Fires when a tag is applied'
+      if (t.event === 'custom')        return t.customEvent ? `Fires when event "${t.customEvent}" occurs` : 'Fires when a custom event occurs'
+    }
+    return t.description || ''
+  }
+
+  const visiblePacks = (trigger.usedInPackNames || []).slice(0, 5)
+  const hiddenCount  = Math.max(0, (trigger.usedInPacks || 0) - visiblePacks.length)
+
+  const goEdit = () => {
+    onClose()
+    navigate(`/settings/conditions/${trigger.id}`)
+  }
+
+  return (
+    <>
+      <div className="tl-overlay" onClick={onClose} />
+      <div className="tl-drawer">
+        {/* Header */}
+        <div className="tl-drawer-hdr">
+          <span className="tl-drawer-title">Condition Preview</span>
+          <button className="tl-drawer-close" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {/* Body */}
+        <div className="tl-drawer-body">
+
+          {/* Name + badges + meta */}
+          <div className="tlp-hero">
+            <div className="tlp-name">{trigger.name}</div>
+            <div className="tlp-badges">
+              <Badge label={trigger.type} variant={cfg.variant} size="sm" />
+              <StudioBadge studio={trigger.studio} />
+            </div>
+            <div className="tlp-meta">
+              <span className="tl-packs-chip" style={{ cursor: 'default' }}>
+                Used in {trigger.usedInPacks} pack{trigger.usedInPacks !== 1 ? 's' : ''}
+              </span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-by">{trigger.createdBy}</span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-time">{trigger.lastModified}</span>
+            </div>
+          </div>
+
+          {/* Blast radius warning */}
+          {trigger.usedInPacks > 0 && (
+            <div className="tlp-blast">
+              Editing this condition will affect {trigger.usedInPacks} pack{trigger.usedInPacks !== 1 ? 's' : ''} immediately.
+            </div>
+          )}
+
+          {/* What this condition detects */}
+          <div className="tlp-section">
+            <div className="tlp-section-hdr">What this condition detects</div>
+            <div className="tlp-detect">{detectText()}</div>
+            {trigger.type === 'Customer behavior' && trigger.exclusions && (
+              <>
+                <div className="tlp-detect-sublabel">Exclusions</div>
+                <div className="tlp-detect tlp-detect--muted">{trigger.exclusions}</div>
+              </>
+            )}
+          </div>
+
+          {/* Signal keywords — Customer behavior only */}
+          {trigger.type === 'Customer behavior' && trigger.keywords?.length > 0 && (
+            <div className="tlp-section">
+              <div className="tlp-section-hdr">Signal keywords</div>
+              <div className="tlp-kw-row">
+                {trigger.keywords.map(kw => (
+                  <span key={kw} className="tlp-kw-pill">{kw}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Packs using this condition */}
+          {visiblePacks.length > 0 && (
+            <div className="tlp-section">
+              <div className="tlp-section-hdr">Packs using this condition</div>
+              <div className="tlp-pack-row">
+                {visiblePacks.map(p => <span key={p} className="tlp-pack-pill">{p}</span>)}
+                {hiddenCount > 0 && <span className="tlp-pack-pill tlp-pack-more">and {hiddenCount} more</span>}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="tl-drawer-foot tlp-foot">
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button variant="secondary" size="sm">Duplicate</Button>
+            <Button variant="secondary" size="sm">Archive</Button>
+          </div>
+          <Button variant="primary" size="sm" onClick={goEdit}>Edit condition →</Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function Triggers() {
   const [triggers,     setTriggers]     = useState(triggerLibrary)
@@ -574,7 +730,8 @@ export default function Triggers() {
   const [studioFilter, setStudioFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
   const [drawerOpen,   setDrawerOpen]   = useState(false)
-  const [editId,       setEditId]       = useState(null)
+  const [previewOpen,  setPreviewOpen]  = useState(false)
+  const [previewId,    setPreviewId]    = useState(null)
   const [hoveredPacks, setHoveredPacks] = useState(null)
 
   const filtered = triggers.filter(t => {
@@ -585,17 +742,14 @@ export default function Triggers() {
     return true
   })
 
-  const openNew  = () => { setEditId(null); setDrawerOpen(true) }
-  const openEdit = id => { setEditId(id);   setDrawerOpen(true) }
-  const close    = () => { setDrawerOpen(false); setEditId(null) }
+  const openNew      = () => setDrawerOpen(true)
+  const openEdit     = id => { setPreviewId(id); setPreviewOpen(true) }
+  const close        = () => setDrawerOpen(false)
+  const closePreview = () => { setPreviewOpen(false); setPreviewId(null) }
 
   const save = (data) => {
-    if (editId) {
-      setTriggers(ts => ts.map(t => t.id === editId ? { ...t, ...data, lastModified: 'just now' } : t))
-    } else {
-      const newId = 'trg-' + String(triggers.length + 1).padStart(3, '0')
-      setTriggers(ts => [...ts, { id: newId, usedInPacks: 0, usedInPackNames: [], createdBy: 'Alexa M.', lastModified: 'just now', ...data }])
-    }
+    const newId = 'trg-' + String(triggers.length + 1).padStart(3, '0')
+    setTriggers(ts => [...ts, { id: newId, usedInPacks: 0, usedInPackNames: [], createdBy: 'Alexa M.', lastModified: 'just now', ...data }])
     close()
   }
 
@@ -706,10 +860,18 @@ export default function Triggers() {
         })}
       </div>
 
-      {/* ── Drawer ────────────────────────────────────────────────────────── */}
+      {/* ── Preview slideout ──────────────────────────────────────────────── */}
+      {previewOpen && previewId && (
+        <TriggerPreview
+          trigger={triggers.find(t => t.id === previewId)}
+          onClose={closePreview}
+        />
+      )}
+
+      {/* ── Create drawer ─────────────────────────────────────────────────── */}
       {drawerOpen && (
         <TriggerDrawer
-          trigger={editId ? triggers.find(t => t.id === editId) : null}
+          trigger={null}
           onSave={save}
           onClose={close}
         />

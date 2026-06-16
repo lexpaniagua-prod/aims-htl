@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Pencil, X, Users } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
@@ -418,60 +419,254 @@ function TeamDrawer({ team, onSave, onClose }) {
   )
 }
 
-// ─── Team Card ────────────────────────────────────────────────────────────────
-function TeamCard({ team, onEdit }) {
-  const cfg    = TYPE_CFG[team.type] || TYPE_CFG.queue
-  const online = team.members.filter(m => m.status === 'online').length
-  const busy   = team.members.filter(m => m.status === 'busy').length
-  const dotCls = online > 0 ? 'tq-dot--green' : busy > 0 ? 'tq-dot--amber' : 'tq-dot--gray'
-  const visible = team.members.slice(0, 4)
-  const extra  = team.members.length - 4
+// ─── Preview slideout ────────────────────────────────────────────────────────
+function TeamPreview({ team, onClose }) {
+  const navigate = useNavigate()
+  const [pickerOpen,   setPickerOpen]   = useState(false)
+  const [pickerSearch, setPickerSearch] = useState('')
+  const [addedMembers, setAddedMembers] = useState([])
+  const [oooToast,     setOooToast]     = useState(false)
+  const [pauseConfirm, setPauseConfirm] = useState(false)
+  const [paused,       setPaused]       = useState(false)
+
+  const cfg     = TYPE_CFG[team.type] || TYPE_CFG.queue
+  const online  = team.members.filter(m => m.status === 'online').length
+  const dotCls  = online > 0 ? 'tq-dot--green' : team.members.some(m => m.status === 'busy') ? 'tq-dot--amber' : 'tq-dot--gray'
+  const visible = team.members.slice(0, 8)
+  const hidden  = Math.max(0, team.members.length - 8)
+
+  const pickerPool = PEOPLE_POOL.filter(p =>
+    !team.members.find(m => m.name === p) &&
+    !addedMembers.includes(p) &&
+    p.toLowerCase().includes(pickerSearch.toLowerCase())
+  )
+
+  const handleMarkOOO = () => {
+    setOooToast(true)
+    setTimeout(() => setOooToast(false), 3000)
+  }
+
+  const goDetail = () => {
+    onClose()
+    navigate(`/settings/teams/${team.id}`)
+  }
 
   return (
-    <div className="tq-card">
-      <div className="tq-card-hdr">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="tq-type-emoji">{cfg.emoji}</span>
-          <Badge label={cfg.label} variant={cfg.variant} size="sm" />
+    <>
+      <div className="tq-overlay" onClick={onClose} />
+      <div className="tq-drawer">
+        <div className="tq-drawer-hdr">
+          <span className="tq-drawer-title">{cfg.emoji} {team.name}</span>
+          <button className="tq-drawer-close" onClick={onClose}><X size={16} /></button>
         </div>
-        <div className={`tq-status-dot ${dotCls}`} />
-      </div>
 
-      <div className="tq-card-name">{team.name}</div>
-      {team.description && <div className="tq-card-desc">{team.description}</div>}
-
-      {/* Avatars */}
-      <div className="tq-avatars">
-        {visible.map(m => (
-          <div key={m.name} className={`tq-avatar tq-avatar--${m.status}`} title={`${m.name} — ${m.status}`}>
-            {initials(m.name)}
+        <div className="tq-drawer-body">
+          {/* Hero */}
+          <div className="tqp-hero">
+            <div className="tqp-meta">
+              <Badge label={cfg.label} variant={cfg.variant} size="sm" />
+              <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
+              {team.coverageHours && (
+                <span className="tqp-coverage">{team.coverageHours} · {team.timezone}</span>
+              )}
+            </div>
+            {team.description && <div className="tqp-desc">{team.description}</div>}
           </div>
-        ))}
-        {extra > 0 && <div className="tq-avatar tq-avatar--more">+{extra}</div>}
-      </div>
 
-      {/* Stats */}
-      <div className="tq-card-stats">
-        <span>{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
-        <span className="tq-stat-sep">·</span>
-        <span>{team.activeItems} active</span>
-        <span className="tq-stat-sep">·</span>
-        <span>Used in {team.usedInPacks} pack{team.usedInPacks !== 1 ? 's' : ''}</span>
-      </div>
+          {/* Blast radius */}
+          {team.usedInPacks > 0 && (
+            <div className="tqp-blast">
+              ⚠️ Changes to this team affect routing in <strong>{team.usedInPacks}</strong> pack{team.usedInPacks !== 1 ? 's' : ''}.
+            </div>
+          )}
 
-      {team.coverageHours && (
-        <div className="tq-card-coverage">
-          🕐 {team.coverageHours} · {team.timezone}
+          {/* Members */}
+          <div className="tqp-section">
+            <div className="tqp-section-hdr">Members ({team.members.length})</div>
+            <div className="tqp-members">
+              {visible.map(m => (
+                <div key={m.name} className="tqp-member-row">
+                  <div className="tq-avatar-sm">{initials(m.name)}</div>
+                  <div className="tqp-member-body">
+                    <div className="tqp-member-name">{m.name}</div>
+                    <div className="tqp-member-sub">
+                      <span>{m.role}</span>
+                      {m.expertiseLevel && <span className="tqp-exp">{m.expertiseLevel}</span>}
+                    </div>
+                  </div>
+                  <div className={`tq-status-dot ${STATUS_DOT[m.status] || 'tq-dot--gray'}`} style={{ width: 7, height: 7 }} />
+                </div>
+              ))}
+              {hidden > 0 && (
+                <div className="tqp-more">and {hidden} more member{hidden !== 1 ? 's' : ''}</div>
+              )}
+              {addedMembers.length > 0 && (
+                <div className="tqp-added-note">+ {addedMembers.length} staged — save on the detail page</div>
+              )}
+            </div>
+          </div>
+
+          {/* Activity */}
+          <div className="tqp-section">
+            <div className="tqp-section-hdr">Activity</div>
+            <div className="tqp-stats">
+              <div className="tqp-stat">
+                <div className="tqp-stat-val">{team.activeItems}</div>
+                <div className="tqp-stat-lbl">active items</div>
+              </div>
+              <div className="tqp-stat-sep" />
+              <div className="tqp-stat">
+                <div className="tqp-stat-val">{team.usedInPacks}</div>
+                <div className="tqp-stat-lbl">packs</div>
+              </div>
+              <div className="tqp-stat-sep" />
+              <div className="tqp-stat">
+                <div className="tqp-stat-val">{online}</div>
+                <div className="tqp-stat-lbl">online now</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick actions */}
+          <div className="tqp-section">
+            <div className="tqp-section-hdr">Quick actions</div>
+            <div className="tqp-actions">
+              {/* Add member */}
+              <button className="tqp-action-btn" onClick={() => setPickerOpen(o => !o)}>
+                <Plus size={13} /> Add member
+              </button>
+              {pickerOpen && (
+                <div className="tqp-picker">
+                  <input
+                    className="tq-input"
+                    placeholder="Search people…"
+                    value={pickerSearch}
+                    onChange={e => setPickerSearch(e.target.value)}
+                    autoFocus
+                  />
+                  {pickerSearch && pickerPool.length > 0 && (
+                    <div className="tq-people-drop">
+                      {pickerPool.slice(0, 5).map(p => (
+                        <div key={p} className="tq-people-item" onClick={() => {
+                          setAddedMembers(ms => [...ms, p])
+                          setPickerSearch('')
+                          setPickerOpen(false)
+                        }}>
+                          <div className="tq-avatar-sm">{initials(p)}</div>
+                          <span>{p}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Mark all OOO */}
+              <button className="tqp-action-btn" onClick={handleMarkOOO}>Mark all OOO</button>
+              {oooToast && <div className="tqp-toast">OOO set for all members</div>}
+
+              {/* Pause team */}
+              {!paused && !pauseConfirm && (
+                <button className="tqp-action-btn" onClick={() => setPauseConfirm(true)}>Pause team</button>
+              )}
+              {pauseConfirm && !paused && (
+                <div className="tqp-confirm">
+                  <div className="tqp-confirm-text">Pause this team? Active items will re-queue.</div>
+                  <div className="tqp-confirm-btns">
+                    <button className="tqp-confirm-yes" onClick={() => { setPaused(true); setPauseConfirm(false) }}>Pause</button>
+                    <button className="tqp-confirm-no" onClick={() => setPauseConfirm(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+              {paused && (
+                <div className="tqp-paused">
+                  Team is paused. <button onClick={() => setPaused(false)}>Resume</button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
 
-      <div className="tq-card-foot">
-        <button className="tq-card-btn" onClick={() => onEdit(team.id)}>
-          <Pencil size={12} /> Edit
-        </button>
-        <button className="tq-card-btn">
-          <Users size={12} /> View members
-        </button>
+        <div className="tq-drawer-foot tqp-foot">
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Button variant="secondary" size="sm">Duplicate</Button>
+            <Button variant="secondary" size="sm">Archive</Button>
+          </div>
+          <Button variant="primary" size="sm" onClick={goDetail}>Go to full detail →</Button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Team Row ─────────────────────────────────────────────────────────────────
+function TeamCard({ team, onEdit, onNavigate }) {
+  const cfg     = TYPE_CFG[team.type] || TYPE_CFG.queue
+  const online  = team.members.filter(m => m.status === 'online').length
+  const busy    = team.members.filter(m => m.status === 'busy').length
+  const dotCls  = online > 0 ? 'tq-dot--green' : busy > 0 ? 'tq-dot--amber' : 'tq-dot--gray'
+  const visible = team.members.slice(0, 3)
+  const extra   = team.members.length - 3
+
+  return (
+    <div className="tq-row" onClick={() => onEdit(team.id)}>
+      {/* Left icon */}
+      <div className={`tq-row-icon tq-row-icon--${team.type}`}>
+        <span>{cfg.emoji}</span>
+      </div>
+
+      {/* Body */}
+      <div className="tq-row-body">
+        <div className="tq-row-name">
+          {team.name}
+          <div className={`tq-status-dot ${dotCls}`} style={{ width: 7, height: 7, display: 'inline-block', marginLeft: 8, verticalAlign: 'middle' }} />
+        </div>
+        {team.description && (
+          <div className="tq-row-desc">{team.description}</div>
+        )}
+        <div className="tq-row-meta">
+          <Badge label={cfg.label} variant={cfg.variant} size="sm" />
+          <span className="tq-meta-chip">{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
+          <span className="tq-meta-sep">·</span>
+          <span className="tq-meta-chip">{team.activeItems} active</span>
+          <span className="tq-meta-sep">·</span>
+          <span className="tq-meta-chip">{team.usedInPacks} pack{team.usedInPacks !== 1 ? 's' : ''}</span>
+          {team.coverageHours && (
+            <>
+              <span className="tq-meta-sep">·</span>
+              <span className="tq-meta-chip">🕐 {team.coverageHours}</span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Right: avatars + hover actions */}
+      <div className="tq-row-right">
+        <div className="tq-avatars-sm">
+          {visible.map(m => (
+            <div key={m.name} className={`tq-avatar tq-avatar--${m.status}`} title={`${m.name} — ${m.status}`} style={{ width: 24, height: 24, fontSize: 9 }}>
+              {initials(m.name)}
+            </div>
+          ))}
+          {extra > 0 && <div className="tq-avatar tq-avatar--more" style={{ width: 24, height: 24, fontSize: 9 }}>+{extra}</div>}
+        </div>
+
+        <div className="tq-row-actions">
+          <button
+            className="tq-row-action-btn"
+            title="Preview"
+            onClick={e => { e.stopPropagation(); onEdit(team.id) }}
+          >
+            <Pencil size={13} />
+          </button>
+          <button
+            className="tq-row-action-btn"
+            title="Open detail"
+            onClick={e => { e.stopPropagation(); onNavigate(team.id) }}
+          >
+            <Users size={13} />
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -479,11 +674,13 @@ function TeamCard({ team, onEdit }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function TeamsAndQueues() {
-  const [teams,      setTeams]      = useState(teamsAndQueues)
-  const [search,     setSearch]     = useState('')
-  const [typeFilter, setTypeFilter] = useState('All')
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [editId,     setEditId]     = useState(null)
+  const navigate = useNavigate()
+  const [teams,       setTeams]       = useState(teamsAndQueues)
+  const [search,      setSearch]      = useState('')
+  const [typeFilter,  setTypeFilter]  = useState('All')
+  const [drawerOpen,  setDrawerOpen]  = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewId,   setPreviewId]   = useState(null)
 
   const filtered = teams.filter(t => {
     if (search && !t.name.toLowerCase().includes(search.toLowerCase()) &&
@@ -492,17 +689,14 @@ export default function TeamsAndQueues() {
     return true
   })
 
-  const openNew  = () => { setEditId(null); setDrawerOpen(true) }
-  const openEdit = id => { setEditId(id);   setDrawerOpen(true) }
-  const close    = () => { setDrawerOpen(false); setEditId(null) }
+  const openNew      = () => { setDrawerOpen(true) }
+  const openEdit     = id => { setPreviewId(id); setPreviewOpen(true) }
+  const close        = () => { setDrawerOpen(false) }
+  const closePreview = () => { setPreviewOpen(false); setPreviewId(null) }
 
   const save = (data) => {
-    if (editId) {
-      setTeams(ts => ts.map(t => t.id === editId ? { ...t, ...data } : t))
-    } else {
-      const newId = 'team-' + String(teams.length + 1).padStart(3, '0')
-      setTeams(ts => [...ts, { id: newId, activeItems: 0, usedInPacks: 0, ...data }])
-    }
+    const newId = 'team-' + String(teams.length + 1).padStart(3, '0')
+    setTeams(ts => [...ts, { id: newId, activeItems: 0, usedInPacks: 0, ...data }])
     close()
   }
 
@@ -543,23 +737,36 @@ export default function TeamsAndQueues() {
         <span className="tq-count">{filtered.length} team{filtered.length !== 1 ? 's' : ''}</span>
       </div>
 
-      {/* Cards grid */}
-      {filtered.length === 0 ? (
-        <div className="tq-empty">No teams match the current filters.</div>
-      ) : (
-        <div className="tq-grid">
-          {filtered.map(t => (
-            <TeamCard key={t.id} team={t} onEdit={openEdit} />
-          ))}
-        </div>
-      )}
+      {/* Team list */}
+      <div className="tq-list">
+        {filtered.length === 0 ? (
+          <div className="tq-empty">No teams match the current filters.</div>
+        ) : (
+          filtered.map(t => (
+            <TeamCard
+              key={t.id}
+              team={t}
+              onEdit={openEdit}
+              onNavigate={id => { closePreview(); navigate(`/settings/teams/${id}`) }}
+            />
+          ))
+        )}
+      </div>
 
-      {/* Drawer */}
+      {/* Create drawer */}
       {drawerOpen && (
         <TeamDrawer
-          team={editId ? teams.find(t => t.id === editId) : null}
+          team={null}
           onSave={save}
           onClose={close}
+        />
+      )}
+
+      {/* Preview slideout */}
+      {previewOpen && previewId && (
+        <TeamPreview
+          team={teams.find(t => t.id === previewId)}
+          onClose={closePreview}
         />
       )}
     </div>

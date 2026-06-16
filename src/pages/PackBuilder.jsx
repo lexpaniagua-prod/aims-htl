@@ -10,7 +10,7 @@ import {
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
-import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues, availableWorkflows, availableAgents, triggerLibrary } from '../data/mockData.js'
+import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues, availableWorkflows, availableAgents, triggerLibrary, instanceConfigOptions } from '../data/mockData.js'
 import './PackBuilder.css'
 
 // ─── Step definitions ─────────────────────────────────────────────────────────
@@ -1337,7 +1337,7 @@ const fmtSyncTime = iso => {
   return Math.floor(h / 24) + 'd ago'
 }
 
-function TaskDestCatalogModal({ active, onClose, onAdd }) {
+function TaskDestCatalogModal({ active, onClose, onNext }) {
   const [q,          setQ]          = useState('')
   const [typeFilter, setTypeFilter] = useState('All Types')
   const [selected,   setSelected]   = useState(new Set())
@@ -1363,7 +1363,7 @@ function TaskDestCatalogModal({ active, onClose, onAdd }) {
 
   const selectedInts = integrations.filter(i => selected.has(i.id))
 
-  const handleNext = () => {
+  const handleNextPhase = () => {
     if (!selected.size) return
     const initial = {}
     selectedInts.forEach(i => { initial[i.id] = (i.actions || [])[0] || '' })
@@ -1371,8 +1371,8 @@ function TaskDestCatalogModal({ active, onClose, onAdd }) {
     setPhase('config')
   }
 
-  const handleAdd = () => {
-    onAdd(selectedInts.map(i => ({
+  const handleConfigure = () => {
+    onNext(selectedInts.map(i => ({
       id: i.id, name: i.name, status: i.status, type: i.type,
       action: actionSels[i.id] || '',
     })))
@@ -1489,14 +1489,332 @@ function TaskDestCatalogModal({ active, onClose, onAdd }) {
               <button className="wt-modal-cancel" onClick={() => setPhase('select')}>← Back</button>
             )}
             {phase === 'select' ? (
-              <button className="wt-modal-confirm" disabled={!selected.size} onClick={handleNext}>Add destination →</button>
+              <button className="wt-modal-confirm" disabled={!selected.size} onClick={handleNextPhase}>Next →</button>
             ) : (
-              <button className="wt-modal-confirm" onClick={handleAdd}>Add destination →</button>
+              <button className="wt-modal-confirm" onClick={handleConfigure}>Next →</button>
             )}
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Instance config helpers ──────────────────────────────────────────────────
+function configKeyFor(intId, action) {
+  const prefix = intId.replace('int-', '')
+  const suffix = (action || '').toLowerCase().replace(/\s+/g, '_')
+  return `${prefix}_${suffix}`
+}
+
+function destSubtitle(dest) {
+  const cfg = dest.instanceConfig || {}
+  const key = configKeyFor(dest.id, dest.action)
+  const parts = [dest.action].filter(Boolean)
+  if (key === 'jira_create_issue')                 { if (cfg.project) parts.push(cfg.project); if (cfg.issueType) parts.push(cfg.issueType) }
+  if (key === 'salesforce_create_opportunity')      { if (cfg.stage) parts.push(cfg.stage); if (cfg.recordType) parts.push(cfg.recordType) }
+  if (key === 'salesforce_log_activity')            { if (cfg.activityType) parts.push(cfg.activityType); if (cfg.linkTo) parts.push(cfg.linkTo) }
+  if (key === 'salesforce_update_contact')          { if (cfg.resolutionField) parts.push(cfg.resolutionField) }
+  if (key === 'zendesk_create_ticket')              { if (cfg.ticketForm) parts.push(cfg.ticketForm); if (cfg.group) parts.push(cfg.group) }
+  if (key === 'netsuite_create_record')             { if (cfg.recordType) parts.push(cfg.recordType); if (cfg.subsidiary) parts.push(cfg.subsidiary) }
+  return parts.join(' · ')
+}
+
+// ─── Instance configuration slideout ─────────────────────────────────────────
+function InstanceConfigSlideout({ integration, action, existingConfig, onConfirm, onBack, onCancel }) {
+  const key = configKeyFor(integration.id, action)
+  const opts = instanceConfigOptions[key] || null
+
+  // Jira — Create issue
+  const [jiProject,    setJiProject]    = useState(existingConfig?.project     || '')
+  const [jiIssueType,  setJiIssueType]  = useState(existingConfig?.issueType   || '')
+  const [jiPrioMap,    setJiPrioMap]    = useState(existingConfig?.priorityMapping ?? false)
+  const [jiPrios,      setJiPrios]      = useState(existingConfig?.priorities   || { high: 'High', medium: 'Medium', low: 'Low' })
+  const [jiAssignee,   setJiAssignee]   = useState(existingConfig?.assignee     || 'Unassigned')
+
+  // Salesforce — Create opportunity
+  const [sfStage,      setSfStage]      = useState(existingConfig?.stage        || '')
+  const [sfOwner,      setSfOwner]      = useState(existingConfig?.owner        || 'HTL assigned agent')
+  const [sfRecordType, setSfRecordType] = useState(existingConfig?.recordType   || '')
+
+  // Salesforce — Update contact
+  const [sfResFld,     setSfResFld]     = useState(existingConfig?.resolutionField || '')
+  const [sfUpdateOn,   setSfUpdateOn]   = useState(existingConfig?.updateOn     || [])
+
+  // Salesforce — Log activity
+  const [sfActType,    setSfActType]    = useState(existingConfig?.activityType || '')
+  const [sfLinkTo,     setSfLinkTo]     = useState(existingConfig?.linkTo       || 'Contact')
+
+  // Zendesk — Create ticket
+  const [zdForm,       setZdForm]       = useState(existingConfig?.ticketForm   || '')
+  const [zdGroup,      setZdGroup]      = useState(existingConfig?.group        || 'Unassigned')
+
+  // NetSuite — Create record
+  const [nsType,       setNsType]       = useState(existingConfig?.recordType   || '')
+  const [nsSubsid,     setNsSubsid]     = useState(existingConfig?.subsidiary   || '')
+
+  const ico = INT_ICON[integration.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+
+  const isValid = () => {
+    if (key === 'jira_create_issue')                return jiProject && jiIssueType
+    if (key === 'salesforce_create_opportunity')     return !!sfStage
+    if (key === 'salesforce_update_contact')         return true
+    if (key === 'salesforce_log_activity')           return !!sfActType
+    if (key === 'zendesk_create_ticket')             return !!zdForm
+    if (key === 'netsuite_create_record')            return nsType && nsSubsid
+    return true // generic fallback always valid
+  }
+
+  const buildConfig = () => {
+    if (key === 'jira_create_issue')           return { project: jiProject, issueType: jiIssueType, priorityMapping: jiPrioMap, priorities: jiPrios, assignee: jiAssignee }
+    if (key === 'salesforce_create_opportunity') return { stage: sfStage, owner: sfOwner, recordType: sfRecordType }
+    if (key === 'salesforce_update_contact')   return { resolutionField: sfResFld, updateOn: sfUpdateOn }
+    if (key === 'salesforce_log_activity')     return { activityType: sfActType, linkTo: sfLinkTo }
+    if (key === 'zendesk_create_ticket')       return { ticketForm: zdForm, group: zdGroup }
+    if (key === 'netsuite_create_record')      return { recordType: nsType, subsidiary: nsSubsid }
+    return {}
+  }
+
+  const handleConfirm = () => onConfirm(buildConfig())
+
+  const toggleUpdateOn = (val) => setSfUpdateOn(prev =>
+    prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]
+  )
+
+  const SF_JIRA_PRIO_LEVELS = ['High', 'Medium', 'Low', 'Highest', 'Lowest']
+
+  return (
+    <>
+      <div className="ic-overlay" onClick={onCancel} />
+      <div className="ic-drawer">
+        {/* Header */}
+        <div className="ic-hdr">
+          <div>
+            <div className="ic-title">Configure — {integration.name}: {action}</div>
+            <div className="ic-sub">
+              Tell us the specifics this Pack needs. These settings only apply to this Pack — not to other Packs using the same integration.
+            </div>
+          </div>
+          <button className="ic-close" onClick={onCancel}><X size={14} /></button>
+        </div>
+
+        {/* Integration badge */}
+        <div className="ic-int-badge">
+          <div className="d4-int-icon" style={{ background: ico.bg, color: ico.color, width: 28, height: 28, fontSize: 11, borderRadius: 6 }}>{ico.label}</div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{integration.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{action}</div>
+          </div>
+        </div>
+
+        {/* Body — conditional fields */}
+        <div className="ic-body">
+
+          {/* ── Jira — Create issue ──────────────────────────── */}
+          {key === 'jira_create_issue' && opts && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Project <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={jiProject} onChange={e => { setJiProject(e.target.value); setJiIssueType('') }}>
+                  <option value="">Select a project…</option>
+                  {opts.projects.map(p => <option key={p}>{p}</option>)}
+                </select>
+                <div className="ic-hint">Which Jira project should issues be created in?</div>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Issue type <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={jiIssueType} onChange={e => setJiIssueType(e.target.value)} disabled={!jiProject}>
+                  <option value="">{jiProject ? 'Select issue type…' : 'Select a project first'}</option>
+                  {opts.issueTypes.map(t => <option key={t}>{t}</option>)}
+                </select>
+                <div className="ic-hint">Issue types available in the selected project.</div>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Priority mapping</label>
+                <div className="ic-toggle-row">
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Map HTL priority to Jira priority?</span>
+                  <div className={`ic-toggle${jiPrioMap ? ' ic-toggle--on' : ''}`} onClick={() => setJiPrioMap(p => !p)}>
+                    <div className="ic-toggle-knob" />
+                  </div>
+                </div>
+                {jiPrioMap && (
+                  <div className="ic-prio-rows">
+                    {['High', 'Medium', 'Low'].map(htlP => (
+                      <div key={htlP} className="ic-prio-row">
+                        <span className="ic-prio-htl">HTL {htlP}</span>
+                        <span className="ic-prio-arrow">→</span>
+                        <select className="ic-sel-sm" value={jiPrios[htlP.toLowerCase()]} onChange={e => setJiPrios(p => ({ ...p, [htlP.toLowerCase()]: e.target.value }))}>
+                          {SF_JIRA_PRIO_LEVELS.map(p => <option key={p}>{p}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Assignee</label>
+                <select className="ic-sel" value={jiAssignee} onChange={e => setJiAssignee(e.target.value)}>
+                  <option>Unassigned</option>
+                  <option>HTL assigned agent</option>
+                  <option>Specific person</option>
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* ── Salesforce — Create opportunity ─────────────── */}
+          {key === 'salesforce_create_opportunity' && opts && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Pipeline / Stage <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={sfStage} onChange={e => setSfStage(e.target.value)}>
+                  <option value="">Select a stage…</option>
+                  {opts.stages.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Owner</label>
+                <select className="ic-sel" value={sfOwner} onChange={e => setSfOwner(e.target.value)}>
+                  <option>HTL assigned agent</option>
+                  <option>Specific user</option>
+                  <option>Round-robin team</option>
+                </select>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Record type</label>
+                <select className="ic-sel" value={sfRecordType} onChange={e => setSfRecordType(e.target.value)}>
+                  <option value="">Any</option>
+                  {opts.recordTypes.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* ── Salesforce — Update contact ──────────────────── */}
+          {key === 'salesforce_update_contact' && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Which field signals resolution?</label>
+                <select className="ic-sel" value={sfResFld} onChange={e => setSfResFld(e.target.value)}>
+                  <option value="">Select a field…</option>
+                  <option>Contact.HTL_Status__c</option>
+                  <option>Contact.LastActivityDate</option>
+                  <option>Custom field</option>
+                </select>
+                <div className="ic-hint">This field updates in Salesforce when the HTL item is resolved.</div>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Update on</label>
+                <div className="ic-checkboxes">
+                  {['Item assigned to agent', 'Item resolved', 'Item escalated'].map(v => (
+                    <label key={v} className="ic-checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={sfUpdateOn.includes(v)}
+                        onChange={() => toggleUpdateOn(v)}
+                        style={{ accentColor: 'var(--accent-blue)' }}
+                      />
+                      <span>{v}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* ── Salesforce — Log activity ────────────────────── */}
+          {key === 'salesforce_log_activity' && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Activity type <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={sfActType} onChange={e => setSfActType(e.target.value)}>
+                  <option value="">Select type…</option>
+                  {['Call', 'Email', 'Task', 'Meeting'].map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Link to</label>
+                <select className="ic-sel" value={sfLinkTo} onChange={e => setSfLinkTo(e.target.value)}>
+                  {['Contact', 'Lead', 'Opportunity', 'Account'].map(o => <option key={o}>{o}</option>)}
+                </select>
+                <div className="ic-hint">Which Salesforce object should this activity be linked to?</div>
+              </div>
+            </>
+          )}
+
+          {/* ── Zendesk — Create ticket ──────────────────────── */}
+          {key === 'zendesk_create_ticket' && opts && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Ticket form <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={zdForm} onChange={e => setZdForm(e.target.value)}>
+                  <option value="">Select a form…</option>
+                  {opts.forms.map(f => <option key={f}>{f}</option>)}
+                </select>
+                <div className="ic-hint">Zendesk form determines which fields are required.</div>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Group assignment</label>
+                <select className="ic-sel" value={zdGroup} onChange={e => setZdGroup(e.target.value)}>
+                  <option>Unassigned</option>
+                  {opts.groups.map(g => <option key={g}>{g}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* ── NetSuite — Create record ─────────────────────── */}
+          {key === 'netsuite_create_record' && opts && (
+            <>
+              <div className="ic-field">
+                <label className="ic-label">Record type <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={nsType} onChange={e => setNsType(e.target.value)}>
+                  <option value="">Select a type…</option>
+                  {opts.recordTypes.map(r => <option key={r}>{r}</option>)}
+                </select>
+              </div>
+
+              <div className="ic-field">
+                <label className="ic-label">Subsidiary <span className="ic-req">*</span></label>
+                <select className="ic-sel" value={nsSubsid} onChange={e => setNsSubsid(e.target.value)}>
+                  <option value="">Select a subsidiary…</option>
+                  {opts.subsidiaries.map(s => <option key={s}>{s}</option>)}
+                </select>
+              </div>
+            </>
+          )}
+
+          {/* ── Generic fallback ─────────────────────────────── */}
+          {!['jira_create_issue','salesforce_create_opportunity','salesforce_update_contact','salesforce_log_activity','zendesk_create_ticket','netsuite_create_record'].includes(key) && (
+            <div className="ic-fallback">
+              <div className="ic-fallback-icon">⚙️</div>
+              <div className="ic-fallback-text">
+                This integration uses its default configuration from{' '}
+                <a href="/aims-htl/settings/integrations" target="_blank" rel="noopener" className="av-link">Settings → Destinations</a>.
+                No additional setup required for this Pack.
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="ic-foot">
+          <button className="wt-modal-cancel" onClick={onCancel}>Cancel</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="wt-modal-cancel" onClick={onBack}>← Back to action selection</button>
+            <button className="wt-modal-confirm" disabled={!isValid()} onClick={handleConfirm}>Add destination →</button>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -1597,15 +1915,52 @@ function Step4Destination({ draft, update }) {
   const [showTaskModal, setShowTaskModal] = useState(false)
   const [notifChans,    setNotifChans]    = useState([])
   const [showChanModal, setShowChanModal] = useState(false)
+  // { integration, action, queue: [{integration, action}, ...remaining], editingId: string|null }
+  const [configSlideout, setConfigSlideout] = useState(null)
 
   const removeTaskDest = id => setTaskDests(ds => ds.filter(d => d.id !== id))
-  const addTaskDests   = items => {
+
+  // Called when user clicks "Next →" in step 2 of the modal
+  const handleTaskNext = (selected) => {
+    // selected = [{ id, name, status, type, action }, ...]
+    setShowTaskModal(false)
+    if (!selected.length) return
+    const [first, ...rest] = selected
+    setConfigSlideout({ integration: first, action: first.action, queue: rest, editingId: null })
+  }
+
+  const openEditConfig = (dest) => {
+    setConfigSlideout({ integration: dest, action: dest.action, queue: [], editingId: dest.id })
+  }
+
+  const handleConfigConfirm = (instanceConfig) => {
+    const { integration, action, queue, editingId } = configSlideout
+    if (editingId) {
+      // Editing existing dest
+      setTaskDests(ds => ds.map(d => d.id === editingId ? { ...d, instanceConfig } : d))
+      setConfigSlideout(null)
+      return
+    }
+    const newDest = { ...integration, action, instanceConfig }
     setTaskDests(ds => {
       const seen = new Set(ds.map(d => d.id))
-      return [...ds, ...items.filter(i => !seen.has(i.id))]
+      return seen.has(newDest.id) ? ds : [...ds, newDest]
     })
-    setShowTaskModal(false)
+    if (queue.length) {
+      const [next, ...rest] = queue
+      setConfigSlideout({ integration: next, action: next.action, queue: rest, editingId: null })
+    } else {
+      setConfigSlideout(null)
+    }
   }
+
+  const handleConfigBack = () => {
+    // Re-open the modal so user can change action selection
+    setConfigSlideout(null)
+    setShowTaskModal(true)
+  }
+
+  const handleConfigCancel = () => setConfigSlideout(null)
 
   const removeNotifChan = id => setNotifChans(cs => cs.filter(c => c.id !== id))
   const addNotifChans   = items => {
@@ -1649,13 +2004,20 @@ function Step4Destination({ draft, update }) {
           <>
             <div className="d4-list">
               {taskDests.map(dest => {
-                const ico = INT_ICON[dest.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+                const ico      = INT_ICON[dest.id] || { label: '??', bg: 'var(--bg-row)', color: 'var(--text-secondary)' }
+                const subtitle = destSubtitle(dest)
                 return (
                   <div key={dest.id} className="d4-item">
                     <div className="d4-item-int-icon" style={{ background: ico.bg, color: ico.color }}>{ico.label}</div>
                     <div className="d4-item-body">
                       <span className="d4-item-name">{dest.name}</span>
-                      {dest.action && <span className="d4-item-sub">{dest.action}</span>}
+                      {subtitle && (
+                        <span className="d4-item-sub">
+                          {subtitle}
+                          {' · '}
+                          <button className="d4-edit-cfg-link" onClick={() => openEditConfig(dest)}>Edit config</button>
+                        </span>
+                      )}
                     </div>
                     {dest.status === 'error' ? (
                       <div className="dst-badge-err">
@@ -1716,7 +2078,7 @@ function Step4Destination({ draft, update }) {
         <TaskDestCatalogModal
           active={taskDests.map(d => d.id)}
           onClose={() => setShowTaskModal(false)}
-          onAdd={addTaskDests}
+          onNext={handleTaskNext}
         />
       )}
       {showChanModal && (
@@ -1724,6 +2086,18 @@ function Step4Destination({ draft, update }) {
           active={notifChans.map(c => c.id)}
           onClose={() => setShowChanModal(false)}
           onAdd={addNotifChans}
+        />
+      )}
+      {configSlideout && (
+        <InstanceConfigSlideout
+          integration={configSlideout.integration}
+          action={configSlideout.action}
+          existingConfig={configSlideout.editingId
+            ? (taskDests.find(d => d.id === configSlideout.editingId)?.instanceConfig || null)
+            : null}
+          onConfirm={handleConfigConfirm}
+          onBack={configSlideout.editingId ? handleConfigCancel : handleConfigBack}
+          onCancel={handleConfigCancel}
         />
       )}
     </div>

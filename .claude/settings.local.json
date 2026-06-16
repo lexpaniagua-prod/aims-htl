@@ -21,7 +21,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\" -Recurse -Exclude node_modules -Include \"*wizard*\", \"*step*\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(npx acorn *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(grep -v \"^[0-9]*:.*//.*integrations\")"
     ]
   }
 }
