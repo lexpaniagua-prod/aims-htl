@@ -90,9 +90,11 @@ function initDraft(pack) {
     status:      pack?.status      ?? 'Draft',
     destination: pack?.destination ?? 'Inbox',
     version:     pack?.version     ?? 'v1.0',
-    triggers:    pack?.triggers
+    triggers:        pack?.triggers
       ? pack.triggers.map((t, i) => ({ id: i, value: t }))
       : [],
+    conditionGroups: pack?.conditionGroups ?? null,
+    groupOperator:   pack?.groupOperator   ?? 'OR',
     routing:     pack?.routing     ?? '',
     slaMinutes:  pack?.slaMinutes  ?? 60,
     sensitiveSignalEnabled: pack?.sensitiveSignalEnabled ?? false,
@@ -498,149 +500,281 @@ function TriggerCatalogModal({ draft, onAdd, onClose }) {
   )
 }
 
-// ─── Step 2: Triggers (catalog pattern) ──────────────────────────────────────
-function Step2Triggers({ draft, update }) {
-  const [showCatalog, setShowCatalog] = useState(false)
+// ─── Condition config popover (read-only) ────────────────────────────────────
+function CondConfigPopover({ condition, onClose }) {
+  const lib = triggerLibrary.find(l => l.id === condition.libraryId)
+  if (!lib) return null
 
-  const removeTrigger = id => {
-    const next = draft.triggers.filter(t => t.id !== id)
-    if (next.length > 0) next[next.length - 1] = { ...next[next.length - 1], connector: null }
-    update('triggers', next)
+  let keyDetail = ''
+  if (lib.threshold  !== undefined) keyDetail = `AI confidence below ${lib.threshold}%`
+  else if (lib.scoreType)           keyDetail = `${lib.scoreType} ${lib.operator} ${lib.value}`
+  else if (lib.event)               keyDetail = `Event: ${lib.event}`
+  else if (lib.formId)              keyDetail = `Form: ${lib.formId}`
+  else if (lib.sensitivity)         keyDetail = `Detection sensitivity: ${lib.sensitivity}`
+
+  return (
+    <div className="cg-popover">
+      <div className="cg-popover-hdr">
+        <span className="cg-popover-title">{lib.name}</span>
+        <button className="cg-popover-close" onClick={onClose}><X size={11} /></button>
+      </div>
+      <div className="cg-popover-row">
+        <span className="cg-popover-key">Type</span>
+        <span className="cg-popover-val">{lib.type}</span>
+      </div>
+      {keyDetail && (
+        <div className="cg-popover-row">
+          <span className="cg-popover-key">Config</span>
+          <span className="cg-popover-val">{keyDetail}</span>
+        </div>
+      )}
+      {lib.keywords?.length > 0 && (
+        <div className="cg-popover-row">
+          <span className="cg-popover-key">Keywords</span>
+          <div className="cg-popover-val cg-popover-keywords">
+            {lib.keywords.map((k, i) => <span key={i} className="cg-kw">{k}</span>)}
+          </div>
+        </div>
+      )}
+      {lib.usedInPacks > 0 && (
+        <div className="cg-popover-row">
+          <span className="cg-popover-key">Used in</span>
+          <span className="cg-popover-val">{lib.usedInPacks} pack{lib.usedInPacks !== 1 ? 's' : ''}</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Step 2: Conditions (group-based model) ───────────────────────────────────
+function Step2Triggers({ draft, update }) {
+  const [groups, setGroups] = useState(() => {
+    if (draft.conditionGroups) return draft.conditionGroups
+    if (draft.triggers?.length > 0) {
+      return [{ id: 'group-1', operator: 'AND', conditions: draft.triggers }]
+    }
+    return [{ id: 'group-1', operator: 'AND', conditions: [] }]
+  })
+  const [groupOp,     setGroupOp]     = useState(draft.groupOperator || 'OR')
+  const [showCatalog, setShowCatalog] = useState(null)  // null | groupId
+  const [popover,     setPopover]     = useState(null)  // null | { condId, groupId }
+
+  const syncDraft = (g, op) => {
+    update('conditionGroups', g)
+    update('groupOperator',   op)
+    update('triggers', g.flatMap(gr => gr.conditions))
   }
 
-  const toggleConnector = id =>
-    update('triggers', draft.triggers.map(t =>
-      t.id === id ? { ...t, connector: (t.connector || 'OR') === 'OR' ? 'AND' : 'OR' } : t
+  const applyGroups = g  => { setGroups(g);  syncDraft(g,      groupOp) }
+  const applyGroupOp = op => { setGroupOp(op); syncDraft(groups, op)    }
+
+  const addGroup = () =>
+    applyGroups([...groups, { id: `group-${Date.now()}`, operator: 'OR', conditions: [] }])
+
+  const removeGroup = gid =>
+    applyGroups(groups.filter(g => g.id !== gid))
+
+  const setInGroupOp = (gid, op) =>
+    applyGroups(groups.map(g => g.id === gid ? { ...g, operator: op } : g))
+
+  const removeCondition = (gid, cid) =>
+    applyGroups(groups.map(g =>
+      g.id === gid ? { ...g, conditions: g.conditions.filter(c => c.id !== cid) } : g
     ))
 
-  const buildLogicSummary = ts => {
-    if (ts.length === 0) return ''
-    if (ts.length === 1) return 'This Pack fires when ' + (ts[0].label || ts[0].value) + '.'
-    const labels = ts.map(t => t.label || t.value)
-    const conns  = ts.slice(0, -1).map(t => t.connector || 'OR')
-    const allAnd = conns.every(c => c === 'AND')
-    const allOr  = conns.every(c => c === 'OR')
-    if (allOr)  { const last = labels.pop(); return 'This Pack fires when ' + labels.join(', ') + ', OR ' + last + '.' }
-    if (allAnd) { const last = labels.pop(); return 'This Pack fires only when all of these are true: ' + labels.join(', ') + ', AND ' + last + '.' }
-    return 'This Pack fires when ' + ts.map(t => (t.label || t.value) + (t.connector ? ' ' + t.connector + ' ' : '')).join('').trim() + '.'
-  }
-
-  const handleAddFromCatalog = (items) => {
-    const existing = draft.triggers.length > 0
-      ? draft.triggers.map((t, i) =>
-          i === draft.triggers.length - 1 && t.connector == null ? { ...t, connector: 'OR' } : t
-        )
-      : []
-    const newTriggers = items.map((t, i) => ({
-      id:          Date.now() + i,
+  const handleAddFromCatalog = (gid, items) => {
+    const newConds = items.map((t, i) => ({
+      id:          `cond-${Date.now()}-${i}`,
       libraryId:   t.id,
       type:        t.type,
       label:       t.name,
       value:       t.name,
       libraryDesc: t.description ? t.description.slice(0, 90) + (t.description.length > 90 ? '…' : '') : '',
       studio:      t.studio || 'All Studios',
-      connector:   i < items.length - 1 ? 'OR' : null,
     }))
-    update('triggers', [...existing, ...newTriggers])
-    setShowCatalog(false)
+    const next = groups.map(g =>
+      g.id === gid ? { ...g, conditions: [...g.conditions, ...newConds] } : g
+    )
+    setGroups(next)
+    syncDraft(next, groupOp)
+    setShowCatalog(null)
   }
 
-  const getDesc = t => {
-    if (t.libraryDesc) return t.libraryDesc
-    return ''
+  const buildSummary = () => {
+    const nonEmpty = groups.filter(g => g.conditions.length > 0)
+    if (!nonEmpty.length) return ''
+    if (nonEmpty.length === 1) {
+      const g = nonEmpty[0]
+      const labels = g.conditions.map(c => c.label || c.value)
+      if (labels.length === 1) return `This Pack fires when ${labels[0]}.`
+      const last = labels.at(-1)
+      if (g.operator === 'AND') return `This Pack fires only when ALL of these are true: ${labels.slice(0, -1).join(', ')}, AND ${last}.`
+      return `This Pack fires when ANY of these is true: ${labels.slice(0, -1).join(', ')}, OR ${last}.`
+    }
+    const parts = nonEmpty.map(g => {
+      const labels = g.conditions.map(c => c.label || c.value)
+      return labels.length === 1 ? labels[0] : `(${labels.join(` ${g.operator.toLowerCase()} `)})`
+    })
+    return `This Pack fires when ${parts.join(` ${groupOp} `)}.`
   }
 
+  const summary = buildSummary()
 
   return (
     <div>
       <div className="pb-step-header">
         <div className="pb-step-title">When should this Pack fire?</div>
         <div className="pb-step-desc">
-          This Pack activates when any of these conditions are true. Use AND to require multiple conditions simultaneously.
+          Build groups of conditions. Each group uses one operator internally. Groups connect to each other with the operator shown between them.
         </div>
       </div>
 
-      {/* ── Zone 1: Active triggers ─────────────────────────────────────── */}
-      <div className="trig2-zone">
-        {draft.triggers.length === 0 ? (
-          <div className="trig2-empty">
-            <span className="trig2-empty-icon">⚡</span>
-            <div className="trig2-empty-title">No triggers added yet</div>
-            <div className="trig2-empty-sub">Add triggers from the catalog to define when this Pack fires.</div>
-            <button className="trig2-add-btn-center" onClick={() => setShowCatalog(true)}>
-              <Plus size={13} /> Add trigger
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="trig2-list">
-              {draft.triggers.map((t, i) => {
-                const isLast   = i === draft.triggers.length - 1
-                const conn     = t.connector || 'OR'
-                const sc       = TRIG_STUDIO_CFG[t.studio || 'All Studios'] || TRIG_STUDIO_CFG['All Studios']
-                const badgeVar = TRIG_TYPE_BADGE[t.type] || 'blue'
-                const icon     = TRIG_TYPE_ICON[t.type]  || '⚡'
-                const desc     = getDesc(t)
-                return (
-                  <div key={t.id} className="trig2-item-wrap">
-                    <div className="trig2-row">
-                      <span className="trig2-row-icon">{icon}</span>
-                      <div className="trig2-row-body">
-                        <div className="trig2-row-top">
-                          <span className="trig2-row-name">{t.label || t.value}</span>
-                          {t.studio && (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px' }}>
-                              {t.studio}
-                            </span>
-                          )}
-                          <Badge label={t.type || 'trigger'} variant={badgeVar} size="sm" />
+      <div className="cg-groups-list">
+        {groups.map((group, gi) => (
+          <div key={group.id} className="cg-group-section">
+
+            {/* ── Between-groups connector ─────────────────────────────── */}
+            {gi > 0 && (
+              <div className="cg-between">
+                <button
+                  className={`trig-connector trig-connector--${groupOp.toLowerCase()}`}
+                  onClick={() => applyGroupOp(groupOp === 'AND' ? 'OR' : 'AND')}
+                  title="Click to toggle AND / OR between all groups"
+                >
+                  {groupOp} ▾
+                </button>
+              </div>
+            )}
+
+            {/* ── Group card ───────────────────────────────────────────── */}
+            <div className="cg-group">
+
+              {/* Header */}
+              <div className="cg-group-hdr">
+                <div className="cg-group-ops">
+                  <span className="cg-group-op-label">Match</span>
+                  {['AND', 'OR'].map(op => (
+                    <button
+                      key={op}
+                      className={`cg-op-btn${group.operator === op ? ` cg-op-btn--active cg-op-btn--active-${op.toLowerCase()}` : ''}`}
+                      onClick={() => setInGroupOp(group.id, op)}
+                    >
+                      {op}
+                    </button>
+                  ))}
+                  <span className="cg-group-op-suffix">
+                    {group.operator === 'AND' ? '— all must be true' : '— any is sufficient'}
+                  </span>
+                </div>
+                <div className="cg-group-actions">
+                  <button className="cg-add-cond-btn" onClick={() => setShowCatalog(group.id)}>
+                    <Plus size={12} /> Add condition
+                  </button>
+                  {groups.length > 1 && (
+                    <button className="cg-remove-group-btn" onClick={() => removeGroup(group.id)} title="Remove group">
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Conditions */}
+              {group.conditions.length === 0 ? (
+                <div className="cg-empty">
+                  <span className="cg-empty-icon">⚡</span>
+                  <span className="cg-empty-text">No conditions yet.</span>
+                  <button className="trig2-add-btn-center" onClick={() => setShowCatalog(group.id)}>
+                    <Plus size={13} /> Add condition from catalog
+                  </button>
+                </div>
+              ) : (
+                <div className="cg-cond-list">
+                  {group.conditions.map((cond, ci) => {
+                    const sc        = TRIG_STUDIO_CFG[cond.studio || 'All Studios'] || TRIG_STUDIO_CFG['All Studios']
+                    const badgeVar  = TRIG_TYPE_BADGE[cond.type] || 'blue'
+                    const icon      = TRIG_TYPE_ICON[cond.type]  || '⚡'
+                    const isPopOpen = popover?.condId === cond.id && popover?.groupId === group.id
+                    return (
+                      <div key={cond.id} className="cg-cond-wrap">
+                        <div className="trig2-row">
+                          <span className="trig2-row-icon">{icon}</span>
+                          <div className="trig2-row-body">
+                            <div className="trig2-row-top">
+                              <span className="trig2-row-name">{cond.label || cond.value}</span>
+                              {cond.studio && (
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px' }}>
+                                  {cond.studio}
+                                </span>
+                              )}
+                              <Badge label={cond.type || 'trigger'} variant={badgeVar} size="sm" />
+                            </div>
+                            {cond.libraryDesc && <div className="trig2-row-desc">{cond.libraryDesc}</div>}
+                            <div className="cg-cond-footer">
+                              <button
+                                className="cg-view-cfg-btn"
+                                onClick={() => setPopover(isPopOpen ? null : { condId: cond.id, groupId: group.id })}
+                              >
+                                👁 View config
+                              </button>
+                              {isPopOpen && (
+                                <CondConfigPopover
+                                  condition={cond}
+                                  onClose={() => setPopover(null)}
+                                />
+                              )}
+                            </div>
+                          </div>
+                          <button className="trig2-remove-btn cg-remove-always" onClick={() => removeCondition(group.id, cond.id)}>
+                            <X size={12} />
+                          </button>
                         </div>
-                        {desc && <div className="trig2-row-desc">{desc}</div>}
+                        {ci < group.conditions.length - 1 && (
+                          <div className="trig-connector-wrap">
+                            <span className={`trig-connector trig-connector--${group.operator.toLowerCase()} cg-conn-static`}>
+                              {group.operator}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <button className="trig2-remove-btn" onClick={() => removeTrigger(t.id)}>
-                        <X size={12} />
-                      </button>
-                    </div>
-                    {!isLast && (
-                      <div className="trig-connector-wrap">
-                        <button
-                          className={`trig-connector trig-connector--${conn.toLowerCase()}`}
-                          onClick={() => toggleConnector(t.id)}
-                          title="Click to toggle AND / OR"
-                        >
-                          {conn}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                    )
+                  })}
+                </div>
+              )}
             </div>
-            {/* Live summary */}
-            <div className="rt-summary" style={{ marginTop: 12, padding: '10px 13px' }}>
-              <Info size={12} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 2 }} />
-              <span className="rt-summary-txt" style={{ fontSize: 12 }}>
-                {buildLogicSummary(draft.triggers)}
-              </span>
-            </div>
-          </>
-        )}
+          </div>
+        ))}
       </div>
 
-      {/* ── Zone 2: Add from catalog ────────────────────────────────────── */}
-      <button className="trig2-catalog-btn" onClick={() => setShowCatalog(true)}>
-        <Plus size={13} /> Add trigger from catalog
+      {/* ── Single-group hint ──────────────────────────────────────────── */}
+      {groups.length === 1 && (
+        <div className="cg-single-hint">
+          Need more flexibility?{' '}
+          <button className="cg-single-hint-btn" onClick={addGroup}>+ Add a condition group</button>
+          {' '}to combine different logic.
+        </div>
+      )}
+
+      {/* ── Add group button ───────────────────────────────────────────── */}
+      <button className="cg-add-group-btn" onClick={addGroup}>
+        <Plus size={13} /> Add condition group
       </button>
 
-      {/* ── Catalog modal ───────────────────────────────────────────────── */}
+      {/* ── Live summary ───────────────────────────────────────────────── */}
+      {summary && (
+        <div className="rt-summary" style={{ marginTop: 12, padding: '10px 13px' }}>
+          <Info size={12} style={{ color: 'var(--accent-blue)', flexShrink: 0, marginTop: 2 }} />
+          <span className="rt-summary-txt" style={{ fontSize: 12 }}>{summary}</span>
+        </div>
+      )}
+
+      {/* ── Catalog modal ──────────────────────────────────────────────── */}
       {showCatalog && (
         <TriggerCatalogModal
           draft={draft}
-          onAdd={handleAddFromCatalog}
-          onClose={() => setShowCatalog(false)}
+          onAdd={items => handleAddFromCatalog(showCatalog, items)}
+          onClose={() => setShowCatalog(null)}
         />
       )}
-
     </div>
   )
 }
