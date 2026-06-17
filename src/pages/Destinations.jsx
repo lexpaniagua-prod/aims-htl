@@ -2,50 +2,79 @@ import { useState } from 'react'
 import Button from '../components/Button.jsx'
 import Badge from '../components/Badge.jsx'
 import { Drawer } from '../components/Modal.jsx'
-import { Plus, CheckCircle, AlertTriangle, Send, FileText, Zap, Sliders } from 'lucide-react'
+import { Plus, CheckCircle, AlertTriangle, Send, FileText, Zap, Sliders, MoreHorizontal, Search } from 'lucide-react'
 import './Destinations.css'
 
 const EXTERNAL_SYSTEMS = [
-  { id: 'sf', name: 'Salesforce CRM', type: 'CRM',       status: 'Connected', lastHandoff: '8m ago',  logo: 'SF', color: '#00A1E0', usedInPacks: 4 },
-  { id: 'zd', name: 'Zendesk',        type: 'Ticketing', status: 'Connected', lastHandoff: '34m ago', logo: 'ZD', color: '#03363D', usedInPacks: 3 },
-  { id: 'jp', name: 'Jira Projects',  type: 'Ticketing', status: 'Connected', lastHandoff: '2h ago',  logo: 'JP', color: '#0052CC', usedInPacks: 2 },
-  { id: 'ns', name: 'NetSuite',       type: 'ERP',       status: 'Error',     lastHandoff: '2d ago',  logo: 'NS', color: '#B5451B', usedInPacks: 1 },
+  {
+    id: 'sf', name: 'Salesforce CRM', type: 'CRM', status: 'Connected', lastHandoff: '8m ago',
+    logo: 'SF', color: '#00A1E0', usedInPacks: 4,
+    description: 'Routes high-value items into Salesforce — creating opportunities, updating contacts, and logging activities based on Pack rules.',
+  },
+  {
+    id: 'zd', name: 'Zendesk', type: 'Ticketing', status: 'Connected', lastHandoff: '34m ago',
+    logo: 'ZD', color: '#03363D', usedInPacks: 3,
+    description: 'Turns HTL items into Zendesk tickets and keeps them in sync across status changes, escalations, and agent responses.',
+  },
+  {
+    id: 'jp', name: 'Jira Projects', type: 'Ticketing', status: 'Connected', lastHandoff: '2h ago',
+    logo: 'JP', color: '#0052CC', usedInPacks: 2,
+    description: 'Creates and updates Jira issues when HTL items require engineering follow-up or cross-team tracking.',
+  },
+  {
+    id: 'ns', name: 'NetSuite', type: 'ERP', status: 'Error', lastHandoff: '2d ago',
+    logo: 'NS', color: '#B5451B', usedInPacks: 1,
+    description: 'Logs financial transactions and creates vendor or PO records in NetSuite when items trigger back-office actions.',
+  },
 ]
 
 // All available destination actions per system.
 // `on` = enabled by default (available to pack builders).
 const SYSTEM_ACTIONS = {
   sf: [
-    { id: 'create_opportunity', label: 'Create opportunity',  on: true,  desc: 'Opens a new sales opportunity from this item'                       },
-    { id: 'update_contact',     label: 'Update contact',      on: true,  desc: 'Updates name, email, and status on an existing contact record'      },
-    { id: 'log_activity',       label: 'Log activity',        on: true,  desc: 'Logs a task or call activity on a related record'                   },
-    { id: 'create_case',        label: 'Create case',         on: false, desc: 'Opens a new support case linked to the customer account'            },
-    { id: 'close_opportunity',  label: 'Close opportunity',   on: false, desc: 'Marks an existing opportunity as won or lost'                       },
-    { id: 'custom',             label: 'Custom (webhook)',     on: true,  desc: 'Execute a custom Apex action via an outbound webhook'               },
+    { id: 'create_opportunity', label: 'Create opportunity',  on: true,  desc: 'Opens a new sales opportunity from this item',                    lastUsed: '8m ago',  usedInPacks: 3 },
+    { id: 'update_contact',     label: 'Update contact',      on: true,  desc: 'Updates name, email, and status on an existing contact record',    lastUsed: '34m ago', usedInPacks: 2 },
+    { id: 'log_activity',       label: 'Log activity',        on: true,  desc: 'Logs a task or call activity on a related record',                 lastUsed: '1h ago',  usedInPacks: 1 },
+    { id: 'create_case',        label: 'Create case',         on: false, desc: 'Opens a new support case linked to the customer account',          lastUsed: null,      usedInPacks: 0 },
+    { id: 'close_opportunity',  label: 'Close opportunity',   on: false, desc: 'Marks an existing opportunity as won or lost',                     lastUsed: null,      usedInPacks: 0 },
+    { id: 'custom',             label: 'Custom (webhook)',     on: true,  desc: 'Execute a custom Apex action via an outbound webhook',             lastUsed: '3h ago',  usedInPacks: 1 },
   ],
   zd: [
-    { id: 'create_ticket', label: 'Create ticket',    on: true,  desc: 'Opens a new support ticket for this item'                              },
-    { id: 'update_ticket', label: 'Update ticket',    on: true,  desc: 'Updates status, priority, or assignee on an existing ticket'           },
-    { id: 'close_ticket',  label: 'Close ticket',     on: true,  desc: 'Resolves and closes the associated ticket'                             },
-    { id: 'add_comment',   label: 'Add comment',      on: false, desc: 'Posts an internal or public note on an existing ticket'                },
-    { id: 'escalate',      label: 'Escalate ticket',  on: false, desc: 'Triggers an escalation workflow inside Zendesk'                        },
-    { id: 'custom',        label: 'Custom (webhook)', on: false, desc: 'Trigger a custom Zendesk action via webhook'                           },
+    { id: 'create_ticket', label: 'Create ticket',    on: true,  desc: 'Opens a new support ticket for this item',                              lastUsed: '12m ago', usedInPacks: 3 },
+    { id: 'update_ticket', label: 'Update ticket',    on: true,  desc: 'Updates status, priority, or assignee on an existing ticket',           lastUsed: '45m ago', usedInPacks: 2 },
+    { id: 'close_ticket',  label: 'Close ticket',     on: true,  desc: 'Resolves and closes the associated ticket',                             lastUsed: '2h ago',  usedInPacks: 1 },
+    { id: 'add_comment',   label: 'Add comment',      on: false, desc: 'Posts an internal or public note on an existing ticket',                lastUsed: null,      usedInPacks: 0 },
+    { id: 'escalate',      label: 'Escalate ticket',  on: false, desc: 'Triggers an escalation workflow inside Zendesk',                        lastUsed: null,      usedInPacks: 0 },
+    { id: 'custom',        label: 'Custom (webhook)', on: false, desc: 'Trigger a custom Zendesk action via webhook',                           lastUsed: null,      usedInPacks: 0 },
   ],
   jp: [
-    { id: 'create_issue',  label: 'Create issue',     on: true,  desc: 'Opens a new Jira issue in the configured project'                     },
-    { id: 'update_issue',  label: 'Update issue',     on: true,  desc: 'Updates summary, status, or assignee on an existing issue'            },
-    { id: 'log_comment',   label: 'Log comment',      on: true,  desc: 'Adds a comment with AI summary to an existing issue'                  },
-    { id: 'close_issue',   label: 'Close issue',      on: false, desc: 'Transitions the issue to Done or Closed state'                        },
-    { id: 'assign_issue',  label: 'Assign issue',     on: false, desc: 'Reassigns an open issue to the routed agent'                          },
-    { id: 'custom',        label: 'Custom (webhook)', on: false, desc: 'Call a custom Jira automation via webhook'                            },
+    { id: 'create_issue',  label: 'Create issue',     on: true,  desc: 'Opens a new Jira issue in the configured project',                      lastUsed: '2h ago',  usedInPacks: 2 },
+    { id: 'update_issue',  label: 'Update issue',     on: true,  desc: 'Updates summary, status, or assignee on an existing issue',             lastUsed: '4h ago',  usedInPacks: 1 },
+    { id: 'log_comment',   label: 'Log comment',      on: true,  desc: 'Adds a comment with AI summary to an existing issue',                   lastUsed: '6h ago',  usedInPacks: 1 },
+    { id: 'close_issue',   label: 'Close issue',      on: false, desc: 'Transitions the issue to Done or Closed state',                         lastUsed: null,      usedInPacks: 0 },
+    { id: 'assign_issue',  label: 'Assign issue',     on: false, desc: 'Reassigns an open issue to the routed agent',                           lastUsed: null,      usedInPacks: 0 },
+    { id: 'custom',        label: 'Custom (webhook)', on: false, desc: 'Call a custom Jira automation via webhook',                             lastUsed: null,      usedInPacks: 0 },
   ],
   ns: [
-    { id: 'create_record',   label: 'Create record',    on: true,  desc: 'Creates a new transaction or entity record'                         },
-    { id: 'update_vendor',   label: 'Update vendor',    on: true,  desc: 'Updates vendor details linked to this item'                         },
-    { id: 'log_transaction', label: 'Log transaction',  on: true,  desc: 'Appends a note or memo to a transaction record'                     },
-    { id: 'create_po',       label: 'Create PO',        on: false, desc: 'Generates a new purchase order from this item'                      },
-    { id: 'custom',          label: 'Custom (webhook)', on: false, desc: 'Execute a custom SuiteScript via webhook'                           },
+    { id: 'create_record',   label: 'Create record',    on: true,  desc: 'Creates a new transaction or entity record',                          lastUsed: '2d ago',  usedInPacks: 1 },
+    { id: 'update_vendor',   label: 'Update vendor',    on: true,  desc: 'Updates vendor details linked to this item',                           lastUsed: '2d ago',  usedInPacks: 1 },
+    { id: 'log_transaction', label: 'Log transaction',  on: true,  desc: 'Appends a note or memo to a transaction record',                       lastUsed: null,      usedInPacks: 0 },
+    { id: 'create_po',       label: 'Create PO',        on: false, desc: 'Generates a new purchase order from this item',                        lastUsed: null,      usedInPacks: 0 },
+    { id: 'custom',          label: 'Custom (webhook)', on: false, desc: 'Execute a custom SuiteScript via webhook',                             lastUsed: null,      usedInPacks: 0 },
   ],
+}
+
+const INITIAL_ACTION_DEFAULTS = {
+  sf: {
+    create_opportunity: { configured: true,  stage: 'Prospecting', owner: 'htl_assigned_agent', recordType: 'Standard Opportunity' },
+    update_contact:     { configured: false },
+    log_activity:       { configured: true,  activityType: 'Task', linkTo: 'Contact' },
+  },
+  jp: {
+    create_issue: { configured: true, project: 'Support (HSK)', issueType: 'Task', mapPriority: true },
+  },
+  zd: {},
+  ns: {},
 }
 
 function defaultEnabled(systemId) {
@@ -99,8 +128,13 @@ export default function Destinations() {
   const [selectedConnector, setSelectedConnector] = useState(null)
   const [actionsDrawerOpen, setActionsDrawerOpen] = useState(false)
   const [actionsSystem, setActionsSystem] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState('')
   // { systemId: { actionId: boolean } }
   const [enabledActions, setEnabledActions] = useState({})
+  const [expandedAction, setExpandedAction] = useState(null)  // 'systemId__actionId'
+  const [actionDefaults, setActionDefaults] = useState(INITIAL_ACTION_DEFAULTS)
+  const [panelDraft, setPanelDraft] = useState(null)
 
   function openActionsDrawer(system) {
     setActionsSystem(system)
@@ -108,7 +142,116 @@ export default function Destinations() {
       ...prev,
       [system.id]: prev[system.id] || defaultEnabled(system.id),
     }))
+    setExpandedAction(null)
+    setPanelDraft(null)
     setActionsDrawerOpen(true)
+  }
+
+  function openConfigPanel(systemId, actionId) {
+    const key = `${systemId}__${actionId}`
+    if (expandedAction === key) {
+      setExpandedAction(null)
+      setPanelDraft(null)
+      return
+    }
+    const current = (actionDefaults[systemId] || {})[actionId] || { configured: false }
+    setExpandedAction(key)
+    setPanelDraft({ ...current })
+  }
+
+  function saveDefaults(systemId, actionId) {
+    setActionDefaults(prev => ({
+      ...prev,
+      [systemId]: { ...(prev[systemId] || {}), [actionId]: { ...panelDraft, configured: true } },
+    }))
+    setExpandedAction(null)
+    setPanelDraft(null)
+  }
+
+  function cancelConfig() {
+    setExpandedAction(null)
+    setPanelDraft(null)
+  }
+
+  function renderConfigFields(systemId, actionId) {
+    const upd = (field, val) => setPanelDraft(prev => ({ ...prev, [field]: val }))
+    if (systemId === 'sf' && actionId === 'create_opportunity') return (
+      <>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default pipeline / stage</label>
+          <select className="act-cfg-select" value={panelDraft?.stage ?? 'Prospecting'} onChange={e => upd('stage', e.target.value)}>
+            {['Prospecting', 'Qualification', 'Proposal', 'Closed Won', 'Closed Lost'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default owner</label>
+          <select className="act-cfg-select" value={panelDraft?.owner ?? 'htl_assigned_agent'} onChange={e => upd('owner', e.target.value)}>
+            <option value="htl_assigned_agent">HTL assigned agent</option>
+            <option value="account_owner">Account owner</option>
+            <option value="queue_default">Queue default</option>
+          </select>
+        </div>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default record type</label>
+          <select className="act-cfg-select" value={panelDraft?.recordType ?? 'Standard Opportunity'} onChange={e => upd('recordType', e.target.value)}>
+            {['Standard Opportunity', 'Enterprise Deal', 'Renewal'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+      </>
+    )
+    if (systemId === 'sf' && actionId === 'log_activity') return (
+      <>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default activity type</label>
+          <select className="act-cfg-select" value={panelDraft?.activityType ?? 'Task'} onChange={e => upd('activityType', e.target.value)}>
+            {['Task', 'Call', 'Email', 'Note'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Link to record</label>
+          <select className="act-cfg-select" value={panelDraft?.linkTo ?? 'Contact'} onChange={e => upd('linkTo', e.target.value)}>
+            {['Contact', 'Account', 'Opportunity'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+      </>
+    )
+    if (systemId === 'jp' && actionId === 'create_issue') return (
+      <>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default project</label>
+          <select className="act-cfg-select" value={panelDraft?.project ?? 'Support (HSK)'} onChange={e => upd('project', e.target.value)}>
+            {['Product (PROD)', 'Support (HSK)', 'Engineering (ENG)'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default issue type</label>
+          <select className="act-cfg-select" value={panelDraft?.issueType ?? 'Task'} onChange={e => upd('issueType', e.target.value)}>
+            {['Bug', 'Task', 'Story', 'Epic'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <label className="act-cfg-check-row">
+          <input type="checkbox" checked={panelDraft?.mapPriority ?? false} onChange={e => upd('mapPriority', e.target.checked)} />
+          Map HTL priority to Jira priority
+        </label>
+      </>
+    )
+    if (systemId === 'zd' && actionId === 'create_ticket') return (
+      <>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default ticket form</label>
+          <select className="act-cfg-select" value={panelDraft?.form ?? 'Standard Support'} onChange={e => upd('form', e.target.value)}>
+            {['Standard Support', 'Enterprise Support', 'Billing Issue'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+        <div className="act-cfg-field">
+          <label className="act-cfg-label">Default group assignment</label>
+          <select className="act-cfg-select" value={panelDraft?.groupAssignment ?? 'Support Tier 1'} onChange={e => upd('groupAssignment', e.target.value)}>
+            {['Support Tier 1', 'Support Tier 2', 'Billing Team'].map(s => <option key={s}>{s}</option>)}
+          </select>
+        </div>
+      </>
+    )
+    return <div className="act-cfg-empty">No configurable defaults for this action.</div>
   }
 
   function toggleAction(systemId, actionId) {
@@ -137,6 +280,15 @@ export default function Destinations() {
   const previewVars     = extractVars(previewChannel.template)
   const connectorGroups = groupBy(CONNECTOR_TYPES, 'type')
 
+  const filteredSystems = EXTERNAL_SYSTEMS.filter(s => {
+    const q = searchQuery.toLowerCase()
+    const matchesSearch = !q || s.name.toLowerCase().includes(q) || s.type.toLowerCase().includes(q)
+    const matchesType   = !typeFilter || s.type === typeFilter
+    return matchesSearch && matchesType
+  })
+
+  const allTypes = [...new Set(EXTERNAL_SYSTEMS.map(s => s.type))]
+
   return (
     <div>
       <div className="page-header-row">
@@ -162,50 +314,80 @@ export default function Destinations() {
 
       {tab === 'external' && (
         <div>
-          <div className="ext-cards-grid">
-            {EXTERNAL_SYSTEMS.map(system => {
-              const actions  = SYSTEM_ACTIONS[system.id] || []
-              const enabled  = getEnabledCount(system.id)
+          {/* Search + filter bar */}
+          <div className="ext-toolbar">
+            <div className="ext-search-wrap">
+              <Search size={13} className="ext-search-icon" />
+              <input
+                className="ext-search-input"
+                placeholder="Search integrations..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <select
+              className="ext-type-filter"
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value)}
+            >
+              <option value="">All types</option>
+              {allTypes.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          {/* Integration rows */}
+          <div className="ext-list">
+            {filteredSystems.map(system => {
+              const actions = SYSTEM_ACTIONS[system.id] || []
+              const enabled = getEnabledCount(system.id)
+              const isError = system.status === 'Error'
               return (
-                <div key={system.id} className={`ext-card${system.status === 'Error' ? ' ext-card--error' : ''}`}>
-                  <div className="ext-card-top">
+                <div key={system.id} className={`ext-row${isError ? ' ext-row--error' : ''}`}>
+                  <div className="ext-row-inner">
                     <div className="ext-logo" style={{ background: system.color + '33', color: system.color }}>
                       {system.logo}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="ext-card-name">{system.name}</div>
-                      <Badge label={system.type} variant={typeVariant[system.type] ?? 'gray'} size="sm" />
+                    <div className="ext-row-body">
+                      <div className="ext-row-name-line">
+                        <span className="ext-row-name">{system.name}</span>
+                        <Badge label={system.type} variant={typeVariant[system.type] ?? 'gray'} size="sm" />
+                      </div>
+                      <div className="ext-row-desc">{system.description}</div>
+                      <div className="ext-row-status-line">
+                        <span className={`ext-status ext-status--${isError ? 'error' : 'connected'}`}>
+                          {isError ? <AlertTriangle size={12} /> : <CheckCircle size={12} />}
+                          <span>{isError ? 'Error' : 'Connected'}</span>
+                        </span>
+                        <span className="ext-dot">·</span>
+                        <span className="ext-row-handoff">Last handoff: {system.lastHandoff}</span>
+                      </div>
+                      <div className="ext-row-meta-line">
+                        <span>{enabled} of {actions.length} actions enabled</span>
+                        <span className="ext-dot">·</span>
+                        <span>Used in {system.usedInPacks} pack{system.usedInPacks !== 1 ? 's' : ''}</span>
+                      </div>
+                    </div>
+                    <div className="ext-row-actions">
+                      <Button variant="secondary" size="sm" icon={Sliders} onClick={() => openActionsDrawer(system)}>
+                        Actions
+                      </Button>
+                      <button className="ext-kebab" title="More options">
+                        <MoreHorizontal size={15} />
+                      </button>
                     </div>
                   </div>
-
-                  <div className={`ext-status ext-status--${system.status === 'Error' ? 'error' : 'connected'}`}>
-                    {system.status === 'Error' ? <AlertTriangle size={13} /> : <CheckCircle size={13} />}
-                    <span>{system.status}</span>
-                  </div>
-
-                  {system.status === 'Error' && (
-                    <div className="ext-error-banner">
-                      Connection error — last sync failed 2d ago. Check API credentials.
+                  {isError && (
+                    <div className="ext-error-sub">
+                      <AlertTriangle size={12} />
+                      <span>Connection error — last sync failed 2d ago. Check API credentials in Settings → Integrations.</span>
                     </div>
                   )}
-
-                  <div className="ext-meta">
-                    <span>Last handoff: {system.lastHandoff}</span>
-                    <span>{enabled} of {actions.length} actions enabled</span>
-                  </div>
-
-                  <div className="ext-used-chip">
-                    Used in {system.usedInPacks} pack{system.usedInPacks !== 1 ? 's' : ''}
-                  </div>
-
-                  <div className="ext-actions">
-                    <Button variant="secondary" size="sm" icon={Sliders} onClick={() => openActionsDrawer(system)}>
-                      Actions
-                    </Button>
-                  </div>
                 </div>
               )
             })}
+            {filteredSystems.length === 0 && (
+              <div className="ext-empty">No integrations match your search.</div>
+            )}
           </div>
         </div>
       )}
@@ -306,8 +488,8 @@ export default function Destinations() {
       <Drawer
         open={actionsDrawerOpen}
         onClose={() => setActionsDrawerOpen(false)}
-        title={`Actions — ${actionsSystem?.name ?? ''}`}
-        subtitle="Choose which actions are available when this integration is used as a destination in a pack."
+        title={`Available actions — ${actionsSystem?.name ?? ''}`}
+        subtitle="These are the actions a Pack builder can choose from when adding this integration as a destination. Enable the ones your tenant uses. Configuration happens inside each Pack."
         footer={
           <>
             <Button variant="secondary" onClick={() => setActionsDrawerOpen(false)}>Cancel</Button>
@@ -317,35 +499,64 @@ export default function Destinations() {
       >
         {actionsSystem && (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="act-context-note">
-              Enabled actions will appear as selectable options when a pack builder chooses{' '}
-              <strong>{actionsSystem.name}</strong> as a destination step. Disabled actions are hidden from the builder.
-            </div>
-
             <div className="act-list">
               {(SYSTEM_ACTIONS[actionsSystem.id] || []).map(action => {
-                const isOn = (enabledActions[actionsSystem.id] || {})[action.id] ?? action.on
+                const isOn         = (enabledActions[actionsSystem.id] || {})[action.id] ?? action.on
+                const defaults     = (actionDefaults[actionsSystem.id] || {})[action.id]
+                const isConfigured = isOn && defaults?.configured
+                const isExpanded   = expandedAction === `${actionsSystem.id}__${action.id}`
                 return (
-                  <div key={action.id} className="act-row">
-                    <div
-                      className={`act-toggle${isOn ? ' act-toggle--on' : ''}`}
-                      onClick={() => toggleAction(actionsSystem.id, action.id)}
-                      role="switch"
-                      aria-checked={isOn}
-                    >
-                      <div className="act-toggle-thumb" />
+                  <div key={action.id} className="act-row-wrap">
+                    <div className="act-row">
+                      <div
+                        className={`act-toggle${isOn ? ' act-toggle--on' : ''}`}
+                        onClick={() => toggleAction(actionsSystem.id, action.id)}
+                        role="switch"
+                        aria-checked={isOn}
+                      >
+                        <div className="act-toggle-thumb" />
+                      </div>
+                      <div className="act-body">
+                        <div className={`act-name${isOn ? '' : ' act-name--off'}`}>{action.label}</div>
+                        <div className="act-desc">{action.desc}</div>
+                        <div className="act-last-used">
+                          {action.lastUsed
+                            ? `${action.usedInPacks} active instance${action.usedInPacks !== 1 ? 's' : ''} · Last used ${action.lastUsed}`
+                            : 'Not yet used in any Pack'
+                          }
+                        </div>
+                        {isOn && !isConfigured && (
+                          <div className="act-no-defaults">No defaults set — Pack builders start from scratch</div>
+                        )}
+                      </div>
+                      {isOn && (
+                        <button
+                          className={`act-cfg-btn${isConfigured ? ' act-cfg-btn--configured' : ''}`}
+                          onClick={() => openConfigPanel(actionsSystem.id, action.id)}
+                        >
+                          {isConfigured ? '✓ Defaults configured' : 'Configure defaults'}
+                        </button>
+                      )}
                     </div>
-                    <div className="act-body">
-                      <div className={`act-name${isOn ? '' : ' act-name--off'}`}>{action.label}</div>
-                      <div className="act-desc">{action.desc}</div>
-                    </div>
+                    {isExpanded && panelDraft && (
+                      <div className="act-cfg-panel">
+                        {renderConfigFields(actionsSystem.id, action.id)}
+                        <div className="act-cfg-info">
+                          These are the starting values when a Pack builder picks this action. They can change them per Pack — this won't be affected.
+                        </div>
+                        <div className="act-cfg-foot">
+                          <button className="act-cfg-save" onClick={() => saveDefaults(actionsSystem.id, action.id)}>Save defaults</button>
+                          <button className="act-cfg-cancel" onClick={cancelConfig}>Cancel</button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
 
             <div className="act-footer-note">
-              {getEnabledCount(actionsSystem.id)} of {(SYSTEM_ACTIONS[actionsSystem.id] || []).length} actions enabled
+              {getEnabledCount(actionsSystem.id)} of {(SYSTEM_ACTIONS[actionsSystem.id] || []).length} actions available to Pack builders
             </div>
           </div>
         )}
