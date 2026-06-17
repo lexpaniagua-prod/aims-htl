@@ -122,12 +122,13 @@ function initDraft(pack) {
       compliance: false,
     },
     fallbackChain: ['Tier 1 Support', 'Tier 2 Support', 'Support Manager'],
-    routingPrimary:       'team-001',
-    routingPrimaryCustom: '',
-    routingCondition:     'always',
-    routingConditionValue:'',
+    routingPrimary:           'team-001',
+    routingPrimaryCustom:     '',
+    routingPrimaryMoveWhen:   { unavailable: true, ooo: false, afterMinutes: 30, noAckMinutes: null, capacityThreshold: null, skipOnCritical: false },
+    routingCondition:         'always',
+    routingConditionValue:    '',
     routingFallbacks: [
-      { id: 1, recipient: 'team-002', customRecipient: '', afterMin: 15 },
+      { id: 1, recipient: 'team-002', customRecipient: '', moveWhen: { unavailable: true, ooo: false, afterMinutes: 15, noAckMinutes: null, capacityThreshold: null, skipOnCritical: false } },
     ],
     routingFinalAction: ['requeue'],
     slaStages: [
@@ -781,29 +782,104 @@ function Step2Triggers({ draft, update }) {
 
 // ─── Merged: Routing & Response Rules ──────────────────────────────────────────
 function StepRoutingResponse({ draft, update }) {
-  const primary       = draft.routingPrimary        ?? null
-  const primaryCustom = draft.routingPrimaryCustom  || ""
-  const condition     = draft.routingCondition      || "always"
-  const condValue     = draft.routingConditionValue || ""
-  const fallbacks        = draft.routingFallbacks         || [{ id: 1, recipient: null, customRecipient: "", afterMin: 15 }]
-  const primaryAfterMin  = draft.routingPrimaryAfterMin  ?? 30
-  const finalAction      = Array.isArray(draft.routingFinalAction) ? draft.routingFinalAction : [draft.routingFinalAction || "requeue"]
+  const condition   = draft.routingCondition      || 'always'
+  const condValue   = draft.routingConditionValue || ''
+  const finalAction = Array.isArray(draft.routingFinalAction) ? draft.routingFinalAction : [draft.routingFinalAction || 'requeue']
 
-  const rName    = (id,custom) => teamsAndQueues.find(t=>t.id===id)?.name || ROUTING_RECIPIENT_NAMES[id] || custom || id || '—'
-  const fmtMin   = m => m < 60 ? m+' min' : m % 60 === 0 ? (m/60)+(m/60===1?' hour':' hours') : Math.floor(m/60)+'h '+m%60+'m'
-  const setPrimary          = v => update("routingPrimary",v)
-  const setPrimaryCustom    = v => update("routingPrimaryCustom",v)
-  const setPrimaryAfterMin  = v => update("routingPrimaryAfterMin",v)
-  const setCondition        = v => update("routingCondition",v)
-  const setCondValue        = v => update("routingConditionValue",v)
-  const setFallbacks        = fb => { update("routingFallbacks",fb); update("fallbackChain",fb.map(f=>rName(f.recipient,f.customRecipient))) }
-  const toggleFinalAction   = v => { const next=finalAction.includes(v)?finalAction.filter(x=>x!==v):[...finalAction,v]; if(next.length>0)update("routingFinalAction",next) }
-  const moveFallback   = (i,dir) => { const a=[...fallbacks];const j=i+dir;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];setFallbacks(a) }
-  const addFallback    = () => setFallbacks([...fallbacks,{ id:fallbacks.reduce((m,f)=>Math.max(m,f.id),0)+1, recipient:null, customRecipient:"", afterMin:30 }])
-  const removeFallback = id => setFallbacks(fallbacks.filter(f=>f.id!==id))
-  const updateFallback = (id,k,v) => setFallbacks(fallbacks.map(f=>f.id===id?{...f,[k]:v}:f))
-  const condOpt    = RT_CONDITIONS.find(c=>c.id===condition)
-  const buildSummary = () => { let s="This item goes to "+rName(primary,primaryCustom)+" first."; if(fallbacks.length>0)s+=" If not responded in "+fmtMin(primaryAfterMin)+", it moves to "+rName(fallbacks[0].recipient,fallbacks[0].customRecipient)+"."; for(let i=1;i<fallbacks.length;i++)s+=" If not responded in "+fmtMin(fallbacks[i-1].afterMin)+", it moves to "+rName(fallbacks[i].recipient,fallbacks[i].customRecipient)+"."; const m={requeue:"the next available agent handles it",notify:"the team manager is notified",slack:"a lightweight alert is sent",wait:"the item stays open"}; s+=" If still unhandled: "+finalAction.map(a=>m[a]).filter(Boolean).join(", and ")+"."; return s }
+  const rName  = (id, custom) => teamsAndQueues.find(t => t.id === id)?.name || ROUTING_RECIPIENT_NAMES[id] || custom || id || '—'
+  const fmtMin = m => m < 60 ? m + ' min' : m % 60 === 0 ? (m / 60) + (m / 60 === 1 ? ' hour' : ' hours') : Math.floor(m / 60) + 'h ' + m % 60 + 'm'
+
+  // Build unified layers list from split draft state
+  const buildLayers = () => {
+    const primaryLayer = {
+      id:             'primary',
+      recipient:      draft.routingPrimary        ?? null,
+      customRecipient:draft.routingPrimaryCustom  || '',
+      moveWhen: draft.routingPrimaryMoveWhen ?? { unavailable: true, ooo: false, afterMinutes: draft.routingPrimaryAfterMin ?? 30, noAckMinutes: null, capacityThreshold: null, skipOnCritical: false },
+    }
+    const fallbackLayers = (draft.routingFallbacks || []).map(fb => ({
+      ...fb,
+      moveWhen: fb.moveWhen ?? { unavailable: true, ooo: false, afterMinutes: fb.afterMin ?? 15, noAckMinutes: null, capacityThreshold: null, skipOnCritical: false },
+    }))
+    return [primaryLayer, ...fallbackLayers]
+  }
+
+  // Sync unified layers back to draft state
+  const writeLayers = layers => {
+    if (!layers.length) return
+    const [primary, ...fbs] = layers
+    update('routingPrimary',         primary.recipient)
+    update('routingPrimaryCustom',   primary.customRecipient)
+    update('routingPrimaryMoveWhen', primary.moveWhen)
+    update('routingFallbacks', fbs.map(fb => ({
+      id: fb.id, recipient: fb.recipient, customRecipient: fb.customRecipient,
+      moveWhen: fb.moveWhen,
+      afterMin: fb.moveWhen?.afterMinutes ?? 15,  // backward compat
+    })))
+    update('fallbackChain', layers.map(l => rName(l.recipient, l.customRecipient)))
+  }
+
+  const layers = buildLayers()
+
+  const moveLayer    = (i, dir) => { const a = [...layers]; const j = i + dir; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; writeLayers(a) }
+  const addLayer     = () => writeLayers([...layers, { id: Date.now(), recipient: null, customRecipient: '', moveWhen: { unavailable: true, ooo: false, afterMinutes: 15, noAckMinutes: null, capacityThreshold: null, skipOnCritical: false } }])
+  const removeLayer  = id => writeLayers(layers.filter(l => l.id !== id))
+  const updateLayer  = (id, patch) => writeLayers(layers.map(l => l.id === id ? { ...l, ...patch } : l))
+  const updateMoveWhen = (id, patch) => updateLayer(id, { moveWhen: { ...layers.find(l => l.id === id).moveWhen, ...patch } })
+
+  const setCondition = v => update('routingCondition',      v)
+  const setCondValue = v => update('routingConditionValue', v)
+  const condOpt      = RT_CONDITIONS.find(c => c.id === condition)
+
+  const toggleFinalAction = v => {
+    const next = finalAction.includes(v) ? finalAction.filter(x => x !== v) : [...finalAction, v]
+    if (next.length > 0) update('routingFinalAction', next)
+  }
+
+  const echoMoveWhen = mw => {
+    const immed = []
+    if (mw.unavailable)               immed.push('unavailable')
+    if (mw.ooo)                       immed.push('OOO')
+    if (mw.skipOnCritical)            immed.push('for Critical items')
+    if (mw.capacityThreshold != null) immed.push(`everyone handling more than ${mw.capacityThreshold} items`)
+    const timed = []
+    if (mw.afterMinutes  != null) timed.push(`after ${fmtMin(mw.afterMinutes)}`)
+    if (mw.noAckMinutes  != null) timed.push(`no ack in ${fmtMin(mw.noAckMinutes)}`)
+    const all = [...immed, ...timed]
+    if (!all.length) return ''
+    if (immed.length === 0 && timed.length === 1 && mw.afterMinutes != null && mw.noAckMinutes == null)
+      return `Wait ${fmtMin(mw.afterMinutes)} before trying the next layer.`
+    if (immed.length === 1 && immed[0] === 'unavailable' && !timed.length)
+      return 'Skip immediately if no one is available.'
+    if (immed.length === 1 && immed[0] === 'OOO' && !timed.length)
+      return 'Skip immediately if target is OOO.'
+    if (timed.length)
+      return `Skip if ${all.slice(0, -1).join(', ')}${all.length > 1 ? ', or ' : ''}${all.at(-1)} — whichever comes first.`
+    return `Skip if ${all.join(', or ')}.`
+  }
+
+  const buildSummary = () => {
+    if (!layers.length) return ''
+    const names = layers.map(l => rName(l.recipient, l.customRecipient))
+    let s = `This item goes to ${names[0]} first.`
+    for (let i = 1; i < layers.length; i++) {
+      const mw = layers[i - 1].moveWhen
+      const triggers = []
+      if (mw.unavailable)               triggers.push('unavailable')
+      if (mw.ooo)                       triggers.push('OOO')
+      if (mw.skipOnCritical)            triggers.push('Critical priority')
+      if (mw.capacityThreshold != null) triggers.push(`at capacity (>${mw.capacityThreshold} items)`)
+      if (mw.afterMinutes  != null)     triggers.push(`after ${fmtMin(mw.afterMinutes)}`)
+      if (mw.noAckMinutes  != null)     triggers.push(`no ack in ${fmtMin(mw.noAckMinutes)}`)
+      const when = triggers.length ? triggers.join(' or ') : 'not responded'
+      s += ` If ${when}, it moves to ${names[i]}.`
+    }
+    const m = { requeue: 'the next available agent handles it', notify: 'the team manager is notified', slack: 'a lightweight alert is sent', wait: 'the item stays open' }
+    s += ' If still unhandled: ' + finalAction.map(a => m[a]).filter(Boolean).join(', and ') + '.'
+    return s
+  }
+
+  const allRecipientIds = layers.map(l => l.recipient).filter(Boolean)
 
   return (
     <div>
@@ -812,66 +888,151 @@ function StepRoutingResponse({ draft, update }) {
         <div className="pb-step-desc">Define who receives this item and what happens if they don't respond.</div>
       </div>
 
-      <div className="rr-section-label">WHO GETS THIS ITEM?</div>
-      <div className="rt-block">
-        <div className="rt-block-label">Send this item to</div>
-        <div className="rt-primary-row">
-          <RecipientSelector
-            value={primary}
-            onChange={setPrimary}
-            customValue={primaryCustom}
-            onCustomChange={setPrimaryCustom}
-            otherIds={fallbacks.map(f=>f.recipient).filter(Boolean)}
-          />
-        </div>
-        <div className="rt-primary-timeout">
-          <span className="rt-after-lbl">Move to next step if not taken after</span>
-          <select className="rt-sel" value={primaryAfterMin} onChange={e=>setPrimaryAfterMin(Number(e.target.value))}>
-            {RT_TIMEOUTS.map(t=><option key={t} value={t}>{fmtTimeout(t)}</option>)}
-          </select>
-        </div>
-        <div className="rt-condition-row">
-          <span className="rt-cond-prefix">Only if</span>
-          <select className="rt-sel" value={condition} onChange={e=>setCondition(e.target.value)}>{RT_CONDITIONS.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select>
-          {condOpt?.needsInput&&<input className="rt-text-input rt-text-input--sm" placeholder="value…" value={condValue} onChange={e=>setCondValue(e.target.value)}/>}
-          {condOpt?.needsSelect&&<select className="rt-sel" value={condValue||condOpt.needsSelect[0]} onChange={e=>setCondValue(e.target.value)}>{condOpt.needsSelect.map(v=><option key={v}>{v}</option>)}</select>}
-        </div>
-      </div>
+      {/* ── Section A: Unified routing layers ──────────────────────────── */}
+      <div className="rr-section-label">ROUTING LAYERS — IN ORDER OF PRIORITY</div>
+      <div className="rr-section-sub">The first available match receives the item. Define what causes each layer to pass to the next.</div>
 
-      <div className="rr-sub-label">If they're unavailable or don't respond in time, try:</div>
-      <div className="rt-fallbacks">
-        {fallbacks.map((fb,i)=>(
-          <div key={fb.id} className="rt-fb-card">
-            <div className="rt-fb-num">{i+1}</div>
-            <div className="rt-fb-reorder"><button className="rt-reorder-btn" onClick={()=>moveFallback(i,-1)} disabled={i===0}><ArrowUp size={11}/></button><button className="rt-reorder-btn" onClick={()=>moveFallback(i,1)} disabled={i===fallbacks.length-1}><ArrowDown size={11}/></button></div>
-            <div className="rt-fb-body">
-              <RecipientSelector
-                value={fb.recipient}
-                onChange={val=>updateFallback(fb.id,"recipient",val)}
-                customValue={fb.customRecipient}
-                onCustomChange={val=>updateFallback(fb.id,"customRecipient",val)}
-                otherIds={[primary,...fallbacks.filter(f=>f.id!==fb.id).map(f=>f.recipient)].filter(Boolean)}
-              />
-              <div className="rt-timeout-row">
-                <span className="rt-after-lbl">
-                  {i < fallbacks.length - 1 ? 'Move to next step if not taken after' : 'Escalate if not responded after'}
-                </span>
-                <select className="rt-sel" value={fb.afterMin} onChange={e=>updateFallback(fb.id,"afterMin",Number(e.target.value))}>
-                  {RT_TIMEOUTS.map(t=><option key={t} value={t}>{fmtTimeout(t)}</option>)}
-                </select>
+      <div className="rl-list">
+        {layers.map((layer, i) => {
+          const isLast = i === layers.length - 1
+          const mw     = layer.moveWhen
+          const echo   = isLast ? '' : echoMoveWhen(mw)
+          const otherIds = allRecipientIds.filter(id => id !== layer.recipient)
+          return (
+            <div key={layer.id} className="rl-card">
+              <div className="rl-card-left">
+                <div className="rl-num">{i + 1}</div>
+                <div className="rl-reorder">
+                  <button className="rt-reorder-btn" onClick={() => moveLayer(i, -1)} disabled={i === 0}><ArrowUp size={11}/></button>
+                  <button className="rt-reorder-btn" onClick={() => moveLayer(i,  1)} disabled={isLast}><ArrowDown size={11}/></button>
+                </div>
               </div>
+
+              <div className="rl-card-body">
+                <RecipientSelector
+                  value={layer.recipient}
+                  onChange={val => updateLayer(layer.id, { recipient: val })}
+                  customValue={layer.customRecipient}
+                  onCustomChange={val => updateLayer(layer.id, { customRecipient: val })}
+                  otherIds={otherIds}
+                />
+
+                {/* "Only if" condition on layer 0 only */}
+                {i === 0 && (
+                  <div className="rt-condition-row" style={{ marginTop: 6 }}>
+                    <span className="rt-cond-prefix">Only if</span>
+                    <select className="rt-sel" value={condition} onChange={e => setCondition(e.target.value)}>
+                      {RT_CONDITIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </select>
+                    {condOpt?.needsInput  && <input className="rt-text-input rt-text-input--sm" placeholder="value…" value={condValue} onChange={e => setCondValue(e.target.value)} />}
+                    {condOpt?.needsSelect && <select className="rt-sel" value={condValue || condOpt.needsSelect[0]} onChange={e => setCondValue(e.target.value)}>{condOpt.needsSelect.map(v => <option key={v}>{v}</option>)}</select>}
+                  </div>
+                )}
+
+                {/* Move-to-next trigger row */}
+                {!isLast ? (
+                  <div className="rl-move-when">
+                    <div className="rl-move-when-label">Move to next layer when:</div>
+                    <div className="rl-checks">
+                      <label className="rl-check-row">
+                        <input type="checkbox" className="rl-cb" checked={mw.unavailable} onChange={e => updateMoveWhen(layer.id, { unavailable: e.target.checked })} />
+                        <span>Unavailable right now</span>
+                      </label>
+                      <label className="rl-check-row">
+                        <input type="checkbox" className="rl-cb" checked={mw.ooo} onChange={e => updateMoveWhen(layer.id, { ooo: e.target.checked })} />
+                        <span>OOO</span>
+                      </label>
+                      <div className="rl-check-group">
+                        <label className="rl-check-row">
+                          <input
+                            type="checkbox" className="rl-cb"
+                            checked={mw.afterMinutes != null}
+                            onChange={e => updateMoveWhen(layer.id, { afterMinutes: e.target.checked ? 15 : null })}
+                          />
+                          <span>After</span>
+                          {mw.afterMinutes != null && (
+                            <input
+                              type="number" className="rl-min-input"
+                              value={mw.afterMinutes}
+                              min={1} max={480}
+                              onChange={e => updateMoveWhen(layer.id, { afterMinutes: Math.max(1, Number(e.target.value)) })}
+                            />
+                          )}
+                          <span>min</span>
+                        </label>
+                      </div>
+                      <div className="rl-check-group">
+                        <label className="rl-check-row">
+                          <input
+                            type="checkbox" className="rl-cb"
+                            checked={mw.noAckMinutes != null}
+                            onChange={e => updateMoveWhen(layer.id, { noAckMinutes: e.target.checked ? 10 : null })}
+                          />
+                          <span>No acknowledgment after</span>
+                          {mw.noAckMinutes != null && (
+                            <input
+                              type="number" className="rl-min-input"
+                              value={mw.noAckMinutes}
+                              min={1} max={480}
+                              onChange={e => updateMoveWhen(layer.id, { noAckMinutes: Math.max(1, Number(e.target.value)) })}
+                            />
+                          )}
+                          <span>min</span>
+                        </label>
+                        <div className="rl-check-sub">Recipient received it but didn't open or acknowledge it in time.</div>
+                      </div>
+                      <div className="rl-check-group">
+                        <label className="rl-check-row">
+                          <input type="checkbox" className="rl-cb" checked={mw.skipOnCritical} onChange={e => updateMoveWhen(layer.id, { skipOnCritical: e.target.checked })} />
+                          <span>Item priority is Critical</span>
+                        </label>
+                        <div className="rl-check-sub">Skip this layer immediately for Critical priority items — go straight to the next.</div>
+                      </div>
+                      <div className="rl-check-group">
+                        <label className="rl-check-row">
+                          <input
+                            type="checkbox" className="rl-cb"
+                            checked={mw.capacityThreshold != null}
+                            onChange={e => updateMoveWhen(layer.id, { capacityThreshold: e.target.checked ? 5 : null })}
+                          />
+                          <span>Recipient at capacity (handling more than</span>
+                          {mw.capacityThreshold != null && (
+                            <input
+                              type="number" className="rl-min-input"
+                              value={mw.capacityThreshold}
+                              min={1} max={100}
+                              onChange={e => updateMoveWhen(layer.id, { capacityThreshold: Math.max(1, Number(e.target.value)) })}
+                            />
+                          )}
+                          <span>active items)</span>
+                        </label>
+                        <div className="rl-check-sub">Route around overloaded recipients even when they're online.</div>
+                      </div>
+                    </div>
+                    {echo && <div className="rl-echo">{echo}</div>}
+                  </div>
+                ) : (
+                  <div className="rl-final-label">
+                    Final layer — if this layer is skipped, the dead-end rule below applies.
+                  </div>
+                )}
+              </div>
+
+              {layers.length > 1 && (
+                <button className="rt-remove-btn" onClick={() => removeLayer(layer.id)} title="Remove layer"><X size={13}/></button>
+              )}
             </div>
-            <button className="rt-remove-btn" onClick={()=>removeFallback(fb.id)} title="Remove"><X size={13}/></button>
-          </div>
-        ))}
-        <button className="rt-add-fb" onClick={addFallback}><Plus size={13}/> Add another fallback</button>
+          )
+        })}
+        <button className="rt-add-fb" onClick={addLayer}><Plus size={13}/> Add routing layer</button>
       </div>
 
-      <div className="rr-sub-label">If nobody responds after all fallbacks:</div>
+      {/* ── Dead-end section (unchanged) ───────────────────────────────── */}
+      <div className="rr-sub-label">If nobody responds after all layers:</div>
       <div className="rt-final-opts">
-        {RT_FINAL_ACTIONS.map(a=>{ const on=finalAction.includes(a.id); return (
-          <label key={a.id} className="rt-final-row" onClick={()=>toggleFinalAction(a.id)}>
-            <div className={"rt-check"+(on?" rt-check--on":"")}>{on&&<Check size={9} color="#fff" strokeWidth={3}/>}</div>
+        {RT_FINAL_ACTIONS.map(a => { const on = finalAction.includes(a.id); return (
+          <label key={a.id} className="rt-final-row" onClick={() => toggleFinalAction(a.id)}>
+            <div className={'rt-check' + (on ? ' rt-check--on' : '')}>{on && <Check size={9} color="#fff" strokeWidth={3}/>}</div>
             <span className="rt-final-lbl">{a.label}</span>
           </label>
         )})}
