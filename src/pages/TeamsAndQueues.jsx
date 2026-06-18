@@ -678,7 +678,6 @@ export default function TeamsAndQueues() {
   const [teams,       setTeams]       = useState(teamsAndQueues)
   const [search,      setSearch]      = useState('')
   const [typeFilter,  setTypeFilter]  = useState('All')
-  const [drawerOpen,  setDrawerOpen]  = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewId,   setPreviewId]   = useState(null)
 
@@ -689,16 +688,9 @@ export default function TeamsAndQueues() {
     return true
   })
 
-  const openNew      = () => { setDrawerOpen(true) }
+  const openNew      = () => navigate('/settings/teams/new')
   const openEdit     = id => { setPreviewId(id); setPreviewOpen(true) }
-  const close        = () => { setDrawerOpen(false) }
   const closePreview = () => { setPreviewOpen(false); setPreviewId(null) }
-
-  const save = (data) => {
-    const newId = 'team-' + String(teams.length + 1).padStart(3, '0')
-    setTeams(ts => [...ts, { id: newId, activeItems: 0, usedInPacks: 0, ...data }])
-    close()
-  }
 
   const TYPE_OPTIONS = [
     { value: 'All',      label: 'All Types'   },
@@ -752,15 +744,6 @@ export default function TeamsAndQueues() {
           ))
         )}
       </div>
-
-      {/* Create drawer */}
-      {drawerOpen && (
-        <TeamDrawer
-          team={null}
-          onSave={save}
-          onClose={close}
-        />
-      )}
 
       {/* Preview slideout */}
       {previewOpen && previewId && (

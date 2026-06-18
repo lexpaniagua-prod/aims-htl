@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Pencil, Plus, X } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
@@ -309,8 +309,8 @@ function MembersTab({ team }) {
 }
 
 // ── Settings Tab ──────────────────────────────────────────────────────────────
-function SettingsTab({ team }) {
-  const [name,        setName]        = useState(team.name)
+function SettingsTab({ team, isNew }) {
+  const [name,        setName]        = useState(team.name || '')
   const [desc,        setDesc]        = useState(team.description || '')
   const [hasCoverage, setHasCoverage] = useState(!!(team.coverageHours))
   const [tzZone,      setTzZone]      = useState(team.timezone || 'US-East')
@@ -332,10 +332,12 @@ function SettingsTab({ team }) {
       <div>
         <div className="td-settings-section-title">Team configuration</div>
 
-        <div className="tq-field" style={{ marginBottom: 16 }}>
-          <label className="tq-label">Name</label>
-          <input className="tq-input" value={name} onChange={e => setName(e.target.value)} />
-        </div>
+        {!isNew && (
+          <div className="tq-field" style={{ marginBottom: 16 }}>
+            <label className="tq-label">Name</label>
+            <input className="tq-input" value={name} onChange={e => setName(e.target.value)} />
+          </div>
+        )}
 
         <div className="tq-field" style={{ marginBottom: 16 }}>
           <label className="tq-label">Description</label>
@@ -438,15 +440,22 @@ function SettingsTab({ team }) {
   )
 }
 
+const EMPTY_TEAM = {
+  name: '', description: '', members: [], type: 'queue',
+  assignmentMethod: 'round-robin', activeItems: 0, usedInPacks: 0,
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function TeamDetail() {
   const { id }   = useParams()
-  const team     = teamsAndQueues.find(t => t.id === id) || teamsAndQueues[0]
-  const packs    = MOCK_PACKS[team.id] || []
+  const navigate = useNavigate()
+  const isNew    = id === 'new'
+  const team     = isNew ? EMPTY_TEAM : (teamsAndQueues.find(t => t.id === id) || teamsAndQueues[0])
+  const packs    = isNew ? [] : (MOCK_PACKS[team.id] || [])
 
-  const [name,        setName]        = useState(team.name)
+  const [name,        setName]        = useState(isNew ? '' : team.name)
   const [nameEditing, setNameEditing] = useState(false)
-  const [activeTab,   setActiveTab]   = useState('overview')
+  const [activeTab,   setActiveTab]   = useState(isNew ? 'settings' : 'overview')
   const [saved,       setSaved]       = useState(false)
   const [paused,      setPaused]      = useState(false)
 
@@ -459,6 +468,8 @@ export default function TeamDetail() {
     window.setTimeout(() => setSaved(false), 2200)
   }
 
+  const handleCreate = () => navigate('/settings/teams')
+
   const TABS      = ['overview', 'members', 'settings']
   const TAB_LABEL = { overview: 'Overview', members: 'Members', settings: 'Settings' }
 
@@ -469,7 +480,15 @@ export default function TeamDetail() {
       {/* Header */}
       <div className="td-header">
         <div className="td-name-area">
-          {nameEditing ? (
+          {isNew ? (
+            <input
+              className="td-name-input td-name-input--new"
+              value={name}
+              autoFocus
+              placeholder="Name this team…"
+              onChange={e => setName(e.target.value)}
+            />
+          ) : nameEditing ? (
             <input
               className="td-name-input"
               value={name}
@@ -485,41 +504,55 @@ export default function TeamDetail() {
             </div>
           )}
 
-          <div className="td-badges">
-            <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
-            <Badge label={cfg.label} variant={cfg.variant} size="sm" />
-            <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
-            <span className="td-active-chip">{team.activeItems} active</span>
-            {paused && <span className="td-pause-chip">Paused</span>}
-          </div>
+          {!isNew && (
+            <div className="td-badges">
+              <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
+              <Badge label={cfg.label} variant={cfg.variant} size="sm" />
+              <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
+              <span className="td-active-chip">{team.activeItems} active</span>
+              {paused && <span className="td-pause-chip">Paused</span>}
+            </div>
+          )}
         </div>
 
         <div className="td-header-actions">
-          {saved && <span className="td-saved-note">Changes saved</span>}
-          <Button variant="secondary" size="sm" onClick={() => setPaused(p => !p)}>
-            {paused ? 'Resume team' : 'Pause team'}
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
+          {isNew ? (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/settings/teams')}>Cancel</Button>
+              <Button variant="primary" size="sm" onClick={handleCreate} disabled={!name.trim()}>Create team</Button>
+            </>
+          ) : (
+            <>
+              {saved && <span className="td-saved-note">Changes saved</span>}
+              <Button variant="secondary" size="sm" onClick={() => setPaused(p => !p)}>
+                {paused ? 'Resume team' : 'Pause team'}
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="td-tabs">
-        {TABS.map(t => (
-          <button
-            key={t}
-            className={`td-tab${activeTab === t ? ' td-tab--active' : ''}`}
-            onClick={() => setActiveTab(t)}
-          >
-            {TAB_LABEL[t]}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const disabled = isNew && t === 'overview'
+          return (
+            <button
+              key={t}
+              className={`td-tab${activeTab === t ? ' td-tab--active' : ''}${disabled ? ' td-tab--disabled' : ''}`}
+              onClick={() => !disabled && setActiveTab(t)}
+            >
+              {TAB_LABEL[t]}
+            </button>
+          )
+        })}
       </div>
 
       {/* Content */}
       {activeTab === 'overview' && <OverviewTab  team={team} packs={packs} />}
       {activeTab === 'members'  && <MembersTab   team={team} />}
-      {activeTab === 'settings' && <SettingsTab  team={team} />}
+      {activeTab === 'settings' && <SettingsTab  team={team} isNew={isNew} />}
     </div>
   )
 }

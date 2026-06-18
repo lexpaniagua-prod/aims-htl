@@ -120,6 +120,21 @@
 }
 .td-tab:hover { color: var(--text-primary); }
 .td-tab--active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+.td-tab--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* New team name input */
+.td-name-input--new {
+  width: 100%;
+  max-width: 520px;
+}
+.td-name-input--new::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
 
 /* ── Overview tab ──────────────────────────────────────────────────────────── */
 .td-overview {
