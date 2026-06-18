@@ -16,6 +16,12 @@ import './shell.css'
 import Demo from './pages/Demo.jsx'
 import PackLibrary from './pages/PackLibrary.jsx'
 import Queue from './pages/Queue.jsx'
+import WorkQueueLayout from './pages/WorkQueueLayout.jsx'
+import WQOverview from './pages/WQOverview.jsx'
+import WQQueue from './pages/WQQueue.jsx'
+import WQActivity from './pages/WQActivity.jsx'
+import WQAttestations from './pages/WQAttestations.jsx'
+import WQMessages from './pages/WQMessages.jsx'
 import Overview from './pages/Overview.jsx'
 import Routing from './pages/Routing.jsx'
 import Destinations from './pages/Destinations.jsx'
@@ -47,7 +53,7 @@ const NAV = [
     section: null, icon: SlidersHorizontal,
     items: [
       { label: 'Overview', path: '/reports/overview', icon: LayoutDashboard },
-      { label: 'My Work Queue', path: '/inbox/queue', icon: List, badge: 12 },
+      { label: 'Work Queue', path: '/work-queue/overview', icon: List, badge: 12 },
       { label: 'Pack Library', path: '/configure/packs', icon: Library },
     ]
   },
@@ -86,7 +92,8 @@ function useBreadcrumb(path) {
     packs: 'Pack Library', routing: 'Routing', destinations: 'Destinations',
     signals: 'Sensitive Signals', channels: 'Channels',
     nodes: 'Node Binding', networks: 'Agentic Networks', attachment: 'Pack Attachment',
-    queue: 'Queue', handled: 'Handled', escalations: 'Escalations', continuation: 'Continuation', items: 'Item',
+    'work-queue': 'Work Queue', queue: 'Queue', handled: 'Handled', escalations: 'Escalations', continuation: 'Continuation', items: 'Item',
+    attestations: 'Attestations', activity: 'Activity',
     overview: 'Overview', sla: 'SLA', 'routing-log': 'Routing Log', 'train-me': 'Train Me',
     templates: 'Templates', ooo: 'OOO & Coverage', integrations: 'Integrations', audit: 'Audit',
     conditions: 'Conditions', teams: 'Teams & Queues',
@@ -230,8 +237,8 @@ export default function App() {
                       <Icon size={14} />
                       <span className="nav-item-label">{label}</span>
                       {badge != null && (
-                        <span className={`nav-badge${path === '/inbox/queue' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
-                          {path === '/inbox/queue' ? queueCount : badge}
+                        <span className={`nav-badge${path === '/work-queue/overview' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
+                          {path === '/work-queue/overview' ? queueCount : badge}
                         </span>
                       )}
                     </NavLink>
@@ -326,6 +333,14 @@ export default function App() {
             <Route path="/connect/networks" element={<AgenticNetworks />} />
             <Route path="/connect/attachment" element={<PackAttachment />} />
             <Route path="/inbox/queue" element={<Queue />} />
+            <Route path="/work-queue" element={<WorkQueueLayout />}>
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<WQOverview />} />
+              <Route path="messages" element={<WQMessages />} />
+              <Route path="queue" element={<WQQueue />} />
+              <Route path="activity" element={<WQActivity />} />
+              <Route path="attestations" element={<WQAttestations />} />
+            </Route>
             <Route path="/inbox/items/:id" element={<InboxItem />} />
             <Route path="/inbox/handled" element={<Handled />} />
             <Route path="/inbox/escalations" element={<Escalations />} />

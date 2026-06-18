@@ -19,6 +19,7 @@
   /* Text */
   --text-primary:      #e4e6f0;
   --text-secondary:    #8b90a7;
+  --text-muted:        #5c6278;
   --text-tertiary:     #4e5368;
 
   /* Blue */
@@ -84,6 +85,7 @@
 
   --text-primary:      #111318;
   --text-secondary:    #5a6074;
+  --text-muted:        #8b929e;
   --text-tertiary:     #9ca3af;
 
   --accent-blue:        #2563eb;
