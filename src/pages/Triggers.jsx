@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, X, MoreHorizontal, Search, Check } from 'lucide-react'
+import { Plus, Pencil, MoreHorizontal, Search, Check, X } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import { triggerLibrary } from '../data/mockData.js'
@@ -729,7 +729,6 @@ export default function Triggers() {
   const [typeFilter,   setTypeFilter]   = useState('All')
   const [studioFilter, setStudioFilter] = useState('All')
   const [statusFilter, setStatusFilter] = useState('All')
-  const [drawerOpen,   setDrawerOpen]   = useState(false)
   const [previewOpen,  setPreviewOpen]  = useState(false)
   const [previewId,    setPreviewId]    = useState(null)
   const [hoveredPacks, setHoveredPacks] = useState(null)
@@ -742,16 +741,10 @@ export default function Triggers() {
     return true
   })
 
-  const openNew      = () => setDrawerOpen(true)
+  const navigate     = useNavigate()
+  const openNew      = () => navigate('/settings/conditions/new')
   const openEdit     = id => { setPreviewId(id); setPreviewOpen(true) }
-  const close        = () => setDrawerOpen(false)
   const closePreview = () => { setPreviewOpen(false); setPreviewId(null) }
-
-  const save = (data) => {
-    const newId = 'trg-' + String(triggers.length + 1).padStart(3, '0')
-    setTriggers(ts => [...ts, { id: newId, usedInPacks: 0, usedInPackNames: [], createdBy: 'Alexa M.', lastModified: 'just now', ...data }])
-    close()
-  }
 
   return (
     <div>
@@ -868,14 +861,6 @@ export default function Triggers() {
         />
       )}
 
-      {/* ── Create drawer ─────────────────────────────────────────────────── */}
-      {drawerOpen && (
-        <TriggerDrawer
-          trigger={null}
-          onSave={save}
-          onClose={close}
-        />
-      )}
     </div>
   )
 }

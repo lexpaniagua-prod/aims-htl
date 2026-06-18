@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Pencil, Search, X, Check, ChevronRight } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
@@ -541,10 +541,13 @@ const TABS = [
 ]
 
 export default function ConditionDetail() {
-  const { id } = useParams()
-  const condition = triggerLibrary.find(t => t.id === id) || triggerLibrary[0]
+  const { id }   = useParams()
+  const navigate = useNavigate()
+  const isNew    = id === 'new'
 
-  const [name,        setName]        = useState(condition.name)
+  const condition = isNew ? null : (triggerLibrary.find(t => t.id === id) || triggerLibrary[0])
+
+  const [name,        setName]        = useState(isNew ? '' : condition.name)
   const [nameEditing, setNameEditing] = useState(false)
   const [activeTab,   setActiveTab]   = useState('config')
   const [saved,       setSaved]       = useState(false)
@@ -554,7 +557,12 @@ export default function ConditionDetail() {
     setTimeout(() => setSaved(false), 2200)
   }
 
-  const cfg = TYPE_CFG[condition.type] || TYPE_CFG['Customer behavior']
+  const handleCreate = () => {
+    if (!name.trim()) return
+    navigate('/settings/triggers')
+  }
+
+  const cfg = condition ? (TYPE_CFG[condition.type] || TYPE_CFG['Customer behavior']) : null
 
   return (
     <div>
@@ -564,7 +572,16 @@ export default function ConditionDetail() {
       {/* Header */}
       <div className="cd-header">
         <div className="cd-name-area">
-          {nameEditing ? (
+          {/* New: always-editable name input with prominent placeholder */}
+          {isNew ? (
+            <input
+              className="cd-name-input cd-name-input--new"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Name this condition…"
+              autoFocus
+            />
+          ) : nameEditing ? (
             <input
               className="cd-name-input"
               value={name}
@@ -580,40 +597,55 @@ export default function ConditionDetail() {
             </div>
           )}
           <div className="cd-badges">
-            <Badge label={condition.type} variant={cfg.variant} size="sm" />
-            <StudioBadge studio={condition.studio} />
+            {!isNew && cfg && <Badge label={condition.type} variant={cfg.variant} size="sm" />}
+            {!isNew && condition && <StudioBadge studio={condition.studio} />}
             <Badge
-              label={condition.status === 'active' ? 'Active' : 'Draft'}
-              variant={condition.status === 'active' ? 'teal' : 'amber'}
+              label={isNew ? 'Draft' : (condition.status === 'active' ? 'Active' : 'Draft')}
+              variant={isNew ? 'amber' : (condition.status === 'active' ? 'teal' : 'amber')}
               size="sm"
             />
           </div>
         </div>
         <div className="cd-header-actions">
-          {saved && <span className="cd-saved-note">Changes saved</span>}
-          <Button variant="secondary" size="sm">Archive</Button>
-          <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
+          {isNew ? (
+            <>
+              <Button variant="secondary" size="sm" onClick={() => navigate('/settings/triggers')}>Cancel</Button>
+              <Button variant="primary" size="sm" disabled={!name.trim()} onClick={handleCreate}>
+                Create condition
+              </Button>
+            </>
+          ) : (
+            <>
+              {saved && <span className="cd-saved-note">Changes saved</span>}
+              <Button variant="secondary" size="sm">Archive</Button>
+              <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
+            </>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="cd-tabs">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            className={`cd-tab${activeTab === t.id ? ' cd-tab--active' : ''}`}
-            onClick={() => setActiveTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map(t => {
+          const disabled = isNew && t.id !== 'config'
+          return (
+            <button
+              key={t.id}
+              className={`cd-tab${activeTab === t.id ? ' cd-tab--active' : ''}${disabled ? ' cd-tab--disabled' : ''}`}
+              onClick={() => !disabled && setActiveTab(t.id)}
+              title={disabled ? 'Not available for new conditions' : undefined}
+            >
+              {t.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab bodies */}
-      {activeTab === 'config'   && <ConfigTab  initial={condition} key={condition.id} />}
-      {activeTab === 'packs'    && <PacksTab   condition={condition} />}
-      {activeTab === 'history'  && <HistoryTab />}
-      {activeTab === 'activity' && <ActivityTab />}
+      {activeTab === 'config'   && <ConfigTab  initial={condition || {}} key={id} />}
+      {activeTab === 'packs'    && !isNew && <PacksTab   condition={condition} />}
+      {activeTab === 'history'  && !isNew && <HistoryTab />}
+      {activeTab === 'activity' && !isNew && <ActivityTab />}
     </div>
   )
 }

@@ -111,6 +111,21 @@
 }
 .cd-tab:hover { color: var(--text-primary); }
 .cd-tab--active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+.cd-tab--disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* New condition name input */
+.cd-name-input--new {
+  width: 100%;
+  max-width: 520px;
+}
+.cd-name-input--new::placeholder {
+  color: var(--text-tertiary);
+  opacity: 1;
+}
 
 /* Config tab */
 .cd-config {
