@@ -22,7 +22,6 @@ export const STUDIOS = {
   gov:     { key: 'gov',     name: 'Helix Governance Studio', short: 'GOV',   accentColor: '#8b5cf6' },
   data:    { key: 'data',    name: 'Helix Data Studio',       short: 'DATA',  accentColor: '#0ea5e9' },
   agentic: { key: 'agentic', name: 'Agentic Studio',          short: 'AGNT',  accentColor: '#10b981' },
-  cross:   { key: 'cross',   name: 'Cross-Studio',            short: 'CROSS', accentColor: '#f59e0b' },
 }
 
 // ─── People (12 entries) ──────────────────────────────────────────────────────

@@ -99,7 +99,7 @@ function TraceDrawer({ event, onClose }) {
 function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, onAskTeammate, isSkipped, isEscalated }) {
   const sev    = SEVERITY[event.severity]
   const etype  = EVENT_TYPES[event.type]
-  const studio = STUDIOS[event.studio]
+  const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: event.studio.toUpperCase(), accentColor: '#6b7280' }
   const owner  = PEOPLE.find(p => p.id === event.ownerId)
   const isOwn      = event.ownerId === currentUser.id
   const isCovering = event.coveringFor && delegatedTo(event) === currentUser.id
