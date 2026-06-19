@@ -52,7 +52,6 @@ const NAV = [
   {
     section: null, icon: SlidersHorizontal,
     items: [
-      { label: 'Overview', path: '/reports/overview', icon: LayoutDashboard },
       { label: 'Work Queue', path: '/work-queue/overview', icon: List, badge: 12 },
       { label: 'Pack Library', path: '/configure/packs', icon: Library },
     ]
@@ -317,7 +316,7 @@ export default function App() {
         {/* Page content */}
         <main className="page-content">
           <Routes>
-            <Route path="/" element={<Navigate to="/reports/overview" replace />} />
+            <Route path="/" element={<Navigate to="/work-queue/overview" replace />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/configure/packs" element={<PackLibrary />} />
             <Route path="/configure/packs/new" element={<PackBuilder />} />
