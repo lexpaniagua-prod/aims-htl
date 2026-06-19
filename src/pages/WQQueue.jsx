@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, Users
+  Search, ChevronDown, X, GitBranch, AlertTriangle, SkipForward
 } from 'lucide-react'
 import { Drawer } from '../components/Modal'
 import {
@@ -10,13 +10,14 @@ import {
 import EventModal from './EventModal'
 import AttestModal from './AttestModal'
 import EscalationModal from './EscalationModal'
+import WQMyDay from './WQMyDay'
 
 // ─── Type-based standardized quick actions ────────────────────────────────────
 const TYPE_ACTIONS = {
   approve:     ['Review', 'Approve', 'Reject'],
   review:      ['Open Review', 'Request Changes', 'Approve'],
-  respond:     ['View Details', 'Respond', 'Escalate'],
-  resolve:     ['Review Conflict', 'Resolve', 'Escalate'],
+  respond:     ['View Details', 'Respond'],
+  resolve:     ['Review Conflict', 'Resolve'],
   acknowledge: ['View', 'Acknowledge'],
   train:       ['Review and Edit', 'Promote', 'Reject'],
 }
@@ -99,12 +100,12 @@ function TraceDrawer({ event, onClose }) {
 function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, onAskTeammate, isSkipped, isEscalated }) {
   const sev    = SEVERITY[event.severity]
   const etype  = EVENT_TYPES[event.type]
-  const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: event.studio.toUpperCase(), accentColor: '#6b7280' }
+  const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
   const owner  = PEOPLE.find(p => p.id === event.ownerId)
   const isOwn      = event.ownerId === currentUser.id
   const isCovering = event.coveringFor && delegatedTo(event) === currentUser.id
 
-  const actions = TYPE_ACTIONS[event.type] || ['View']
+  const actions  = TYPE_ACTIONS[event.type] || ['View']
   const [primary, ...secondary] = actions
 
   return (
@@ -148,7 +149,17 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
             <span className="wq-badge wq-badge--escalated">Escalated</span>
           )}
         </div>
+        {/* Skip icon + meta */}
         <div className="wq-card-right">
+          {!isSkipped && (
+            <button
+              className="wq-skip-icon-btn"
+              title="Skip — resurfaces in 2 hours"
+              onClick={() => onSkip(event)}
+            >
+              <SkipForward size={12} />
+            </button>
+          )}
           <span className="wq-card-id">{event.id}</span>
           <span className="wq-card-due">{event.dueLabel}</span>
         </div>
@@ -179,10 +190,12 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
               </button>
             ))}
           </div>
-          <div className="wq-card-links">
-            <button className="wq-link" onClick={() => onAskTeammate(event)}>Ask teammate</button>
-            <button className="wq-link" onClick={() => onAction(event, 'Escalate')}>Escalate</button>
-            <button className="wq-link" onClick={() => onSkip(event)}>Skip</button>
+          <div className="wq-card-footer">
+            <button className="wq-btn wq-btn--ask"     onClick={() => onAskTeammate(event)}>Ask</button>
+            {event.type === 'train' && (
+              <button className="wq-btn wq-btn--train"  onClick={() => onAction(event, 'Review and Edit')}>Train</button>
+            )}
+            <button className="wq-btn wq-btn--escalate" onClick={() => onAction(event, 'Escalate')}>Escalate</button>
           </div>
         </>
       )}
@@ -248,21 +261,24 @@ function MultiSelect({ label, options, selected, onChange }) {
   )
 }
 
-// ─── Main Queue tab ───────────────────────────────────────────────────────────
+// ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
   const { currentUser } = useOutletContext()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [mode, setMode]           = useState('my')
+  // Derive view + mode from URL
+  const view = searchParams.get('view') || 'my-work'
+  const mode = view === 'my-team' ? 'team' : 'my'
+
   const [search, setSearch]       = useState('')
   const [studioFilter, setStudioFilter] = useState([])
   const [typeFilter,   setTypeFilter]   = useState([])
   const [traceEvent,   setTraceEvent]   = useState(null)
 
   // Modal state
-  const [activeModal,    setActiveModal]    = useState(null) // { event, action }
-  const [attestTarget,   setAttestTarget]   = useState(null) // { event, mode }
-  const [escalateTarget, setEscalateTarget] = useState(null) // event
+  const [activeModal,    setActiveModal]    = useState(null)
+  const [attestTarget,   setAttestTarget]   = useState(null)
+  const [escalateTarget, setEscalateTarget] = useState(null)
 
   // Event status sets
   const [skippedIds,   setSkippedIds]   = useState(new Set())
@@ -270,9 +286,12 @@ export default function WQQueue() {
   const [escalatedIds, setEscalatedIds] = useState(new Set())
   const [toast, setToast] = useState(null)
 
-  // Severity deep-link from Overview CTAs
-  const initSev = searchParams.get('severity')
-  const [sevFilter] = useState(initSev ? [initSev] : [])
+  // Deep-link filters from Overview CTAs
+  const initSev  = searchParams.get('severity')
+  const initType = searchParams.get('type')
+
+  const [sevFilter]  = useState(initSev  ? [initSev]  : [])
+  const [activeTypeFilter, setActiveTypeFilter] = useState(initType ? [initType] : typeFilter)
 
   // Scroll to severity group when arriving via Overview CTA
   useEffect(() => {
@@ -310,8 +329,8 @@ export default function WQQueue() {
     if (activeModal) setEscalateTarget(activeModal.event)
   }
 
-  const handleEscalateConfirm = ({ recipient, urgency, event: escEvent }) => {
-    const target = escEvent || activeModal?.event
+  const handleEscalateConfirm = ({ recipient, urgency }) => {
+    const target = escalateTarget || activeModal?.event
     if (target) setEscalatedIds(prev => new Set([...prev, target.id]))
     const name = recipient?.name || 'team'
     setToast(`Escalated to ${name}${urgency === 'urgent' ? ' — marked urgent' : ''}`)
@@ -332,21 +351,22 @@ export default function WQQueue() {
 
   const baseEvents = mode === 'my' ? getMyEvents(currentUser) : getTeamEvents(currentUser)
 
+  const combinedTypeFilter = initType ? activeTypeFilter : typeFilter
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return baseEvents.filter(e => {
       if (resolvedIds.has(e.id)) return false
       if (studioFilter.length && !studioFilter.includes(e.studio)) return false
-      if (typeFilter.length && !typeFilter.includes(e.type)) return false
+      if (combinedTypeFilter.length && !combinedTypeFilter.includes(e.type)) return false
       if (sevFilter.length && !sevFilter.includes(e.severity)) return false
-      if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
+      if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec?.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, typeFilter, sevFilter])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter])
 
   const grouped = SEVERITY_ORDER.map(sev => {
     const events = filtered.filter(e => e.severity === sev)
-    // Skipped events sink to the bottom of their group
     const sorted = [
       ...events.filter(e => !skippedIds.has(e.id)),
       ...events.filter(e =>  skippedIds.has(e.id)),
@@ -366,92 +386,106 @@ export default function WQQueue() {
 
   const activeFilters = [
     ...studioFilter.map(v => ({ key: `s:${v}`, label: STUDIOS[v]?.short,      clear: () => setStudioFilter(f => f.filter(x => x !== v)) })),
-    ...typeFilter.map(v   => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label,   clear: () => setTypeFilter(f   => f.filter(x => x !== v)) })),
+    ...combinedTypeFilter.map(v => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label, clear: () => setActiveTypeFilter(f => f.filter(x => x !== v)) })),
   ]
 
-  const clearAll = () => { setStudioFilter([]); setTypeFilter([]) }
+  const clearAll = () => { setStudioFilter([]); setActiveTypeFilter([]) }
+
+  const SUB_TABS = [
+    { key: 'my-day',  label: 'My Day'  },
+    { key: 'my-work', label: 'My Work' },
+    { key: 'my-team', label: 'My Team' },
+  ]
 
   return (
     <div className="wq-queue">
-      {/* My / Team toggle */}
-      <div className="wq-mode-toggle">
-        <button
-          className={`wq-mode-btn${mode === 'my' ? ' wq-mode-btn--active' : ''}`}
-          onClick={() => setMode('my')}
-        >
-          My Queue
-        </button>
-        <button
-          className={`wq-mode-btn${mode === 'team' ? ' wq-mode-btn--active' : ''}`}
-          onClick={() => setMode('team')}
-        >
-          <Users size={13} /> Team Queue
-        </button>
+
+      {/* ── Sub-tab bar ──────────────────────────────────────────────────── */}
+      <div className="wqd-sub-tabs">
+        {SUB_TABS.map(tab => (
+          <button
+            key={tab.key}
+            className={`wqd-sub-tab${view === tab.key ? ' wqd-sub-tab--active' : ''}`}
+            onClick={() => setSearchParams({ view: tab.key })}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* Filter bar */}
-      <div className="wq-filter-bar">
-        <div className="wq-search-wrap">
-          <Search size={13} className="wq-search-icon" />
-          <input
-            className="wq-search-input"
-            placeholder="Search events, specs, IDs…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button className="wq-search-clear" onClick={() => setSearch('')}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
-        <MultiSelect label="Studio"     options={studioOptions} selected={studioFilter} onChange={setStudioFilter} />
-        <MultiSelect label="Event Type" options={typeOptions}   selected={typeFilter}   onChange={setTypeFilter}   />
-      </div>
-
-      {/* Active filter chips */}
-      {activeFilters.length > 0 && (
-        <div className="wq-filter-chips">
-          {activeFilters.map(f => (
-            <span key={f.key} className="wq-filter-chip">
-              {f.label}
-              <button onClick={f.clear}><X size={10} /></button>
-            </span>
-          ))}
-          <button className="wq-filter-clear-all" onClick={clearAll}>Clear all</button>
-        </div>
+      {/* ── My Day view ──────────────────────────────────────────────────── */}
+      {view === 'my-day' && (
+        <WQMyDay currentUser={currentUser} />
       )}
 
-      {/* Event list */}
-      {grouped.length === 0 ? (
-        <div className="wq-empty">No events match the current filters.</div>
-      ) : (
-        grouped.map(({ sev, events }) => {
-          const meta = SEVERITY[sev]
-          return (
-            <div key={sev} className="wq-severity-group">
-              <div className={`wq-group-header wq-group-header--${sev}`}>
-                <span className={`wq-group-dot wq-group-dot--${sev}`} />
-                <span className="wq-group-label">{meta.label}</span>
-                <span className="wq-group-count">{events.length}</span>
-              </div>
-              {events.map(e => (
-                <EventCard
-                  key={e.id}
-                  event={e}
-                  currentUser={currentUser}
-                  teamMode={mode === 'team'}
-                  onTrace={setTraceEvent}
-                  onAction={handleAction}
-                  onSkip={handleSkip}
-                  onAskTeammate={handleAskTeammate}
-                  isSkipped={skippedIds.has(e.id)}
-                  isEscalated={escalatedIds.has(e.id)}
-                />
-              ))}
+      {/* ── My Work / My Team views ───────────────────────────────────────── */}
+      {view !== 'my-day' && (
+        <>
+          {/* Filter bar */}
+          <div className="wq-filter-bar">
+            <div className="wq-search-wrap">
+              <Search size={13} className="wq-search-icon" />
+              <input
+                className="wq-search-input"
+                placeholder="Search events, specs, IDs…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
+              {search && (
+                <button className="wq-search-clear" onClick={() => setSearch('')}>
+                  <X size={12} />
+                </button>
+              )}
             </div>
-          )
-        })
+            <MultiSelect label="Studio"     options={studioOptions} selected={studioFilter}      onChange={setStudioFilter}      />
+            <MultiSelect label="Event Type" options={typeOptions}   selected={combinedTypeFilter} onChange={setActiveTypeFilter}  />
+          </div>
+
+          {/* Active filter chips */}
+          {activeFilters.length > 0 && (
+            <div className="wq-filter-chips">
+              {activeFilters.map(f => (
+                <span key={f.key} className="wq-filter-chip">
+                  {f.label}
+                  <button onClick={f.clear}><X size={10} /></button>
+                </span>
+              ))}
+              <button className="wq-filter-clear-all" onClick={clearAll}>Clear all</button>
+            </div>
+          )}
+
+          {/* Event list */}
+          {grouped.length === 0 ? (
+            <div className="wq-empty">No events match the current filters.</div>
+          ) : (
+            grouped.map(({ sev, events }) => {
+              const meta = SEVERITY[sev]
+              return (
+                <div key={sev} className="wq-severity-group">
+                  <div className={`wq-group-header wq-group-header--${sev}`}>
+                    <span className={`wq-group-dot wq-group-dot--${sev}`} />
+                    <span className="wq-group-label">{meta.label}</span>
+                    <span className="wq-group-count">{events.length}</span>
+                  </div>
+                  {events.map(e => (
+                    <EventCard
+                      key={e.id}
+                      event={e}
+                      currentUser={currentUser}
+                      teamMode={mode === 'team'}
+                      onTrace={setTraceEvent}
+                      onAction={handleAction}
+                      onSkip={handleSkip}
+                      onAskTeammate={handleAskTeammate}
+                      isSkipped={skippedIds.has(e.id)}
+                      isEscalated={escalatedIds.has(e.id)}
+                    />
+                  ))}
+                </div>
+              )
+            })
+          )}
+        </>
       )}
 
       {/* Trace drawer */}

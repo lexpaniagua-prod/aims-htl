@@ -92,7 +92,7 @@ function useBreadcrumb(path) {
     packs: 'Pack Library', routing: 'Routing', destinations: 'Destinations',
     signals: 'Sensitive Signals', channels: 'Channels',
     nodes: 'Node Binding', networks: 'Agentic Networks', attachment: 'Pack Attachment',
-    'work-queue': 'Work Queue', queue: 'Queue', handled: 'Handled', escalations: 'Escalations', continuation: 'Continuation', items: 'Item',
+    'work-queue': 'Work Queue', 'work-queues': 'Work Queues', queue: 'Queue', handled: 'Handled', escalations: 'Escalations', continuation: 'Continuation', items: 'Item',
     attestations: 'Attestations', activity: 'Activity',
     overview: 'Overview', sla: 'SLA', 'routing-log': 'Routing Log', 'train-me': 'Train Me',
     templates: 'Templates', ooo: 'OOO & Coverage', integrations: 'Integrations', audit: 'Audit',
@@ -336,8 +336,9 @@ export default function App() {
             <Route path="/work-queue" element={<WorkQueueLayout />}>
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<WQOverview />} />
+              <Route path="work-queues" element={<WQQueue />} />
+              <Route path="queue" element={<Navigate to="/work-queue/work-queues" replace />} />
               <Route path="messages" element={<WQMessages />} />
-              <Route path="queue" element={<WQQueue />} />
               <Route path="activity" element={<WQActivity />} />
               <Route path="attestations" element={<WQAttestations />} />
             </Route>
