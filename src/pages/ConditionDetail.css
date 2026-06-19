@@ -120,7 +120,6 @@
 /* New condition name input */
 .cd-name-input--new {
   width: 100%;
-  max-width: 520px;
 }
 .cd-name-input--new::placeholder {
   color: var(--text-tertiary);
@@ -132,7 +131,6 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
-  max-width: 680px;
 }
 
 /* Packs table */

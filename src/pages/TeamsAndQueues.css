@@ -186,8 +186,11 @@
 .tq-textarea { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 7px; background: var(--bg-input); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; resize: vertical; transition: border-color 0.15s; }
 .tq-textarea:focus { border-color: var(--border-focus); }
 
-/* Type grid */
+/* Type grid — 2-col default, 4-col on wide screens */
 .tq-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+@media (min-width: 900px) {
+  .tq-type-grid { grid-template-columns: repeat(4, 1fr); }
+}
 .tq-type-btn {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
   border: 1.5px solid var(--border); border-radius: 8px;

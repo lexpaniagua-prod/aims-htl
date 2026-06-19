@@ -22,7 +22,10 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(npx acorn *)",
       "Bash(node -e ' *)",
-      "Bash(grep -v \"^[0-9]*:.*//.*integrations\")"
+      "Bash(grep -v \"^[0-9]*:.*//.*integrations\")",
+      "Bash(node --input-type=module --eval \"import\\('./src/pages/Destinations.jsx'\\)\")",
+      "Bash(curl -s \"http://localhost:5173/src/pages/Destinations.jsx\")",
+      "Bash(curl -s \"http://localhost:5173/aims-htl/src/pages/Destinations.jsx\")"
     ]
   }
 }

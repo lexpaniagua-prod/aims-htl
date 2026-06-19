@@ -123,6 +123,7 @@ function groupBy(arr, key) {
 export default function Destinations() {
   const [tab, setTab] = useState('external')
   const [addDrawerOpen, setAddDrawerOpen] = useState(false)
+  const [connectorSearch, setConnectorSearch] = useState('')
   const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false)
   const [selectedChannel, setSelectedChannel] = useState(null)
   const [selectedConnector, setSelectedConnector] = useState(null)
@@ -278,7 +279,13 @@ export default function Destinations() {
 
   const previewChannel  = selectedChannel ?? CHANNELS[0]
   const previewVars     = extractVars(previewChannel.template)
-  const connectorGroups = groupBy(CONNECTOR_TYPES, 'type')
+  const filteredConnectors = connectorSearch.trim()
+    ? CONNECTOR_TYPES.filter(c =>
+        c.name.toLowerCase().includes(connectorSearch.toLowerCase()) ||
+        c.type.toLowerCase().includes(connectorSearch.toLowerCase())
+      )
+    : CONNECTOR_TYPES
+  const connectorGroups = groupBy(filteredConnectors, 'type')
 
   const filteredSystems = EXTERNAL_SYSTEMS.filter(s => {
     const q = searchQuery.toLowerCase()
@@ -436,7 +443,7 @@ export default function Destinations() {
       {/* ── Add Connector Drawer ──────────────────────────────────────────────── */}
       <Drawer
         open={addDrawerOpen}
-        onClose={() => { setAddDrawerOpen(false); setSelectedConnector(null) }}
+        onClose={() => { setAddDrawerOpen(false); setSelectedConnector(null); setConnectorSearch('') }}
         title="Integrations Available"
         subtitle="Connect an external system"
         footer={
@@ -446,7 +453,7 @@ export default function Destinations() {
           </>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', background: 'var(--accent-blue-dim)', border: '1px solid var(--accent-blue-border)', borderRadius: 9, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
             <span style={{ fontSize: 15, flexShrink: 0 }}>💡</span>
             <span>
@@ -458,7 +465,27 @@ export default function Destinations() {
               to set it up first — then it will appear here.
             </span>
           </div>
-          {Object.entries(connectorGroups).map(([groupType, items]) => (
+
+          {/* Search */}
+          <div style={{ position: 'relative' }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
+            <input
+              placeholder="Search by name or category…"
+              value={connectorSearch}
+              onChange={e => setConnectorSearch(e.target.value)}
+              autoFocus
+              style={{ width: '100%', padding: '8px 10px 8px 30px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.12s' }}
+              onFocus={e => e.target.style.borderColor = 'var(--accent-blue-border)'}
+              onBlur={e => e.target.style.borderColor = 'var(--border)'}
+            />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          {Object.keys(connectorGroups).length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '32px 0', fontSize: 13, color: 'var(--text-tertiary)' }}>
+              No integrations match "{connectorSearch}"
+            </div>
+          ) : Object.entries(connectorGroups).map(([groupType, items]) => (
             <div key={groupType}>
               <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', marginBottom: 8 }}>{groupType}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -481,6 +508,7 @@ export default function Destinations() {
               </div>
             </div>
           ))}
+          </div>
         </div>
       </Drawer>
 
