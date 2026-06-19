@@ -622,3 +622,68 @@
   font-family: 'DM Mono', monospace;
   text-align: right;
 }
+
+/* ── Template composer & preview ─────────────────────────────────────────── */
+.tpl-composer {
+  min-height: 80px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.8;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: border-color 0.12s;
+}
+.tpl-composer:focus {
+  border-color: var(--accent-blue-border);
+}
+
+.tpl-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 12px;
+  background: var(--accent-blue-dim);
+  border: 1px solid var(--accent-blue-border);
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-weight: 600;
+  margin: 0 2px;
+  user-select: none;
+  cursor: default;
+  vertical-align: middle;
+  line-height: 1.6;
+}
+
+.tpl-insert-btn {
+  padding: 3px 9px;
+  border: 1px solid var(--accent-blue-border);
+  border-radius: 10px;
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  font-size: 11px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.tpl-insert-btn:hover {
+  background: var(--accent-blue-dim);
+  filter: brightness(1.15);
+}
+
+.tpl-preview-bubble {
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Button from '../components/Button.jsx'
 import Badge from '../components/Badge.jsx'
 import { Drawer } from '../components/Modal.jsx'
@@ -106,6 +106,121 @@ const CONNECTOR_TYPES = [
 const typeVariant   = { CRM: 'blue', Ticketing: 'purple', ERP: 'amber', Messaging: 'teal', Custom: 'gray' }
 const statusVariant = { Connected: 'teal', Active: 'blue', Error: 'coral' }
 
+const VARIABLE_LABELS = {
+  pack_name:    'Pack Name',
+  sla_minutes:  'SLA Minutes',
+  agent_name:   'Agent Name',
+  item_subject: 'Item Subject',
+  priority:     'Priority',
+  item_url:     'Item URL',
+  ai_summary:   'AI Summary',
+}
+const VARIABLE_EXAMPLES = {
+  pack_name:    'Billing Dispute',
+  sla_minutes:  '30',
+  agent_name:   'Jordan M.',
+  item_subject: 'Invoice not received',
+  priority:     'High',
+  item_url:     'htl.app/items/1042',
+  ai_summary:   'Customer reports missing invoice for Q4. Awaiting vendor confirmation.',
+}
+
+function renderPreview(template) {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, v) => VARIABLE_EXAMPLES[v] ?? v)
+}
+
+function templateToHtml(template) {
+  return template
+    .split(/(\{\{\w+\}\})/g)
+    .map(part => {
+      const m = part.match(/^\{\{(\w+)\}\}$/)
+      if (m) {
+        const v = m[1]
+        return `<span class="tpl-chip" data-var="${v}" contenteditable="false">${VARIABLE_LABELS[v] ?? v}</span>`
+      }
+      return part.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    })
+    .join('')
+}
+
+function htmlToTemplate(el) {
+  let result = ''
+  el.childNodes.forEach(node => {
+    if (node.nodeType === 3) {
+      result += node.textContent
+    } else if (node.nodeType === 1) {
+      const varName = node.getAttribute?.('data-var')
+      if (varName) result += `{{${varName}}}`
+      else result += node.textContent
+    }
+  })
+  return result
+}
+
+function TemplateComposer({ value, onChange }) {
+  const editorRef = useRef(null)
+  const vars = [...new Set((value.match(/\{\{(\w+)\}\}/g) || []).map(m => m.slice(2, -2)))]
+  const allVars = [...new Set([...vars, ...Object.keys(VARIABLE_LABELS)])]
+
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = templateToHtml(value)
+    }
+  }, [])
+
+  function handleInput() {
+    if (editorRef.current) onChange(htmlToTemplate(editorRef.current))
+  }
+
+  function insertVar(varName) {
+    const editor = editorRef.current
+    if (!editor) return
+    editor.focus()
+    const span = document.createElement('span')
+    span.className = 'tpl-chip'
+    span.setAttribute('data-var', varName)
+    span.setAttribute('contenteditable', 'false')
+    span.textContent = VARIABLE_LABELS[varName] ?? varName
+    const sel = window.getSelection()
+    if (sel && sel.rangeCount > 0 && editor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      const range = sel.getRangeAt(0)
+      range.deleteContents()
+      range.insertNode(span)
+      range.setStartAfter(span)
+      range.collapse(true)
+      sel.removeAllRanges()
+      sel.addRange(range)
+    } else {
+      editor.appendChild(span)
+    }
+    onChange(htmlToTemplate(editor))
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
+        className="tpl-composer"
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, color: 'var(--text-tertiary)', flexShrink: 0 }}>Insert variable:</span>
+        {allVars.map(v => (
+          <button
+            key={v}
+            onMouseDown={e => { e.preventDefault(); insertVar(v) }}
+            className="tpl-insert-btn"
+          >
+            {VARIABLE_LABELS[v] ?? v}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function extractVars(template) {
   const matches = template.match(/\{\{(\w+)\}\}/g) || []
   return [...new Set(matches)]
@@ -126,6 +241,8 @@ export default function Destinations() {
   const [connectorSearch, setConnectorSearch] = useState('')
   const [templateDrawerOpen, setTemplateDrawerOpen] = useState(false)
   const [selectedChannel, setSelectedChannel] = useState(null)
+  const [channels, setChannels] = useState(CHANNELS.map(c => ({ ...c })))
+  const [templateDraft, setTemplateDraft] = useState('')
   const [selectedConnector, setSelectedConnector] = useState(null)
   const [actionsDrawerOpen, setActionsDrawerOpen] = useState(false)
   const [actionsSystem, setActionsSystem] = useState(null)
@@ -274,11 +391,18 @@ export default function Destinations() {
 
   function openTemplateDrawer(channel) {
     setSelectedChannel(channel)
+    setTemplateDraft(channel.template)
     setTemplateDrawerOpen(true)
   }
 
-  const previewChannel  = selectedChannel ?? CHANNELS[0]
-  const previewVars     = extractVars(previewChannel.template)
+  function saveTemplate() {
+    const updated = channels.map(c => c.id === selectedChannel.id ? { ...c, template: templateDraft } : c)
+    setChannels(updated)
+    setSelectedChannel(prev => ({ ...prev, template: templateDraft }))
+    setTemplateDrawerOpen(false)
+  }
+
+  const previewChannel  = (selectedChannel ? channels.find(c => c.id === selectedChannel.id) : null) ?? channels[0]
   const filteredConnectors = connectorSearch.trim()
     ? CONNECTOR_TYPES.filter(c =>
         c.name.toLowerCase().includes(connectorSearch.toLowerCase()) ||
@@ -402,7 +526,7 @@ export default function Destinations() {
       {tab === 'channels' && (
         <div className="channels-layout">
           <div className="channels-list">
-            {CHANNELS.map(channel => (
+            {channels.map(channel => (
               <div key={channel.id} className="channel-row">
                 <div className="channel-icon">{channel.icon}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -429,9 +553,8 @@ export default function Destinations() {
                 <div className="channel-detail">{previewChannel.detail}</div>
               </div>
             </div>
-            <pre className="template-code">{previewChannel.template}</pre>
-            <div className="template-vars">
-              {previewVars.map(v => <span key={v} className="template-var-chip">{v}</span>)}
+            <div className="tpl-preview-bubble">
+              {renderPreview(previewChannel.template)}
             </div>
             <Button variant="secondary" size="sm" icon={FileText} onClick={() => openTemplateDrawer(previewChannel)}>
               Edit Template
@@ -599,31 +722,27 @@ export default function Destinations() {
         footer={
           <>
             <Button variant="secondary" onClick={() => setTemplateDrawerOpen(false)}>Cancel</Button>
-            <Button variant="primary">Save Template</Button>
+            <Button variant="primary" onClick={saveTemplate}>Save Template</Button>
           </>
         }
       >
         {selectedChannel && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
-              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Template
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Message
               </label>
-              <textarea
-                defaultValue={selectedChannel.template}
-                rows={6}
-                style={{ width: '100%', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontFamily: 'DM Mono', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.6, resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
-              />
+              <TemplateComposer value={templateDraft} onChange={setTemplateDraft} />
             </div>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 10 }}>
-                Available Variables
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                Preview
               </div>
-              <div className="template-vars">
-                {extractVars(selectedChannel.template).map(v => <span key={v} className="template-var-chip">{v}</span>)}
+              <div className="tpl-preview-bubble">
+                {renderPreview(templateDraft) || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Your message will appear here…</span>}
               </div>
               <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10, lineHeight: 1.6 }}>
-                Use <code style={{ fontFamily: 'DM Mono', color: 'var(--accent-blue)' }}>{'{{variable}}'}</code> syntax to insert dynamic values at send time.
+                Variables will be replaced with real values when the message is sent.
               </p>
             </div>
           </div>
