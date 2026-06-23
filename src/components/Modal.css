@@ -1,4 +1,4 @@
-/* Modal */
+﻿/* Modal */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -41,7 +41,7 @@
 }
 
 .modal-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);

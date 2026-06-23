@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { X, AlertTriangle, CheckCircle, FileText } from 'lucide-react'
 import {
   EVENT_TYPES, PEOPLE, ATTESTATIONS, AUDIT_LOG, EVENT_MODAL_DATA,
@@ -698,7 +698,7 @@ function AcknowledgeDetail({ event }) {
               <div className="evm-budget-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
             </div>
             <div className="evm-budget-bar-labels">
-              <span style={{ color: barColor, fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 22 }}>{pct}%</span>
+              <span style={{ color: barColor, fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: 22 }}>{pct}%</span>
               <span className="evm-budget-bar-meta">${(md.budgetSpent / 1000).toFixed(0)}k of ${(md.budgetLimit / 1000).toFixed(0)}k consumed</span>
             </div>
           </div>

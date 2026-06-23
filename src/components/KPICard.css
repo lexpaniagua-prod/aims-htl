@@ -1,4 +1,4 @@
-.kpi-card {
+﻿.kpi-card {
   border-radius: 10px;
   border: 1px solid var(--border);
   padding: 16px;
@@ -46,7 +46,7 @@
 .kpi-icon--coral  { background: var(--accent-coral-dim);  color: var(--accent-coral);  }
 
 .kpi-value {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);

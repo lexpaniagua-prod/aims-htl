@@ -1,4 +1,4 @@
-/* ── TeamDetail ─────────────────────────────────────────────────────────────── */
+﻿/* ── TeamDetail ─────────────────────────────────────────────────────────────── */
 
 .td-back {
   display: inline-flex;
@@ -31,7 +31,7 @@
 }
 .td-name-wrap:hover .td-name-edit-icon { opacity: 1; }
 .td-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
@@ -45,7 +45,7 @@
   flex-shrink: 0;
 }
 .td-name-input {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
@@ -165,7 +165,7 @@
 }
 .td-stat { display: flex; flex-direction: column; gap: 4px; }
 .td-stat-val {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);

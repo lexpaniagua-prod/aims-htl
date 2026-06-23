@@ -1,4 +1,4 @@
-/* ─── Agentic Networks ─────────────────────────────────────────────────────── */
+﻿/* ─── Agentic Networks ─────────────────────────────────────────────────────── */
 
 /* Card list */
 .an-cards {
@@ -47,7 +47,7 @@
 }
 
 .an-card-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);

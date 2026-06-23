@@ -1,4 +1,4 @@
-/* ─── Pack Library ─────────────────────────────────────────────────────────── */
+﻿/* ─── Pack Library ─────────────────────────────────────────────────────────── */
 
 /* Compact stat strip — 2 × 2 grid replacing the tall KPI cards */
 .pl-stat-bar {
@@ -46,7 +46,7 @@
   white-space: nowrap;
 }
 .pl-stat-value {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
@@ -364,7 +364,7 @@
 }
 
 .pl-empty-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);

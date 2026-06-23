@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   GitBranch, RefreshCw, Plus, ChevronDown, ChevronUp,
@@ -3457,7 +3457,7 @@ function Step13Jurisdiction() {
         <div className="premium-overlay-cta">
           <Lock size={28} style={{ color: 'var(--accent-purple)' }} />
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'Syne', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Jurisdiction Scoping</div>
+            <div style={{ fontFamily: 'Inter', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Jurisdiction Scoping</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 320, lineHeight: 1.55 }}>
               Available on the Enterprise plan. Configure per-region pack behavior, GDPR data residency, and cross-border routing restrictions.
             </div>
@@ -3903,7 +3903,7 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
             {draft.pattern === 'Handoff' ? <GitBranch size={18} /> : <RefreshCw size={18} />}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Syne', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
+            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Inter', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
             <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
               {draft.description || 'No description provided.'}
             </div>
@@ -4316,7 +4316,7 @@ function WorkflowsTab({ sourcePack }) {
     <div>
       {/* ── Tab header ─────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
           Workflows & Agents
         </span>
         <button className="wt-attach-btn" onClick={() => setShowAttachModal(true)}>

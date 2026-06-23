@@ -1,4 +1,4 @@
-/* ─── Routing Rules ─────────────────────────────────────────────────────────── */
+﻿/* ─── Routing Rules ─────────────────────────────────────────────────────────── */
 
 .routing-top-row {
   display: flex;
@@ -38,7 +38,7 @@
 }
 
 .routing-health-label {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);

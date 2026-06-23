@@ -1,4 +1,4 @@
-/* ── ConditionDetail ──────────────────────────────────────────────────────── */
+﻿/* ── ConditionDetail ──────────────────────────────────────────────────────── */
 
 .cd-back {
   display: inline-flex;
@@ -34,7 +34,7 @@
 .cd-name-wrap:hover .cd-name-edit-icon { opacity: 1; }
 
 .cd-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);
@@ -50,7 +50,7 @@
 }
 
 .cd-name-input {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-primary);

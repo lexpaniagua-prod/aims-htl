@@ -1,4 +1,4 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import {
   ChevronDown, ChevronUp, ChevronRight,
@@ -190,7 +190,7 @@ function DonutScore({ score, color }) {
       <text
         x="34" y="39" textAnchor="middle"
         fontSize="16" fontWeight="700"
-        fontFamily="'Syne', sans-serif"
+        fontFamily="'Inter', sans-serif"
         fill={color}
       >
         {score}
@@ -456,7 +456,7 @@ function TrainMeCard({ personaEvents, navigate }) {
       </div>
       <div className="wqov-trainme-body">
         <div className="wqov-trainme-label">Train Me</div>
-        <div className="wqov-trainme-count" style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>
+        <div className="wqov-trainme-count" style={{ fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
           {count}
         </div>
         <div className="wqov-trainme-sub">
@@ -523,7 +523,7 @@ export default function WQOverview() {
               style={{ borderLeftColor: accent, background: bg, opacity: isEmpty ? 0.45 : 1 }}
             >
               <div className="wqov-sev-card-top">
-                <span className="wqov-sev-count" style={{ color: accent, fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>
+                <span className="wqov-sev-count" style={{ color: accent, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
                   {count}
                 </span>
                 <span className="wqov-sev-label">{meta.label}</span>
@@ -572,7 +572,7 @@ export default function WQOverview() {
               onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
               disabled={et.count === 0}
             >
-              <span className="wqov-type-count" style={{ color: et.color, fontFamily: "'Syne', sans-serif", fontWeight: 700 }}>
+              <span className="wqov-type-count" style={{ color: et.color, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
                 {et.count}
               </span>
               <span className="wqov-type-label">{et.label}</span>

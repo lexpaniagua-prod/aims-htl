@@ -1,4 +1,4 @@
-/* ─── Triggers Library ──────────────────────────────────────────────────────── */
+﻿/* ─── Triggers Library ──────────────────────────────────────────────────────── */
 
 /* Filter bar */
 .tl-filter-bar {
@@ -205,7 +205,7 @@
   flex-shrink: 0;
 }
 .tl-drawer-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
@@ -531,7 +531,7 @@
 }
 
 .tlp-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);

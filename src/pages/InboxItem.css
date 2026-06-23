@@ -1,4 +1,4 @@
-/* ─── Inbox Item (Conversation / Approval / Sensitive) ───────────────────────── */
+﻿/* ─── Inbox Item (Conversation / Approval / Sensitive) ───────────────────────── */
 
 /* ── Root layout ──────────────────────────────────────────────────────────── */
 .ixi-root {
@@ -460,7 +460,7 @@
 
 /* ── Composer panel ───────────────────────────────────────────────────────── */
 .ixi-composer-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
@@ -766,7 +766,7 @@
 
 /* Decision buttons */
 .ixi-apv-decision-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);

@@ -1,4 +1,4 @@
-/* ─── Node Binding ─────────────────────────────────────────────────────────── */
+﻿/* ─── Node Binding ─────────────────────────────────────────────────────────── */
 
 /* Split layout */
 .nb-split {
@@ -26,7 +26,7 @@
 }
 
 .nb-dag-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
@@ -183,7 +183,7 @@
 }
 
 .nb-config-empty-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
@@ -218,7 +218,7 @@
 .nb-config-hd-icon--hitl      { background: var(--accent-amber-dim);  color: var(--accent-amber);  border: 1px solid var(--accent-amber-border); }
 
 .nb-config-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);

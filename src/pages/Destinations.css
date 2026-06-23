@@ -1,4 +1,4 @@
-/* Sub-tabs */
+﻿/* Sub-tabs */
 .dest-tabs {
   display: flex;
   gap: 0;
@@ -148,7 +148,7 @@
 }
 
 .ext-row-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);

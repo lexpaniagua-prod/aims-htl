@@ -1,4 +1,4 @@
-import Badge from '../components/Badge.jsx'
+﻿import Badge from '../components/Badge.jsx'
 import SectionCard from '../components/SectionCard.jsx'
 import DataRow from '../components/DataRow.jsx'
 import Button from '../components/Button.jsx'
@@ -37,7 +37,7 @@ export default function Channels() {
         ].map(s => (
           <div key={s.label} style={{ padding: '12px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{s.label}</span>
-            <span style={{ fontFamily: 'Syne', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{s.value}</span>
+            <span style={{ fontFamily: 'Inter', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>{s.value}</span>
           </div>
         ))}
       </div>

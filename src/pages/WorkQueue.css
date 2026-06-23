@@ -1,4 +1,4 @@
-/* ── Work Queue root layout ──────────────────────────────────────────────────── */
+﻿/* ── Work Queue root layout ──────────────────────────────────────────────────── */
 .wq-root {
   display: flex;
   flex-direction: column;
@@ -211,7 +211,7 @@
   font-size: 32px;
   font-weight: 700;
   line-height: 1;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .wq-sev-card--now    .wq-sev-count { color: #f43f5e; }
@@ -1276,7 +1276,7 @@
   font-size: 36px;
   font-weight: 800;
   line-height: 1;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   letter-spacing: -0.02em;
 }
 
@@ -1851,7 +1851,7 @@
 .evm-blast-n {
   font-size: 24px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--accent-coral);
 }
 
@@ -2144,7 +2144,7 @@
 .evm-metric-n {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
 }
 
@@ -2191,7 +2191,7 @@
 .evm-train-num {
   font-size: 22px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
 }
 
@@ -2206,7 +2206,7 @@
   color: var(--text-primary);
   font-size: 20px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   padding: 2px 0;
 }
 .evm-train-input:focus { outline: none; }
@@ -2743,7 +2743,7 @@ body.evm-active .drawer {
 .evm-source-card-value {
   font-size: 20px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
 }
 .evm-source-detail-row {
@@ -2784,7 +2784,7 @@ body.evm-active .drawer {
 .evm-accept-val {
   font-size: 16px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
 }
 .evm-accept-owner { font-size: 12px; color: var(--text-muted); }
@@ -2981,7 +2981,7 @@ body.evm-active .drawer {
 .evm-train-field-block { display: flex; flex-direction: column; gap: 4px; }
 .evm-train-label { font-size: 11px; color: var(--text-muted); }
 .evm-train-value {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 22px;
 }
@@ -3019,7 +3019,7 @@ body.evm-active .drawer {
 .evm-train-edit-val {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
 }
 .evm-train-ref { display: flex; align-items: center; gap: 12px; }
@@ -3038,7 +3038,7 @@ body.evm-active .drawer {
 .evm-promote-from {
   font-size: 22px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-muted);
   text-decoration: line-through;
 }
@@ -3046,7 +3046,7 @@ body.evm-active .drawer {
 .evm-promote-to {
   font-size: 22px;
   font-weight: 700;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--accent-green);
 }
 
@@ -3128,7 +3128,7 @@ body.evm-active .drawer {
   border: 1px solid var(--border);
 }
 .evm-metric-num {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-weight: 700;
   font-size: 20px;
   color: var(--text-primary);
@@ -3677,7 +3677,7 @@ body.evm-active .drawer {
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 8px;
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   line-height: 1.25;
 }
 

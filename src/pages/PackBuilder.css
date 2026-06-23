@@ -1,4 +1,4 @@
-/* ─── Pack Builder Wizard ──────────────────────────────────────────────────── */
+﻿/* ─── Pack Builder Wizard ──────────────────────────────────────────────────── */
 
 /* ── Top bar ─────────────────────────────────────────────────────────────── */
 .pb-topbar {
@@ -17,7 +17,7 @@
 }
 
 .pb-name-input {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 20px;
   font-weight: 700;
   color: var(--text-primary);
@@ -243,7 +243,7 @@
 }
 
 .pb-step-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 17px;
   font-weight: 700;
   color: var(--text-primary);
@@ -378,7 +378,7 @@
 .pattern-card--continuation .pattern-card-icon { background: var(--accent-teal-dim);   color: var(--accent-teal);   }
 
 .pattern-card-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
@@ -465,7 +465,7 @@
   flex-shrink: 0;
 }
 .trig-cat-name {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
@@ -960,7 +960,7 @@
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 16px; padding: 20px 20px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.trig-modal-title { font-family: Syne, sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.trig-modal-title { font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .trig-modal-sub   { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.5; }
 .trig-modal-filters {
   padding: 14px 20px 10px; border-bottom: 1px solid var(--border);
@@ -1032,7 +1032,7 @@
   gap: 14px;
 }
 .rt-block-label {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
@@ -1539,7 +1539,7 @@
   border-bottom: 1px solid var(--border);
 }
 .sim-story-hdr-left { display: flex; align-items: center; gap: 8px; }
-.sim-story-hdr-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.sim-story-hdr-name { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .sim-tiles {
   display: flex;
   gap: 10px;
@@ -1690,7 +1690,7 @@
   background: var(--bg-card-elevated);
 }
 .cs-preview-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
@@ -1717,7 +1717,7 @@
   text-align: center;
 }
 .cs-disabled-icon  { font-size: 26px; opacity: 0.35; }
-.cs-disabled-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.cs-disabled-title { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
 .cs-disabled-sub   { font-size: 11px; color: var(--text-tertiary); line-height: 1.55; }
 
 /* Context strip */
@@ -2022,7 +2022,7 @@
   gap: 10px; padding: 48px 24px; text-align: center;
 }
 .macro-empty-icon  { color: var(--text-tertiary); opacity: 0.5; }
-.macro-empty-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.macro-empty-title { font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .macro-empty-sub   { font-size: 13px; color: var(--text-tertiary); max-width: 280px; line-height: 1.55; }
 
 /* ── Step 8 — Escalation Policy ──────────────────────────────────────────── */
@@ -2164,7 +2164,7 @@
 }
 .ep-card-radio--on { background: var(--accent-blue); border-color: var(--accent-blue); }
 .ep-card-title {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
@@ -2848,11 +2848,11 @@
 .pb-ov-perf { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
 .pb-ov-perf-card  { padding:14px; border:1px solid; border-radius:10px; display:flex; flex-direction:column; gap:5px; transition:border-color 0.15s; }
 .pb-ov-perf-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); font-family:'DM Mono',monospace; }
-.pb-ov-perf-value { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; line-height:1.1; }
+.pb-ov-perf-value { font-family:'Inter',sans-serif; font-size:22px; font-weight:700; line-height:1.1; }
 .pb-ov-perf-delta { font-size:11px; color:var(--text-tertiary); font-family:'DM Mono',monospace; }
 .pb-ov-section { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:16px; }
 .pb-ov-section-hdr { display:flex; align-items:center; justify-content:space-between; padding:12px 16px 10px; border-bottom:1px solid var(--border); background:var(--bg-card-elevated); }
-.pb-ov-section-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--text-primary); }
+.pb-ov-section-title { font-family:'Inter',sans-serif; font-size:13px; font-weight:700; color:var(--text-primary); }
 .pb-ov-section-edit  { font-size:12px; color:var(--accent-blue); font-family:inherit; cursor:pointer; background:transparent; border:none; transition:opacity 0.12s; }
 .pb-ov-section-edit:hover { opacity:0.75; }
 .pb-ov-feed { display:flex; flex-direction:column; }
@@ -2890,7 +2890,7 @@
 .wt-root { display: flex; flex-direction: column; gap: 0; padding-top: 20px; }
 .wt-section { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; background: var(--bg-card); }
 .wt-section-hdr { display: flex; align-items: flex-start; justify-content: space-between; padding: 14px 18px 12px; border-bottom: 1px solid var(--border); background: var(--bg-card-elevated); gap: 16px; }
-.wt-section-title { font-family: Syne, sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.wt-section-title { font-family: Inter, sans-serif; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .wt-section-sub   { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; line-height: 1.4; max-width: 420px; }
 .wt-attach-btn { display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 500; font-family: inherit; color: var(--accent-blue); background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); cursor: pointer; flex-shrink: 0; transition: background 0.12s, color 0.12s; }
 .wt-attach-btn:hover { background: var(--accent-blue); color: #fff; }
@@ -2937,7 +2937,7 @@
   display: flex; align-items: flex-start; justify-content: space-between;
   gap: 16px; padding: 20px 20px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0;
 }
-.wt-modal-title { font-family: Syne, sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
+.wt-modal-title { font-family: Inter, sans-serif; font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .wt-modal-sub   { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.5; max-width: 400px; }
 .wt-modal-close {
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
