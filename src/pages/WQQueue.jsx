@@ -164,22 +164,21 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
         </div>
       </div>
 
-      {/* Title + detail */}
-      <div className="wq-card-title">{event.title}</div>
-      <div className="wq-card-detail">{event.detail}</div>
-
-      {/* Blast radius */}
-      {event.missionCritical && event.blastRadius?.workflows > 0 && (
-        <div className="wq-card-blast">
-          <AlertTriangle size={11} />
-          Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
+      {/* Body: content (left) + actions (right) */}
+      <div className="wq-card-body">
+        <div className="wq-card-content">
+          <div className="wq-card-title">{event.title}</div>
+          <div className="wq-card-detail">{event.detail}</div>
+          {event.missionCritical && event.blastRadius?.workflows > 0 && (
+            <div className="wq-card-blast">
+              <AlertTriangle size={11} />
+              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Actions */}
-      {!isSkipped && (
-        <>
-          <div className="wq-card-actions">
+        {!isSkipped && (
+          <div className="wq-card-action-col">
             <button className="wq-btn wq-btn--primary" onClick={() => onAction(event, primary)}>
               {primary}
             </button>
@@ -188,16 +187,16 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
                 {a}
               </button>
             ))}
+            <div className="wq-card-action-secondary">
+              <button className="wq-btn wq-btn--ask" onClick={() => onAskTeammate(event)}>Ask</button>
+              {event.type === 'train' && (
+                <button className="wq-btn wq-btn--train" onClick={() => onAction(event, 'Review and Edit')}>Train</button>
+              )}
+              <button className="wq-btn wq-btn--escalate" onClick={() => onAction(event, 'Escalate')}>Escalate</button>
+            </div>
           </div>
-          <div className="wq-card-footer">
-            <button className="wq-btn wq-btn--ask"     onClick={() => onAskTeammate(event)}>Ask</button>
-            {event.type === 'train' && (
-              <button className="wq-btn wq-btn--train"  onClick={() => onAction(event, 'Review and Edit')}>Train</button>
-            )}
-            <button className="wq-btn wq-btn--escalate" onClick={() => onAction(event, 'Escalate')}>Escalate</button>
-          </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }

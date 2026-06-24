@@ -296,23 +296,25 @@ export default function WQMessages() {
         </button>
       </div>
 
-      {broadcasts.length > 0 && (
-        <section className="wqm-section">
-          <div className="wqm-section-label">ANNOUNCEMENTS & BROADCASTS</div>
-          {broadcasts.map(msg => (
-            <MessageCard key={msg.id} msg={msg} currentUser={currentUser} onReply={setReplyTarget} onForward={setForwardTarget} />
-          ))}
-        </section>
-      )}
+      <div className="wqm-cols">
+        {broadcasts.length > 0 && (
+          <section className="wqm-section">
+            <div className="wqm-section-label">ANNOUNCEMENTS & BROADCASTS</div>
+            {broadcasts.map(msg => (
+              <MessageCard key={msg.id} msg={msg} currentUser={currentUser} onReply={setReplyTarget} onForward={setForwardTarget} />
+            ))}
+          </section>
+        )}
 
-      {dms.length > 0 && (
-        <section className="wqm-section">
-          <div className="wqm-section-label">DIRECT MESSAGES & TEAMMATE QUESTIONS</div>
-          {dms.map(msg => (
-            <MessageCard key={msg.id} msg={msg} currentUser={currentUser} onReply={setReplyTarget} onForward={setForwardTarget} />
-          ))}
-        </section>
-      )}
+        {dms.length > 0 && (
+          <section className="wqm-section">
+            <div className="wqm-section-label">DIRECT MESSAGES & TEAMMATE QUESTIONS</div>
+            {dms.map(msg => (
+              <MessageCard key={msg.id} msg={msg} currentUser={currentUser} onReply={setReplyTarget} onForward={setForwardTarget} />
+            ))}
+          </section>
+        )}
+      </div>
 
       {composeOpen && (
         <ComposeModal currentUser={currentUser} onClose={() => setComposeOpen(false)} onSend={addMessage} />

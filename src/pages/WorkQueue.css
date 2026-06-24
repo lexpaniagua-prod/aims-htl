@@ -737,6 +737,36 @@
   font-weight: 500;
 }
 
+/* Card body: content left + actions right */
+.wq-card-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-top: 6px;
+}
+.wq-card-content {
+  flex: 1;
+  min-width: 0;
+}
+.wq-card-action-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 160px;
+}
+.wq-card-action-secondary {
+  display: flex;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+@media (max-width: 700px) {
+  .wq-card-body { flex-direction: column; }
+  .wq-card-action-col { width: 100%; flex-direction: row; flex-wrap: wrap; }
+}
+
 /* Card action buttons */
 .wq-card-actions {
   display: flex;
@@ -1226,24 +1256,88 @@
   gap: 14px;
 }
 
-/* ── Two-column body layout ──────────────────────────────────────────────── */
+/* ── Row 1: My Day + Nav sidebar ─────────────────────────────────────────── */
+.wqov-top-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+.wqov-col-myday { min-width: 0; }
+.wqov-col-myday--framed {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.wqov-col-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .wqov-top-cols { grid-template-columns: 1fr; }
+}
+
+/* ── Row 2: Unified count cards ──────────────────────────────────────────── */
+.wqov-count-row {
+  display: flex;
+  gap: 10px;
+}
+
+.wqov-count-group {
+  display: grid;
+  gap: 6px;
+}
+
+.wqov-count-group--sev  { grid-template-columns: repeat(4, 1fr); flex: 4; }
+.wqov-count-group--type { grid-template-columns: repeat(6, 1fr); flex: 6; }
+
+.wqov-count-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 10px 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-top-width: 2px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, transform 0.15s;
+}
+.wqov-count-card:hover:not(:disabled) {
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+.wqov-count-card--empty { opacity: 0.4; cursor: default; }
+
+.wqov-count-num {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.wqov-count-lbl {
+  font-size: 10.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ── Legacy layout helpers (kept for compatibility) ──────────────────────── */
 .wqov-body-cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 20px;
   align-items: start;
 }
-
-.wqov-col-main {
-  min-width: 0;
-}
-
-.wqov-col-side {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-width: 0;
-}
+.wqov-col-main { min-width: 0; }
+.wqov-col-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
 @media (max-width: 900px) {
   .wqov-body-cols { grid-template-columns: 1fr; }
@@ -1507,6 +1601,23 @@
 }
 
 .wqov-att-callout-link:hover { opacity: 0.75; }
+
+/* Quick links */
+.wqov-quick-links { margin-top: auto; }
+.wqov-ql-list { display: flex; flex-direction: column; gap: 2px; }
+.wqov-ql-item {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  padding: 5px 0;
+  transition: color 0.15s;
+}
+.wqov-ql-item:hover { color: var(--text-primary); }
+.wqov-ql-item--studio { font-weight: 500; }
+.wqov-ql-divider { height: 1px; background: var(--border); margin: 6px 0; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Skip chip & toast
@@ -2637,6 +2748,83 @@ body.evm-active .drawer {
   letter-spacing: 0.05em;
 }
 
+/* ── Confirm Review Banner ───────────────────────────────────────────────────── */
+.evm-crb {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 12px 14px 13px;
+  margin-bottom: 16px;
+}
+.evm-crb-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.evm-crb-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.evm-crb-sev {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.evm-crb-type {
+  font-size: 11px;
+  font-weight: 600;
+}
+.evm-crb-id {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'DM Mono', monospace;
+}
+.evm-crb-due {
+  font-size: 11px;
+  color: var(--accent-amber);
+  font-weight: 500;
+}
+.evm-crb-review-btn {
+  font-size: 11.5px;
+  color: var(--accent-blue);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 0;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.evm-crb-review-btn:hover { text-decoration: underline; }
+.evm-crb-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.evm-crb-detail {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.evm-crb-blast {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--accent-amber);
+  margin-top: 7px;
+}
+
 /* ── Confirm view styles ──────────────────────────────────────────────────────── */
 .evm-confirm-prompt {
   display: flex;
@@ -3248,6 +3436,19 @@ body.evm-active .drawer {
   color: var(--accent-green);
   flex-shrink: 0;
 }
+.evm-certify-done--btn {
+  background: none;
+  border: 1px solid var(--accent-green);
+  border-radius: 5px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.evm-certify-done--btn:hover {
+  background: rgba(239,68,68,0.08);
+  color: #ef4444;
+  border-color: #ef4444;
+}
 .evm-certify-summary {
   font-size: 12px;
   color: var(--text-muted);
@@ -3409,8 +3610,9 @@ body.evm-active .drawer {
 
 /* ── WQMessages ─────────────────────────────────────────────────────────────── */
 .wqm-root {
-  padding: 20px 24px;
-  max-width: 760px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .wqm-toolbar {
@@ -3419,8 +3621,19 @@ body.evm-active .drawer {
   margin-bottom: 20px;
 }
 
+.wqm-cols {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .wqm-cols { grid-template-columns: 1fr; }
+}
+
 .wqm-section {
-  margin-bottom: 28px;
+  margin-bottom: 0;
 }
 
 .wqm-section-label {

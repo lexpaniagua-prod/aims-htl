@@ -10,7 +10,40 @@ function fmtTs(iso) {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-const SEV_COLORS = { now: '#f43f5e', red: '#ef4444', yellow: '#f59e0b', green: '#10b981' }
+const SEV_COLORS  = { now: '#f43f5e', red: '#ef4444', yellow: '#f59e0b', green: '#10b981' }
+const SEV_LABELS  = { now: 'Act Now', red: 'Critical', yellow: 'Action', green: 'Heads-up' }
+
+// ── Confirm Review Banner — shown above every confirmation form ────────────────
+function ConfirmReviewBanner({ event, onReviewDetail }) {
+  const etype    = EVENT_TYPES[event.type]
+  const sevColor = SEV_COLORS[event.severity]
+
+  return (
+    <div className="evm-crb">
+      <div className="evm-crb-top">
+        <div className="evm-crb-badges">
+          <span className="evm-crb-sev" style={{ color: sevColor, borderColor: sevColor + '55', background: sevColor + '15' }}>
+            {SEV_LABELS[event.severity]}
+          </span>
+          <span className="evm-crb-type" style={{ color: etype.color }}>{etype.label}</span>
+          <span className="evm-crb-id">{event.id}</span>
+          {event.dueLabel && <span className="evm-crb-due">{event.dueLabel}</span>}
+        </div>
+        <button className="evm-crb-review-btn" onClick={onReviewDetail}>
+          ← Review detail
+        </button>
+      </div>
+      <div className="evm-crb-title">{event.title}</div>
+      <div className="evm-crb-detail">{event.detail}</div>
+      {event.blastRadius?.workflows > 0 && (
+        <div className="evm-crb-blast">
+          <AlertTriangle size={11} style={{ flexShrink: 0 }} />
+          Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function getInitialView(type, action) {
   const MAP = {
@@ -286,7 +319,10 @@ function ReviewDetail({ event }) {
                   <span className="evm-certify-date">Last reviewed {g.lastReviewed}</span>
                 </div>
                 {certified.has(i) ? (
-                  <span className="evm-certify-done"><CheckCircle size={12} /> Certified</span>
+                  <button className="evm-certify-done evm-certify-done--btn"
+                    onClick={() => setCertified(prev => { const n = new Set(prev); n.delete(i); return n })}>
+                    <CheckCircle size={12} /> Certified
+                  </button>
                 ) : (
                   <button className="wq-btn wq-btn--ghost evm-certify-btn"
                     onClick={() => setCertified(prev => new Set([...prev, i]))}>
@@ -770,7 +806,10 @@ function AcknowledgeDetail({ event }) {
                   <span className="evm-certify-date">Last reviewed {g.lastReviewed}</span>
                 </div>
                 {certified.has(i) ? (
-                  <span className="evm-certify-done"><CheckCircle size={12} /> Certified</span>
+                  <button className="evm-certify-done evm-certify-done--btn"
+                    onClick={() => setCertified(prev => { const n = new Set(prev); n.delete(i); return n })}>
+                    <CheckCircle size={12} /> Certified
+                  </button>
                 ) : (
                   <button className="wq-btn wq-btn--ghost evm-certify-btn"
                     onClick={() => setCertified(prev => new Set([...prev, i]))}>Certify</button>
@@ -1040,7 +1079,7 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
   if (view === 'confirm-approve') return (
     <>
-      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>Cancel</button>
+      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>← Review detail</button>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--primary" onClick={() => onDecide('Approved — logged to audit')}>
         Confirm Approve
@@ -1050,7 +1089,7 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
   if (view === 'confirm-reject') return (
     <>
-      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>Cancel</button>
+      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>← Review detail</button>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--danger" disabled={!reason.trim()}
         onClick={() => onDecide('Rejected — logged to audit')}>
@@ -1061,7 +1100,7 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
   if (view === 'change-request') return (
     <>
-      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>Cancel</button>
+      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>← Review detail</button>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--primary" disabled={!changeRequest.trim()}
         onClick={() => onDecide('Change request sent — logged to audit')}>
@@ -1072,7 +1111,7 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
   if (view === 'confirm-promote') return (
     <>
-      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>Cancel</button>
+      <button className="wq-btn wq-btn--ghost" onClick={() => setView('detail')}>← Review detail</button>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--primary" onClick={() => onDecide('Promoted to Canon — model will retrain')}>
         Confirm Promotion
@@ -1082,7 +1121,7 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
   if (view === 'accept-confirm') return (
     <>
-      <button className="wq-btn wq-btn--ghost" onClick={() => { setView('resolve') }}>Cancel</button>
+      <button className="wq-btn wq-btn--ghost" onClick={() => { setView('resolve') }}>← Review detail</button>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--primary"
         onClick={() => onDecide('Source accepted — canon record updated')}>
@@ -1158,29 +1197,38 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
 // ── Body router ────────────────────────────────────────────────────────────────
 
-function BodyContent({ view, event, note, setNote, reason, setReason, choice, setChoice, editVal, setEditVal, changeRequest, setChangeRequest, assignTo, setAssignTo, dueBy, setDueBy, onDecide }) {
-  if (view === 'confirm-approve') return <ConfirmApproveBody event={event} note={note} setNote={setNote} />
-  if (view === 'confirm-reject')  return <ConfirmRejectBody  event={event} reason={reason} setReason={setReason} />
-  if (view === 'change-request')  return <ChangeRequestBody  event={event} changeRequest={changeRequest} setChangeRequest={setChangeRequest} assignTo={assignTo} setAssignTo={setAssignTo} dueBy={dueBy} setDueBy={setDueBy} />
-  if (view === 'confirm-promote') return <ConfirmPromoteBody event={event} editVal={editVal} />
-  if (view === 'accept-confirm')  return <AcceptConfirmBody  event={event} choice={choice} />
-  if (view === 'respond')         return <ResolutionOptions  event={event} onDecide={onDecide} />
-  if (view === 'resolve')         return <ResolveDetail      event={event} choice={choice} setChoice={setChoice} />
+const CONFIRM_VIEW_SET = new Set(['confirm-approve', 'confirm-reject', 'change-request', 'confirm-promote', 'accept-confirm'])
 
-  switch (event.type) {
-    case 'approve':     return <ApproveDetail     event={event} />
-    case 'review':      return <ReviewDetail      event={event} />
-    case 'respond':     return <RespondDetail     event={event} onDecide={onDecide} />
-    case 'resolve':     return <ResolveDetail     event={event} choice={choice} setChoice={setChoice} />
-    case 'acknowledge': return <AcknowledgeDetail event={event} />
-    case 'train':       return <TrainDetail       event={event} editVal={editVal} setEditVal={setEditVal} />
-    default:            return <div className="evm-section"><p className="evm-situation-text">{event.detail}</p></div>
+function BodyContent({ view, event, note, setNote, reason, setReason, choice, setChoice, editVal, setEditVal, changeRequest, setChangeRequest, assignTo, setAssignTo, dueBy, setDueBy, onDecide, onReviewDetail }) {
+  function inner() {
+    if (view === 'confirm-approve') return <ConfirmApproveBody event={event} note={note} setNote={setNote} />
+    if (view === 'confirm-reject')  return <ConfirmRejectBody  event={event} reason={reason} setReason={setReason} />
+    if (view === 'change-request')  return <ChangeRequestBody  event={event} changeRequest={changeRequest} setChangeRequest={setChangeRequest} assignTo={assignTo} setAssignTo={setAssignTo} dueBy={dueBy} setDueBy={setDueBy} />
+    if (view === 'confirm-promote') return <ConfirmPromoteBody event={event} editVal={editVal} />
+    if (view === 'accept-confirm')  return <AcceptConfirmBody  event={event} choice={choice} />
+    if (view === 'respond')         return <ResolutionOptions  event={event} onDecide={onDecide} />
+    if (view === 'resolve')         return <ResolveDetail      event={event} choice={choice} setChoice={setChoice} />
+    switch (event.type) {
+      case 'approve':     return <ApproveDetail     event={event} />
+      case 'review':      return <ReviewDetail      event={event} />
+      case 'respond':     return <RespondDetail     event={event} onDecide={onDecide} />
+      case 'resolve':     return <ResolveDetail     event={event} choice={choice} setChoice={setChoice} />
+      case 'acknowledge': return <AcknowledgeDetail event={event} />
+      case 'train':       return <TrainDetail       event={event} editVal={editVal} setEditVal={setEditVal} />
+      default:            return <div className="evm-section"><p className="evm-situation-text">{event.detail}</p></div>
+    }
   }
+  return (
+    <>
+      {CONFIRM_VIEW_SET.has(view) && (
+        <ConfirmReviewBanner event={event} onReviewDetail={onReviewDetail} />
+      )}
+      {inner()}
+    </>
+  )
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-
-const CONFIRM_VIEWS = new Set(['confirm-approve', 'confirm-reject', 'change-request', 'confirm-promote', 'accept-confirm'])
 
 const VIEW_LABELS = {
   detail:           'Event Detail',
@@ -1212,7 +1260,7 @@ export default function EventModal({ event, action, onClose, onRequestAttestatio
 
   const etype    = EVENT_TYPES[event.type]
   const sevColor = SEV_COLORS[event.severity]
-  const showAudit = !CONFIRM_VIEWS.has(view)
+  const showAudit = !CONFIRM_VIEW_SET.has(view)
 
   return (
     <>
@@ -1252,6 +1300,7 @@ export default function EventModal({ event, action, onClose, onRequestAttestatio
               assignTo={assignTo} setAssignTo={setAssignTo}
               dueBy={dueBy} setDueBy={setDueBy}
               onDecide={onDecide}
+              onReviewDetail={() => setView('detail')}
             />
           </div>
           {showAudit && (

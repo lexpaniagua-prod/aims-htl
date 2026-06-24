@@ -487,87 +487,15 @@ export default function WQOverview() {
   return (
     <div className="wqov-root">
 
-      {/* ── 1. Severity strip (top, full-width) ──────────────────────────── */}
-      <div className="wqov-sev-grid">
-        {SEV_CONFIG.map(({ sev, accent, border, bg }) => {
-          const { count, workflows, agents } = sevStats[sev]
-          const meta    = SEVERITY[sev]
-          const isEmpty = count === 0
-          return (
-            <div
-              key={sev}
-              className="wqov-sev-card"
-              style={{ borderLeftColor: accent, background: bg, opacity: isEmpty ? 0.45 : 1 }}
-            >
-              <div className="wqov-sev-card-top">
-                <span className="wqov-sev-count" style={{ color: accent, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
-                  {count}
-                </span>
-                <span className="wqov-sev-label">{meta.label}</span>
-              </div>
-              {(workflows > 0 || agents > 0) && (
-                <div className="wqov-sev-impact">
-                  {workflows > 0 && (
-                    <span className="wqov-impact-chip wqov-impact-chip--workflows">
-                      {workflows} wf blocked
-                    </span>
-                  )}
-                  {agents > 0 && (
-                    <span className="wqov-impact-chip wqov-impact-chip--agents">
-                      {agents} agent{agents !== 1 ? 's' : ''} halted
-                    </span>
-                  )}
-                </div>
-              )}
-              <button
-                className="wqov-sev-cta"
-                style={{ color: accent, borderColor: border }}
-                onClick={() => navigate(`/work-queue/work-queues?view=my-work&severity=${sev}`)}
-                disabled={isEmpty}
-              >
-                Go to {meta.label} →
-              </button>
-            </div>
-          )
-        })}
-      </div>
+      {/* ── Row 1: My Day (left) + Jump To + Messages (right) ───────────── */}
+      <div className="wqov-top-cols">
 
-      {/* ── 2. Studio health — full-width so expanded panel has room ────────── */}
-      <StudioHealthSection currentUser={currentUser} />
-
-      {/* ── 3. Two-column body ───────────────────────────────────────────── */}
-      <div className="wqov-body-cols">
-
-        {/* Left: My Day */}
-        <div className="wqov-col-main">
-          <WQMyDay currentUser={currentUser} />
+        <div className="wqov-col-myday wqov-col-myday--framed">
+          <WQMyDay currentUser={currentUser} noSections />
         </div>
 
-        {/* Right: sidebar widgets */}
-        <div className="wqov-col-side">
+        <div className="wqov-col-nav">
 
-          {/* Event type cards */}
-          <section className="wqov-section">
-            <h3 className="wqov-section-label">By event type</h3>
-            <div className="wqov-type-grid">
-              {TYPE_CARDS.map(et => (
-                <button
-                  key={et.key}
-                  className={`wqov-type-card${et.count === 0 ? ' wqov-type-card--empty' : ''}`}
-                  style={{ borderTopColor: et.color }}
-                  onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
-                  disabled={et.count === 0}
-                >
-                  <span className="wqov-type-count" style={{ color: et.color, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
-                    {et.count}
-                  </span>
-                  <span className="wqov-type-label">{et.label}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Jump To shortcuts — compact link rows */}
           <section className="wqov-section">
             <h3 className="wqov-section-label">Jump to</h3>
             <div className="wqov-shortcut-grid">
@@ -589,7 +517,6 @@ export default function WQOverview() {
             </div>
           </section>
 
-          {/* Last messages */}
           {recentMessages.length > 0 && (
             <section className="wqov-section">
               <div className="wqov-section-header-row">
@@ -624,25 +551,80 @@ export default function WQOverview() {
             </section>
           )}
 
-          {/* Attestations callout */}
           {pendingAttestations.length > 0 && (
             <section className="wqov-section">
               <div className="wqov-att-callout">
                 <span className="wqov-att-callout-text">
                   <strong>{pendingAttestations.length}</strong> attestation{pendingAttestations.length !== 1 ? 's' : ''} awaiting response.
                 </span>
-                <button
-                  className="wqov-att-callout-link"
-                  onClick={() => navigate('/work-queue/attestations')}
-                >
+                <button className="wqov-att-callout-link" onClick={() => navigate('/work-queue/attestations')}>
                   View →
                 </button>
               </div>
             </section>
           )}
 
+          <section className="wqov-section wqov-quick-links">
+            <h3 className="wqov-section-label">Quick links</h3>
+            <div className="wqov-ql-list">
+              {personaStudios(currentUser).map(key => {
+                const s = STUDIOS[key]
+                if (!s) return null
+                return (
+                  <button key={key} className="wqov-ql-item wqov-ql-item--studio"
+                    style={{ color: s.accentColor }}>
+                    Open {s.name} →
+                  </button>
+                )
+              })}
+              <div className="wqov-ql-divider" />
+              <button className="wqov-ql-item" onClick={() => navigate('/work-queue/attestations')}>
+                Approval history
+              </button>
+            </div>
+          </section>
+
         </div>
       </div>
+
+      {/* ── Row 2: Unified count cards — severity + event type ──────────── */}
+      <div className="wqov-count-row">
+        <div className="wqov-count-group wqov-count-group--sev">
+          {SEV_CONFIG.map(({ sev, accent }) => {
+            const { count } = sevStats[sev]
+            const meta = SEVERITY[sev]
+            return (
+              <button
+                key={sev}
+                className={`wqov-count-card${count === 0 ? ' wqov-count-card--empty' : ''}`}
+                style={{ borderTopColor: accent }}
+                onClick={() => navigate(`/work-queue/work-queues?view=my-work&severity=${sev}`)}
+                disabled={count === 0}
+              >
+                <span className="wqov-count-num" style={{ color: accent }}>{count}</span>
+                <span className="wqov-count-lbl">{meta.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="wqov-count-group wqov-count-group--type">
+          {TYPE_CARDS.map(et => (
+            <button
+              key={et.key}
+              className={`wqov-count-card${et.count === 0 ? ' wqov-count-card--empty' : ''}`}
+              style={{ borderTopColor: et.color }}
+              onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
+              disabled={et.count === 0}
+            >
+              <span className="wqov-count-num" style={{ color: et.color }}>{et.count}</span>
+              <span className="wqov-count-lbl">{et.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Row 3: Studio Health ─────────────────────────────────────────── */}
+      <StudioHealthSection currentUser={currentUser} />
 
     </div>
   )

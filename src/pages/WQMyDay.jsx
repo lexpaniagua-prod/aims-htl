@@ -145,7 +145,7 @@ function MyDayEventCard({ event, currentUser, onAction, onAsk, onEscalate, onSno
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function WQMyDay({ currentUser }) {
+export default function WQMyDay({ currentUser, noSections = false }) {
   const navigate = useNavigate()
 
   const [activeModal,    setActiveModal]    = useState(null)
@@ -180,9 +180,7 @@ export default function WQMyDay({ currentUser }) {
   const remaining = myEvents.filter(e => e.id !== startHereEvent?.id)
 
   const sectionDefs = [
-    { id: 'critical', label: 'Critical — within 7 days or blocking', color: '#ef4444', filter: e => e.severity === 'now' || e.severity === 'red'  },
-    { id: 'action',   label: 'Action — this week',                   color: '#f59e0b', filter: e => e.severity === 'yellow' },
-    { id: 'headsup',  label: 'Heads-up — on your radar',             color: '#10b981', filter: e => e.severity === 'green'  },
+    { id: 'headsup', label: 'Heads-up — on your radar', color: '#10b981', filter: e => e.severity === 'green' },
   ]
 
   // Handlers
@@ -361,7 +359,7 @@ export default function WQMyDay({ currentUser }) {
       </div>
 
       {/* ── Event sections ───────────────────────────────────────────────── */}
-      {sectionDefs.map(section => {
+      {!noSections && sectionDefs.map(section => {
         const sectEvents = remaining.filter(section.filter)
         if (sectEvents.length === 0) return null
         const sorted = [
