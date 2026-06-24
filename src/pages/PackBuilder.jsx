@@ -20,7 +20,7 @@ const STEPS = [
   { id: 3,  label: 'Routing & Response' },
   { id: 4,  label: 'Destination'        },
   { id: 7,  label: 'Macros',             note: 'Optional' },
-  { id: 8,  label: 'Sensitive Signals'  },
+  { id: 8,  label: 'Sensitive Signals',  note: 'Optional' },
   { id: 9,  label: 'Notifications',     hidden: true },
   { id: 10, label: 'Availability',      note: 'Optional' },
   { id: 11, label: 'Jurisdiction',      note: 'Optional' },
@@ -231,39 +231,56 @@ function Step1Pattern({ draft, update }) {
       </div>
 
       {/* ── Studio selector ───────────────────────────────── */}
-      <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
+      <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
           Which studio will use this Pack?
         </div>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {['All Studios', 'Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio'].map(s => {
-            const sel = (draft.studio || 'All Studios') === s
-            const colors = {
-              'Agentic Studio':          { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
-              'Helix Governance Studio': { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
-              'Helix Data Studio':       { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
-              'All Studios':             { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
-            }
-            const c = sel ? colors[s] : { bg: 'var(--bg-card)', border: 'var(--border)', color: 'var(--text-tertiary)' }
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { label: 'All Studios',             accent: 'var(--text-secondary)' },
+            { label: 'Agentic Studio',          accent: 'var(--accent-purple)'  },
+            { label: 'Helix Governance Studio', accent: 'var(--accent-teal)'    },
+            { label: 'Helix Data Studio',       accent: 'var(--accent-blue)'    },
+          ].map(({ label, accent }) => {
+            const sel = (draft.studio || 'All Studios') === label
             return (
-              <button
-                key={s}
-                onClick={() => update('studio', s)}
+              <label
+                key={label}
+                onClick={() => update('studio', label)}
                 style={{
-                  padding: '5px 12px',
-                  borderRadius: 6,
-                  fontSize: 12,
-                  fontFamily: 'DM Mono, monospace',
-                  fontWeight: sel ? 600 : 400,
-                  background: c.bg,
-                  border: `1.5px solid ${c.border}`,
-                  color: c.color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
                   cursor: 'pointer',
+                  padding: '8px 12px',
+                  borderRadius: 7,
+                  border: `1px solid ${sel ? accent : 'var(--border)'}`,
+                  background: sel ? 'var(--bg-card-elevated)' : 'transparent',
                   transition: 'all 0.12s',
                 }}
               >
-                {s}
-              </button>
+                <span style={{
+                  width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${sel ? accent : 'var(--border-strong)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'border-color 0.12s',
+                }}>
+                  {sel && (
+                    <span style={{
+                      width: 8, height: 8, borderRadius: '50%',
+                      background: accent,
+                    }} />
+                  )}
+                </span>
+                <span style={{
+                  fontSize: 12.5,
+                  fontWeight: sel ? 600 : 400,
+                  color: sel ? accent : 'var(--text-secondary)',
+                  transition: 'color 0.12s',
+                }}>
+                  {label}
+                </span>
+              </label>
             )
           })}
         </div>

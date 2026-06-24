@@ -1223,15 +1223,41 @@
 .wqov-root {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  max-width: 960px;
+  gap: 14px;
+}
+
+/* ── Two-column body layout ──────────────────────────────────────────────── */
+.wqov-body-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 20px;
+  align-items: start;
+}
+
+.wqov-col-main {
+  min-width: 0;
+}
+
+.wqov-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .wqov-body-cols { grid-template-columns: 1fr; }
 }
 
 /* ── Section wrapper + label ─────────────────────────────────────────────── */
 .wqov-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
+}
+
+.wqov-col-side .wqov-section {
+  gap: 8px;
 }
 
 .wqov-section-label {
@@ -1259,10 +1285,10 @@
   border: 1px solid var(--border);
   border-left: 4px solid transparent;
   border-radius: 10px;
-  padding: 18px 16px 14px;
+  padding: 12px 14px 10px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   transition: opacity 0.2s;
 }
 
@@ -1273,7 +1299,7 @@
 }
 
 .wqov-sev-count {
-  font-size: 36px;
+  font-size: 26px;
   font-weight: 800;
   line-height: 1;
   font-family: 'Inter', sans-serif;
@@ -4412,16 +4438,16 @@ body.evm-active .drawer {
 
 .wqov-type-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
 }
 
 .wqov-type-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
-  padding: 12px 14px;
+  gap: 3px;
+  padding: 10px 10px 8px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-top-width: 2px;
@@ -4439,11 +4465,11 @@ body.evm-active .drawer {
   cursor: default;
 }
 .wqov-type-count {
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
 }
 .wqov-type-label {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-secondary);
   font-weight: 500;
   letter-spacing: 0.01em;
@@ -4454,34 +4480,32 @@ body.evm-active .drawer {
    ══════════════════════════════════════════════════════════════════════════════ */
 
 .wqov-shortcut-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .wqov-shortcut-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 8px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 7px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 .wqov-shortcut-card:hover {
   background: var(--bg-hover);
-  transform: translateY(-1px);
+  border-color: var(--border-strong);
 }
-.wqov-shortcut-icon        { flex-shrink: 0; opacity: 0.8; }
+.wqov-shortcut-icon        { flex-shrink: 0; opacity: 0.85; }
 .wqov-shortcut-icon--day   { color: var(--accent-amber); }
 .wqov-shortcut-icon--work  { color: #0ea5e9; }
 .wqov-shortcut-icon--team  { color: var(--accent-green); }
-.wqov-shortcut-body        { flex: 1; min-width: 0; }
-.wqov-shortcut-title       { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
-.wqov-shortcut-desc        { font-size: 11.5px; color: var(--text-secondary); line-height: 1.45; }
+.wqov-shortcut-title       { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
 .wqov-shortcut-arrow       { color: var(--text-muted); flex-shrink: 0; }
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -4692,4 +4716,46 @@ body.evm-active .drawer {
   width: 100%; padding: 7px 9px; border-radius: 6px;
   border: 1px solid var(--border); background: var(--bg-primary);
   color: var(--text-primary); font-size: 12.5px; outline: none;
+}
+
+/* ── Work Queues — My Work / My Team inline toggle ─────────────────────────── */
+.wq-view-toggle {
+  display: flex;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.wq-view-btn {
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.wq-view-btn--active {
+  background: var(--accent-purple);
+  color: #fff;
+  font-weight: 600;
+}
+
+.wq-view-btn:not(.wq-view-btn--active):hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+/* ── My Day on Overview — divider below ─────────────────────────────────────── */
+.wqov-myday-wrap {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
 }

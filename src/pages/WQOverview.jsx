@@ -1,5 +1,6 @@
 ﻿import { useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
+import WQMyDay from './WQMyDay'
 import {
   ChevronDown, ChevronUp, ChevronRight,
   GraduationCap, RotateCcw, Calendar, ExternalLink,
@@ -325,28 +326,18 @@ function PartitionCard({ partition, studioKey }) {
   )
 }
 
-// ─── Studio health section (compact ↔ expanded) ───────────────────────────────
+// ─── Studio health section ────────────────────────────────────────────────────
 function StudioHealthSection({ currentUser }) {
   const [expandedKey, setExpandedKey] = useState(null)
   const [exportToast, setExportToast] = useState(false)
 
   const visibleStudios = personaStudios(currentUser)
   const studioData     = STUDIO_HEALTH.filter(s => visibleStudios.includes(s.key))
-  const isExpanded     = expandedKey !== null
+  const partitions     = expandedKey ? (PARTITION_HEALTH[expandedKey] || []) : []
 
-  const expandHeader = currentUser.scope === 'individual'
-    ? 'Your partition health'
-    : currentUser.scope === 'manager'
-    ? 'Studio health & partition breakdown'
-    : 'Platform health — all studios'
-
-  const expandSubtitle = currentUser.scope === 'individual'
-    ? `You own ${currentUser.partitions.includes('*') ? 'all' : currentUser.partitions.length} partition${currentUser.partitions.length !== 1 ? 's' : ''}. Each one is scored independently. Get each to 100% and your studio moves with you.`
-    : currentUser.scope === 'manager'
-    ? 'Overall scores for the studios you manage, plus every partition underneath.'
-    : 'Full rollup including exec-only partitions.'
-
-  const partitions = expandedKey ? (PARTITION_HEALTH[expandedKey] || []) : []
+  function handleChipClick(key) {
+    setExpandedKey(prev => prev === key ? null : key)
+  }
 
   function handleExport() {
     setExportToast(true)
@@ -357,44 +348,55 @@ function StudioHealthSection({ currentUser }) {
     <section className="wqov-section">
       <h3 className="wqov-section-label">Studio Health</h3>
 
-      {!isExpanded ? (
-        /* ── Compact chips ── */
-        <div className="wqov-health-strip">
-          {studioData.map(({ key, score, trend, criticalCount }) => {
-            const studio = STUDIOS[key]
-            const hs     = healthStatus(score)
-            const dotClr = hs === 'green' ? 'var(--accent-green)' : hs === 'amber' ? 'var(--accent-amber)' : '#ef4444'
-            const scoreClr = dotClr
-            return (
-              <button
-                key={key}
-                className="wqov-health-chip wqov-health-chip--btn"
-                style={{ borderColor: studio.accentColor + '55' }}
-                onClick={() => setExpandedKey(key)}
-              >
-                <span className="wqov-health-dot" style={{ background: dotClr }} />
-                <span className="wqov-health-studio-name">{studio.name}</span>
-                <span className="wqov-health-score" style={{ color: scoreClr }}>{score}</span>
-                {trend !== 0 && (
-                  <span className="wqov-health-trend" style={{ color: trend > 0 ? 'var(--accent-green)' : '#ef4444' }}>
-                    {trend > 0 ? '↑' : '↓'}{Math.abs(trend)}
-                  </span>
-                )}
-                {criticalCount > 0 && (
-                  <span className="wqov-health-crit">{criticalCount} critical</span>
-                )}
-                <ChevronRight size={11} className="wqov-health-chevron" />
-              </button>
-            )
-          })}
-        </div>
-      ) : (
-        /* ── Expanded panel ── */
-        <div className="wqov-health-expanded">
+      {/* ── Compact strip — always visible ── */}
+      <div className="wqov-health-strip">
+        {studioData.map(({ key, score, trend, criticalCount }) => {
+          const studio   = STUDIOS[key]
+          const hs       = healthStatus(score)
+          const dotClr   = hs === 'green' ? 'var(--accent-green)' : hs === 'amber' ? 'var(--accent-amber)' : '#ef4444'
+          const isActive = expandedKey === key
+          return (
+            <button
+              key={key}
+              className="wqov-health-chip wqov-health-chip--btn"
+              style={{
+                borderColor: isActive ? studio.accentColor : studio.accentColor + '55',
+                background: isActive ? studio.accentColor + '12' : undefined,
+              }}
+              onClick={() => handleChipClick(key)}
+            >
+              <span className="wqov-health-dot" style={{ background: dotClr }} />
+              <span className="wqov-health-studio-name">{studio.name}</span>
+              <span className="wqov-health-score" style={{ color: dotClr }}>{score}</span>
+              {trend !== 0 && (
+                <span className="wqov-health-trend" style={{ color: trend > 0 ? 'var(--accent-green)' : '#ef4444' }}>
+                  {trend > 0 ? '↑' : '↓'}{Math.abs(trend)}
+                </span>
+              )}
+              {criticalCount > 0 && (
+                <span className="wqov-health-crit">{criticalCount} critical</span>
+              )}
+              <ChevronDown
+                size={11}
+                className="wqov-health-chevron"
+                style={{ transform: isActive ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
+              />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* ── Expanded panel — shown below strip when a chip is active ── */}
+      {expandedKey && (
+        <div className="wqov-health-expanded" style={{ marginTop: 10 }}>
           <div className="wqov-expanded-top">
             <div className="wqov-expanded-heading">
-              <div className="wqov-expanded-title">{expandHeader}</div>
-              <div className="wqov-expanded-subtitle">{expandSubtitle}</div>
+              <div className="wqov-expanded-title" style={{ color: STUDIOS[expandedKey]?.accentColor }}>
+                {STUDIOS[expandedKey]?.name}
+              </div>
+              <div className="wqov-expanded-subtitle">
+                Partition breakdown — click any other studio above to switch.
+              </div>
             </div>
             <div className="wqov-expanded-actions">
               {exportToast
@@ -402,36 +404,11 @@ function StudioHealthSection({ currentUser }) {
                 : <button className="wq-btn wq-btn--ghost" onClick={handleExport}>Export report</button>
               }
               <button className="wqov-compact-link" onClick={() => setExpandedKey(null)}>
-                View compact ↑
+                Collapse ↑
               </button>
             </div>
           </div>
 
-          {/* Studio tab selector */}
-          <div className="wqov-studio-tabs">
-            {studioData.map(({ key, score }) => {
-              const studio  = STUDIOS[key]
-              const isActive = expandedKey === key
-              return (
-                <button
-                  key={key}
-                  className={`wqov-studio-tab${isActive ? ' wqov-studio-tab--active' : ''}`}
-                  style={isActive ? { borderBottomColor: studio.accentColor, color: studio.accentColor } : {}}
-                  onClick={() => setExpandedKey(key)}
-                >
-                  {studio.short}
-                  <span
-                    className="wqov-studio-tab-score"
-                    style={{ color: healthStatus(score) === 'green' ? 'var(--accent-green)' : healthStatus(score) === 'amber' ? 'var(--accent-amber)' : '#ef4444' }}
-                  >
-                    {score}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Partition grid */}
           <div className="wqov-partition-grid">
             {partitions.map(p => (
               <PartitionCard key={p.id} partition={p} studioKey={expandedKey} />
@@ -510,7 +487,7 @@ export default function WQOverview() {
   return (
     <div className="wqov-root">
 
-      {/* ── 1. Severity summary cards ─────────────────────────────────── */}
+      {/* ── 1. Severity strip (top, full-width) ──────────────────────────── */}
       <div className="wqov-sev-grid">
         {SEV_CONFIG.map(({ sev, accent, border, bg }) => {
           const { count, workflows, agents } = sevStats[sev]
@@ -528,12 +505,11 @@ export default function WQOverview() {
                 </span>
                 <span className="wqov-sev-label">{meta.label}</span>
               </div>
-
               {(workflows > 0 || agents > 0) && (
                 <div className="wqov-sev-impact">
                   {workflows > 0 && (
                     <span className="wqov-impact-chip wqov-impact-chip--workflows">
-                      {workflows} workflow{workflows !== 1 ? 's' : ''} blocked
+                      {workflows} wf blocked
                     </span>
                   )}
                   {agents > 0 && (
@@ -543,7 +519,6 @@ export default function WQOverview() {
                   )}
                 </div>
               )}
-
               <button
                 className="wqov-sev-cta"
                 style={{ color: accent, borderColor: border }}
@@ -557,119 +532,117 @@ export default function WQOverview() {
         })}
       </div>
 
-      {/* ── 2. Studio health (expandable) ─────────────────────────────── */}
+      {/* ── 2. Studio health — full-width so expanded panel has room ────────── */}
       <StudioHealthSection currentUser={currentUser} />
 
-      {/* ── 3. Event-type count cards ─────────────────────────────────── */}
-      <section className="wqov-section">
-        <h3 className="wqov-section-label">By event type</h3>
-        <div className="wqov-type-grid">
-          {TYPE_CARDS.map(et => (
-            <button
-              key={et.key}
-              className={`wqov-type-card${et.count === 0 ? ' wqov-type-card--empty' : ''}`}
-              style={{ borderTopColor: et.color }}
-              onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
-              disabled={et.count === 0}
-            >
-              <span className="wqov-type-count" style={{ color: et.color, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
-                {et.count}
-              </span>
-              <span className="wqov-type-label">{et.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* ── 3. Two-column body ───────────────────────────────────────────── */}
+      <div className="wqov-body-cols">
 
-      {/* ── 5. Navigation shortcut cards ─────────────────────────────── */}
-      <section className="wqov-section">
-        <h3 className="wqov-section-label">Jump to</h3>
-        <div className="wqov-shortcut-grid">
-          <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-day')}>
-            <Sun size={20} className="wqov-shortcut-icon wqov-shortcut-icon--day" />
-            <div className="wqov-shortcut-body">
-              <div className="wqov-shortcut-title">My Day</div>
-              <div className="wqov-shortcut-desc">AI-assembled daily view — Start Here card, critical items, and your focus time estimate.</div>
-            </div>
-            <ChevronRight size={14} className="wqov-shortcut-arrow" />
-          </button>
-          <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-work')}>
-            <Briefcase size={20} className="wqov-shortcut-icon wqov-shortcut-icon--work" />
-            <div className="wqov-shortcut-body">
-              <div className="wqov-shortcut-title">My Work</div>
-              <div className="wqov-shortcut-desc">All events assigned to you — grouped by severity, fully filterable by studio and type.</div>
-            </div>
-            <ChevronRight size={14} className="wqov-shortcut-arrow" />
-          </button>
-          <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-team')}>
-            <Users size={20} className="wqov-shortcut-icon wqov-shortcut-icon--team" />
-            <div className="wqov-shortcut-body">
-              <div className="wqov-shortcut-title">My Team</div>
-              <div className="wqov-shortcut-desc">Everyone's events across your studios — owner visible on each card so you can cover or reassign.</div>
-            </div>
-            <ChevronRight size={14} className="wqov-shortcut-arrow" />
-          </button>
+        {/* Left: My Day */}
+        <div className="wqov-col-main">
+          <WQMyDay currentUser={currentUser} />
         </div>
-      </section>
 
-      {/* ── 6. Last messages ─────────────────────────────────────────── */}
-      {recentMessages.length > 0 && (
-        <section className="wqov-section">
-          <div className="wqov-section-header-row">
-            <h3 className="wqov-section-label">Last messages from your team</h3>
-            <button className="wqov-see-all-link" onClick={() => navigate('/work-queue/messages')}>
-              See all messages →
-            </button>
-          </div>
-          <div className="wqov-pinned-list">
-            {recentMessages.map(msg => {
-              const sender = PEOPLE.find(p => p.id === msg.from)
-              const isOpen = expandedMsg === msg.id
-              return (
-                <div
-                  key={msg.id}
-                  className="wqov-pinned-row wqov-pinned-row--clickable"
-                  onClick={() => navigate('/work-queue/messages')}
+        {/* Right: sidebar widgets */}
+        <div className="wqov-col-side">
+
+          {/* Event type cards */}
+          <section className="wqov-section">
+            <h3 className="wqov-section-label">By event type</h3>
+            <div className="wqov-type-grid">
+              {TYPE_CARDS.map(et => (
+                <button
+                  key={et.key}
+                  className={`wqov-type-card${et.count === 0 ? ' wqov-type-card--empty' : ''}`}
+                  style={{ borderTopColor: et.color }}
+                  onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
+                  disabled={et.count === 0}
                 >
-                  <div className="wqov-pinned-row-header">
-                    <div className="wqov-pinned-sender">
-                      <span className="wqov-pinned-sender-name">{sender?.name}</span>
-                      <span className="wqov-pinned-sender-role">{sender?.role}</span>
-                    </div>
-                    <div className="wqov-pinned-title">{msg.subject}</div>
-                    <div className="wqov-pinned-right">
-                      <span className="wqov-pinned-ts">{fmtTs(msg.timestamp)}</span>
-                      <ChevronRight size={13} className="wqov-pinned-chevron" />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+                  <span className="wqov-type-count" style={{ color: et.color, fontFamily: "'Inter', sans-serif", fontWeight: 700 }}>
+                    {et.count}
+                  </span>
+                  <span className="wqov-type-label">{et.label}</span>
+                </button>
+              ))}
+            </div>
+          </section>
 
-      {/* ── 7. Attestations callout ───────────────────────────────────── */}
-      {pendingAttestations.length > 0 && (
-        <section className="wqov-section">
-          <div className="wqov-att-callout">
-            <span className="wqov-att-callout-text">
-              You have{' '}
-              <strong>
-                {pendingAttestations.length} attestation
-                {pendingAttestations.length !== 1 ? 's' : ''}
-              </strong>{' '}
-              awaiting response.
-            </span>
-            <button
-              className="wqov-att-callout-link"
-              onClick={() => navigate('/work-queue/attestations')}
-            >
-              View attestations →
-            </button>
-          </div>
-        </section>
-      )}
+          {/* Jump To shortcuts — compact link rows */}
+          <section className="wqov-section">
+            <h3 className="wqov-section-label">Jump to</h3>
+            <div className="wqov-shortcut-grid">
+              <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-work')}>
+                <Sun size={15} className="wqov-shortcut-icon wqov-shortcut-icon--day" />
+                <span className="wqov-shortcut-title">My Day</span>
+                <ChevronRight size={12} className="wqov-shortcut-arrow" />
+              </button>
+              <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-work')}>
+                <Briefcase size={15} className="wqov-shortcut-icon wqov-shortcut-icon--work" />
+                <span className="wqov-shortcut-title">My Work</span>
+                <ChevronRight size={12} className="wqov-shortcut-arrow" />
+              </button>
+              <button className="wqov-shortcut-card" onClick={() => navigate('/work-queue/work-queues?view=my-team')}>
+                <Users size={15} className="wqov-shortcut-icon wqov-shortcut-icon--team" />
+                <span className="wqov-shortcut-title">My Team</span>
+                <ChevronRight size={12} className="wqov-shortcut-arrow" />
+              </button>
+            </div>
+          </section>
+
+          {/* Last messages */}
+          {recentMessages.length > 0 && (
+            <section className="wqov-section">
+              <div className="wqov-section-header-row">
+                <h3 className="wqov-section-label">Last messages</h3>
+                <button className="wqov-see-all-link" onClick={() => navigate('/work-queue/messages')}>
+                  See all →
+                </button>
+              </div>
+              <div className="wqov-pinned-list">
+                {recentMessages.map(msg => {
+                  const sender = PEOPLE.find(p => p.id === msg.from)
+                  return (
+                    <div
+                      key={msg.id}
+                      className="wqov-pinned-row wqov-pinned-row--clickable"
+                      onClick={() => navigate('/work-queue/messages')}
+                    >
+                      <div className="wqov-pinned-row-header">
+                        <div className="wqov-pinned-sender">
+                          <span className="wqov-pinned-sender-name">{sender?.name}</span>
+                        </div>
+                        <div className="wqov-pinned-title">{msg.subject}</div>
+                        <div className="wqov-pinned-right">
+                          <span className="wqov-pinned-ts">{fmtTs(msg.timestamp)}</span>
+                          <ChevronRight size={12} className="wqov-pinned-chevron" />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Attestations callout */}
+          {pendingAttestations.length > 0 && (
+            <section className="wqov-section">
+              <div className="wqov-att-callout">
+                <span className="wqov-att-callout-text">
+                  <strong>{pendingAttestations.length}</strong> attestation{pendingAttestations.length !== 1 ? 's' : ''} awaiting response.
+                </span>
+                <button
+                  className="wqov-att-callout-link"
+                  onClick={() => navigate('/work-queue/attestations')}
+                >
+                  View →
+                </button>
+              </div>
+            </section>
+          )}
+
+        </div>
+      </div>
 
     </div>
   )

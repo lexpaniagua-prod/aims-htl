@@ -10,7 +10,6 @@ import {
 import EventModal from './EventModal'
 import AttestModal from './AttestModal'
 import EscalationModal from './EscalationModal'
-import WQMyDay from './WQMyDay'
 
 // ─── Type-based standardized quick actions ────────────────────────────────────
 const TYPE_ACTIONS = {
@@ -391,55 +390,44 @@ export default function WQQueue() {
 
   const clearAll = () => { setStudioFilter([]); setActiveTypeFilter([]) }
 
-  const SUB_TABS = [
-    { key: 'my-day',  label: 'My Day'  },
-    { key: 'my-work', label: 'My Work' },
-    { key: 'my-team', label: 'My Team' },
-  ]
-
   return (
     <div className="wq-queue">
 
-      {/* ── Sub-tab bar ──────────────────────────────────────────────────── */}
-      <div className="wqd-sub-tabs">
-        {SUB_TABS.map(tab => (
+      {/* ── Filter bar with My Work / My Team toggle ─────────────────────── */}
+      <div className="wq-filter-bar">
+        {/* My Work / My Team toggle */}
+        <div className="wq-view-toggle">
           <button
-            key={tab.key}
-            className={`wqd-sub-tab${view === tab.key ? ' wqd-sub-tab--active' : ''}`}
-            onClick={() => setSearchParams({ view: tab.key })}
+            className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'my-work' })}
           >
-            {tab.label}
+            My Work
           </button>
-        ))}
+          <button
+            className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'my-team' })}
+          >
+            My Team
+          </button>
+        </div>
+
+        <div className="wq-search-wrap">
+          <Search size={13} className="wq-search-icon" />
+          <input
+            className="wq-search-input"
+            placeholder="Search events, specs, IDs…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="wq-search-clear" onClick={() => setSearch('')}>
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        <MultiSelect label="Studio"     options={studioOptions} selected={studioFilter}      onChange={setStudioFilter}      />
+        <MultiSelect label="Event Type" options={typeOptions}   selected={combinedTypeFilter} onChange={setActiveTypeFilter}  />
       </div>
-
-      {/* ── My Day view ──────────────────────────────────────────────────── */}
-      {view === 'my-day' && (
-        <WQMyDay currentUser={currentUser} />
-      )}
-
-      {/* ── My Work / My Team views ───────────────────────────────────────── */}
-      {view !== 'my-day' && (
-        <>
-          {/* Filter bar */}
-          <div className="wq-filter-bar">
-            <div className="wq-search-wrap">
-              <Search size={13} className="wq-search-icon" />
-              <input
-                className="wq-search-input"
-                placeholder="Search events, specs, IDs…"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-              {search && (
-                <button className="wq-search-clear" onClick={() => setSearch('')}>
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-            <MultiSelect label="Studio"     options={studioOptions} selected={studioFilter}      onChange={setStudioFilter}      />
-            <MultiSelect label="Event Type" options={typeOptions}   selected={combinedTypeFilter} onChange={setActiveTypeFilter}  />
-          </div>
 
           {/* Active filter chips */}
           {activeFilters.length > 0 && (
@@ -485,8 +473,6 @@ export default function WQQueue() {
               )
             })
           )}
-        </>
-      )}
 
       {/* Trace drawer */}
       <TraceDrawer event={traceEvent} onClose={() => setTraceEvent(null)} />
