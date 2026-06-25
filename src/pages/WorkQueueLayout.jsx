@@ -10,6 +10,7 @@ const TABS = [
   { label: 'Messages',     path: '/work-queue/messages'     },
   { label: 'Activity',     path: '/work-queue/activity'     },
   { label: 'Attestations', path: '/work-queue/attestations' },
+  { label: 'Task View',    path: '/work-queue/task-view',   proposal: true },
 ]
 
 const WQ_PERSONA_KEY = 'htl-wq-persona'
@@ -175,7 +176,9 @@ export default function WorkQueueLayout() {
                   to={t.path}
                   className={`wq-tab${active ? ' wq-tab--active' : ''}`}
                 >
-                  {t.label}
+                  {t.proposal
+                    ? <>{t.label} <span className="wq-tab-proposal-badge">Proposal</span></>
+                    : t.label}
                 </NavLink>
               )
             })}

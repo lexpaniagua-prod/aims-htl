@@ -26,7 +26,9 @@
       "Bash(node --input-type=module --eval \"import\\('./src/pages/Destinations.jsx'\\)\")",
       "Bash(curl -s \"http://localhost:5173/src/pages/Destinations.jsx\")",
       "Bash(curl -s \"http://localhost:5173/aims-htl/src/pages/Destinations.jsx\")",
-      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css'\\).Count\")"
+      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css'\\).Count\")",
+      "Bash(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css\")",
+      "PowerShell(\\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css\" | Measure-Object -Line\\).Lines)"
     ]
   }
 }
