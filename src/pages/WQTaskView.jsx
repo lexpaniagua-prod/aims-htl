@@ -2,18 +2,28 @@ import { useState, useMemo, useEffect } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { Search, X, LayoutGrid, List, ChevronDown } from 'lucide-react'
 import { EVENTS, SEVERITY, EVENT_TYPES, STUDIOS, PEOPLE } from '../data/workQueueData'
+import EventModal from './EventModal'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const SEV_COLOR = { now: '#f43f5e', red: '#ef4444', yellow: '#f59e0b', green: '#10b981' }
 
-const TASK_STATUS = {
-  new:           { label: 'New',         dot: '#3b82f6', color: '#3b82f6'  },
-  'in-progress': { label: 'In Progress', dot: '#f59e0b', color: '#f59e0b'  },
-  pending:       { label: 'Pending',     dot: '#8b5cf6', color: '#8b5cf6'  },
-  resolved:      { label: 'Resolved',    dot: '#10b981', color: '#10b981'  },
+// Extend STUDIOS with 'cross' which appears in EVT-007
+const STUDIO_DISPLAY = {
+  ...Object.fromEntries(Object.values(STUDIOS).map(s => [s.key, s])),
+  cross: { key: 'cross', short: 'MULTI', accentColor: '#94a3b8', name: 'Cross-studio' },
 }
+const STUDIO_OPTIONS = [
+  ...Object.values(STUDIOS),
+  { key: 'cross', short: 'MULTI', name: 'Cross-studio' },
+]
 
+const TASK_STATUS = {
+  new:           { label: 'New',         dot: '#3b82f6', color: '#3b82f6' },
+  'in-progress': { label: 'In Progress', dot: '#f59e0b', color: '#f59e0b' },
+  pending:       { label: 'Pending',     dot: '#8b5cf6', color: '#8b5cf6' },
+  resolved:      { label: 'Resolved',    dot: '#10b981', color: '#10b981' },
+}
 const STATUS_ORDER = ['new', 'in-progress', 'pending', 'resolved']
 
 const COLUMNS = [
@@ -43,9 +53,8 @@ function initStatuses() {
     else if (e.severity === 'yellow') map[e.id] = 'in-progress'
     else map[e.id] = 'pending'
   }
-  // Populate Resolved column with a few green events for demo
-  const greenIds = EVENTS.filter(e => e.severity === 'green').slice(0, 3).map(e => e.id)
-  greenIds.forEach(id => { map[id] = 'resolved' })
+  // Populate Resolved column with the first three green events for demo
+  EVENTS.filter(e => e.severity === 'green').slice(0, 3).forEach(e => { map[e.id] = 'resolved' })
   return map
 }
 
@@ -77,7 +86,7 @@ function StatusMenu({ current, onChange, onClose }) {
 // ── Board: task card ──────────────────────────────────────────────────────────
 
 function TaskCard({ event, onOpen, onDragStart }) {
-  const studio   = STUDIOS[event.studio] ?? { short: '?', accentColor: '#6b7280' }
+  const studio   = STUDIO_DISPLAY[event.studio] ?? { short: (event.studio || '?').slice(0, 4).toUpperCase(), accentColor: '#6b7280' }
   const etype    = EVENT_TYPES[event.type]
   const owner    = PEOPLE.find(p => p.id === event.ownerId)
   const sevColor = SEV_COLOR[event.severity]
@@ -190,17 +199,17 @@ function TableView({ events, statuses, onStatusChange, onOpen, showToast }) {
     return [...events].sort((a, b) => {
       let va, vb
       switch (sortCol) {
-        case 'severity': va = SEV_RANK[a.severity];  vb = SEV_RANK[b.severity];  break
-        case 'title':    va = a.title;                vb = b.title;                break
-        case 'type':     va = a.type;                 vb = b.type;                 break
-        case 'studio':   va = a.studio;               vb = b.studio;               break
+        case 'severity': va = SEV_RANK[a.severity]; vb = SEV_RANK[b.severity]; break
+        case 'title':    va = a.title;               vb = b.title;               break
+        case 'type':     va = a.type;                vb = b.type;                break
+        case 'studio':   va = a.studio;              vb = b.studio;              break
         case 'owner':
           va = PEOPLE.find(p => p.id === a.ownerId)?.name ?? ''
           vb = PEOPLE.find(p => p.id === b.ownerId)?.name ?? ''
           break
-        case 'due':      va = a.dueLabel ?? '';        vb = b.dueLabel ?? '';        break
-        case 'status':   va = statuses[a.id] ?? '';    vb = statuses[b.id] ?? '';    break
-        default:         va = 0; vb = 0
+        case 'due':    va = a.dueLabel ?? '';     vb = b.dueLabel ?? '';      break
+        case 'status': va = statuses[a.id] ?? ''; vb = statuses[b.id] ?? '';  break
+        default:       va = 0; vb = 0
       }
       const cmp = typeof va === 'number' ? va - vb : (va ?? '').localeCompare(vb ?? '')
       return sortDir === 'asc' ? cmp : -cmp
@@ -227,13 +236,16 @@ function TableView({ events, statuses, onStatusChange, onOpen, showToast }) {
   return (
     <div className="tvw-table-wrap">
       <table className="tvw-table">
+        <colgroup>
+          <col /><col /><col /><col /><col /><col /><col />
+        </colgroup>
         <thead>
           <tr>
             {TABLE_COLS.map(c => (
-              <th key={c.id} className="tvw-th" onClick={() => toggleSort(c.id)}>
+              <th key={c.id} className={`tvw-th${sortCol === c.id ? ' tvw-th--active' : ''}`} onClick={() => toggleSort(c.id)}>
                 {c.label}
                 <span className="tvw-sort-arrow">
-                  {sortCol === c.id ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ' ↕'}
+                  {sortCol === c.id ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
                 </span>
               </th>
             ))}
@@ -241,7 +253,7 @@ function TableView({ events, statuses, onStatusChange, onOpen, showToast }) {
         </thead>
         <tbody>
           {sorted.map(e => {
-            const studio   = STUDIOS[e.studio] ?? { short: '?', accentColor: '#6b7280' }
+            const studio   = STUDIO_DISPLAY[e.studio] ?? { short: (e.studio || '?').slice(0, 4).toUpperCase(), accentColor: '#6b7280' }
             const etype    = EVENT_TYPES[e.type]
             const owner    = PEOPLE.find(p => p.id === e.ownerId)
             const sevColor = SEV_COLOR[e.severity]
@@ -268,9 +280,11 @@ function TableView({ events, statuses, onStatusChange, onOpen, showToast }) {
                     {studio.short}
                   </span>
                 </td>
-                <td className="tvw-td tvw-td--owner">
-                  <span className="tvw-avatar tvw-avatar--sm">{owner?.initials ?? '?'}</span>
-                  <span>{owner?.name ?? '—'}</span>
+                <td className="tvw-td">
+                  <div className="tvw-owner-cell">
+                    <span className="tvw-avatar tvw-avatar--sm">{owner?.initials ?? '?'}</span>
+                    <span>{owner?.name ?? '—'}</span>
+                  </div>
                 </td>
                 <td className={`tvw-td${isUrgent ? ' tvw-td--urgent' : ''}`}>{e.dueLabel}</td>
                 <td className="tvw-td" style={{ position: 'relative' }}>
@@ -304,8 +318,8 @@ function TableView({ events, statuses, onStatusChange, onOpen, showToast }) {
 
 // ── Task detail slideout ──────────────────────────────────────────────────────
 
-function TaskDetail({ event, status, onClose, onStatusChange, showToast }) {
-  const studio   = STUDIOS[event.studio] ?? { short: '?', accentColor: '#6b7280' }
+function TaskDetail({ event, status, onClose, onStatusChange, onOpenModal, showToast }) {
+  const studio   = STUDIO_DISPLAY[event.studio] ?? { short: (event.studio || '?').slice(0, 4).toUpperCase(), accentColor: '#6b7280' }
   const etype    = EVENT_TYPES[event.type]
   const owner    = PEOPLE.find(p => p.id === event.ownerId)
   const sevColor = SEV_COLOR[event.severity]
@@ -404,13 +418,24 @@ function TaskDetail({ event, status, onClose, onStatusChange, showToast }) {
           <p className="tvw-section-text">{event.detail}</p>
         </div>
 
-        {/* Actions */}
+        {/* Actions — open full EventModal */}
         <div className="tvw-detail-section">
           <div className="tvw-section-label">Actions</div>
           <div className="tvw-detail-actions">
-            <button className="wq-btn wq-btn--primary">{PRIMARY_ACTION[event.type] ?? 'View'}</button>
+            <button
+              className="wq-btn wq-btn--primary"
+              onClick={() => onOpenModal(event, event.type)}
+            >
+              {PRIMARY_ACTION[event.type] ?? 'View'}
+            </button>
             {(SECONDARY_ACTIONS[event.type] ?? []).map(a => (
-              <button key={a} className="wq-btn wq-btn--ghost">{a}</button>
+              <button
+                key={a}
+                className="wq-btn wq-btn--ghost"
+                onClick={() => onOpenModal(event, event.type)}
+              >
+                {a}
+              </button>
             ))}
           </div>
         </div>
@@ -419,13 +444,13 @@ function TaskDetail({ event, status, onClose, onStatusChange, showToast }) {
         <div className="tvw-detail-footer">
           <button
             className="tvw-footer-link"
-            onClick={() => { showToast('Ask dialog coming soon'); onClose() }}
+            onClick={() => onOpenModal(event, 'ask')}
           >
             Ask
           </button>
           <button
             className="tvw-footer-link tvw-footer-link--esc"
-            onClick={() => { showToast('Escalate dialog coming soon'); onClose() }}
+            onClick={() => onOpenModal(event, 'escalate')}
           >
             Escalate
           </button>
@@ -438,15 +463,18 @@ function TaskDetail({ event, status, onClose, onStatusChange, showToast }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function WQTaskView() {
-  useOutletContext() // provides currentUser; keep for Outlet compatibility
+  const { currentUser } = useOutletContext()
 
   const [statuses,        setStatuses]        = useState(initStatuses)
   const [view,            setView]            = useState('board')
   const [search,          setSearch]          = useState('')
   const [statusFilter,    setStatusFilter]    = useState('')
   const [typeFilter,      setTypeFilter]      = useState('')
+  const [studioFilter,    setStudioFilter]    = useState('')
+  const [ownerFilter,     setOwnerFilter]     = useState('')
   const [bannerDismissed, setBannerDismissed] = useState(false)
   const [selectedEvent,   setSelectedEvent]   = useState(null)
+  const [modalState,      setModalState]      = useState(null) // { event, action }
   const [toast,           setToast]           = useState(null)
 
   function showToast(msg) {
@@ -458,17 +486,38 @@ export default function WQTaskView() {
     setStatuses(prev => ({ ...prev, [eventId]: newStatus }))
   }
 
+  function openModal(event, action) {
+    setSelectedEvent(null) // close slideout
+    setModalState({ event, action })
+  }
+
+  // Unique owners in dataset
+  const ownerOptions = useMemo(() => {
+    const ids = [...new Set(EVENTS.map(e => e.ownerId))]
+    return ids.map(id => PEOPLE.find(p => p.id === id)).filter(Boolean)
+  }, [])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return EVENTS.filter(e => {
       if (statusFilter && statuses[e.id] !== statusFilter) return false
       if (typeFilter   && e.type !== typeFilter)           return false
+      if (studioFilter && e.studio !== studioFilter)       return false
+      if (ownerFilter  && e.ownerId !== ownerFilter)       return false
       if (q && !e.title.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
       return true
     })
-  }, [search, statusFilter, typeFilter, statuses])
+  }, [search, statusFilter, typeFilter, studioFilter, ownerFilter, statuses])
 
-  const hasFilter = !!(search || statusFilter || typeFilter)
+  const hasFilter = !!(search || statusFilter || typeFilter || studioFilter || ownerFilter)
+
+  function clearAll() {
+    setSearch('')
+    setStatusFilter('')
+    setTypeFilter('')
+    setStudioFilter('')
+    setOwnerFilter('')
+  }
 
   return (
     <div className="tvw-root">
@@ -519,6 +568,18 @@ export default function WQTaskView() {
                 <option key={t.key} value={t.key}>{t.label}</option>
               ))}
             </select>
+            <select className="tvw-select" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
+              <option value="">All Studios</option>
+              {STUDIO_OPTIONS.map(s => (
+                <option key={s.key} value={s.key}>{s.name ?? s.short}</option>
+              ))}
+            </select>
+            <select className="tvw-select" value={ownerFilter} onChange={e => setOwnerFilter(e.target.value)}>
+              <option value="">All Owners</option>
+              {ownerOptions.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -559,12 +620,19 @@ export default function WQTaskView() {
               <button onClick={() => setTypeFilter('')} aria-label="Remove"><X size={10} /></button>
             </span>
           )}
-          <button
-            className="tvw-chip-clear"
-            onClick={() => { setSearch(''); setStatusFilter(''); setTypeFilter('') }}
-          >
-            Clear all
-          </button>
+          {studioFilter && (
+            <span className="tvw-chip">
+              {STUDIO_DISPLAY[studioFilter]?.name ?? studioFilter}
+              <button onClick={() => setStudioFilter('')} aria-label="Remove"><X size={10} /></button>
+            </span>
+          )}
+          {ownerFilter && (
+            <span className="tvw-chip">
+              {PEOPLE.find(p => p.id === ownerFilter)?.name ?? ownerFilter}
+              <button onClick={() => setOwnerFilter('')} aria-label="Remove"><X size={10} /></button>
+            </span>
+          )}
+          <button className="tvw-chip-clear" onClick={clearAll}>Clear all</button>
         </div>
       )}
 
@@ -595,7 +663,20 @@ export default function WQTaskView() {
           status={statuses[selectedEvent.id]}
           onClose={() => setSelectedEvent(null)}
           onStatusChange={handleStatusChange}
+          onOpenModal={openModal}
           showToast={showToast}
+        />
+      )}
+
+      {/* Full EventModal — opened from slideout action buttons */}
+      {modalState && (
+        <EventModal
+          event={modalState.event}
+          action={modalState.action}
+          onClose={() => setModalState(null)}
+          onRequestAttestation={() => { setModalState(null); showToast('Attestation requested') }}
+          onEscalate={() => { setModalState(null); showToast('Escalated') }}
+          onDecide={() => { setModalState(null); showToast('Decision recorded') }}
         />
       )}
 
