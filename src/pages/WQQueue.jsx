@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, SkipForward
+  Search, ChevronDown, X, GitBranch, AlertTriangle, SkipForward, CalendarDays, Flame, Zap
 } from 'lucide-react'
 import { Drawer } from '../components/Modal'
 import {
@@ -20,6 +20,16 @@ const TYPE_ACTIONS = {
   acknowledge: ['View', 'Acknowledge'],
   train:       ['Review and Edit', 'Promote', 'Reject'],
 }
+
+const CATEGORY_OPTIONS = [
+  { value: 'approve',     label: 'Approvals',   group: 'type'   },
+  { value: 'review',      label: 'Revisions',   group: 'type'   },
+  { value: 'respond',     label: 'Messages',    group: 'type'   },
+  { value: 'acknowledge', label: 'Audit',       group: 'type'   },
+  { value: 'train',       label: 'Train Me',    group: 'type'   },
+  { value: 'customer',    label: 'Customer',    group: 'origin' },
+  { value: 'internal',    label: 'Internal',    group: 'origin' },
+]
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function personName(id) {
@@ -62,35 +72,43 @@ function WQToast({ text, onDismiss }) {
 
 // ─── Trace drawer ─────────────────────────────────────────────────────────────
 function TraceDrawer({ event, onClose }) {
-  if (!event?.sourceWorkflow) return null
+  if (!event) return null
   const wf = event.sourceWorkflow
   const STATUS_ICON  = { done: '✓', paused: '⏸', error: '✗', blocked: '⊘', pending: '·' }
   const STATUS_CLASS = { done: 'wq-step--done', paused: 'wq-step--paused', error: 'wq-step--error', blocked: 'wq-step--error', pending: 'wq-step--pending' }
 
   return (
-    <Drawer open title={`Trace: ${wf.name}`} subtitle={`Workflow ${wf.id}`} onClose={onClose}>
-      <div className="wq-trace-steps">
-        {wf.steps.map((s, i) => (
-          <div key={i} className={`wq-trace-step ${STATUS_CLASS[s.status] || ''}`}>
-            <div className="wq-trace-step-marker">
-              <span className="wq-trace-step-icon">{STATUS_ICON[s.status] || '·'}</span>
-              {i < wf.steps.length - 1 && <div className="wq-trace-step-line" />}
-            </div>
-            <div className="wq-trace-step-body">
-              <div className="wq-trace-step-header">
-                <span className="wq-trace-step-num">Step {s.step}</span>
-                <span className="wq-trace-step-label">{s.label}</span>
-                {s.timestamp && (
-                  <span className="wq-trace-step-ts">
-                    {new Date(s.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
+    <Drawer open title={wf ? `Trace: ${wf.name}` : 'Workflow Trace'} subtitle={event.id} onClose={onClose}>
+      {!wf ? (
+        <div className="wq-trace-empty">
+          <GitBranch size={22} className="wq-trace-empty-icon" />
+          <p className="wq-trace-empty-title">No workflow trace</p>
+          <p className="wq-trace-empty-sub">This event was triggered directly, not via an automated workflow pipeline.</p>
+        </div>
+      ) : (
+        <div className="wq-trace-steps">
+          {wf.steps.map((s, i) => (
+            <div key={i} className={`wq-trace-step ${STATUS_CLASS[s.status] || ''}`}>
+              <div className="wq-trace-step-marker">
+                <span className="wq-trace-step-icon">{STATUS_ICON[s.status] || '·'}</span>
+                {i < wf.steps.length - 1 && <div className="wq-trace-step-line" />}
               </div>
-              <div className="wq-trace-step-detail">{s.detail}</div>
+              <div className="wq-trace-step-body">
+                <div className="wq-trace-step-header">
+                  <span className="wq-trace-step-num">Step {s.step}</span>
+                  <span className="wq-trace-step-label">{s.label}</span>
+                  {s.timestamp && (
+                    <span className="wq-trace-step-ts">
+                      {new Date(s.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                <div className="wq-trace-step-detail">{s.detail}</div>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </Drawer>
   )
 }
@@ -136,11 +154,6 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
               {isOwn && <span className="wq-badge-mine">Mine</span>}
             </span>
           )}
-          {event.sourceWorkflow && (
-            <button className="wq-badge wq-badge--trace" onClick={() => onTrace(event)}>
-              <GitBranch size={9} /> Trace
-            </button>
-          )}
           {isSkipped && (
             <span className="wq-badge wq-skipped-chip">Skipped · comes back in 2h</span>
           )}
@@ -148,8 +161,11 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
             <span className="wq-badge wq-badge--escalated">Escalated</span>
           )}
         </div>
-        {/* Skip icon + meta */}
+        {/* Trace + Skip + meta */}
         <div className="wq-card-right">
+          <button className="wq-trace-btn" onClick={() => onTrace(event)}>
+            <GitBranch size={10} /> Trace
+          </button>
           {!isSkipped && (
             <button
               className="wq-skip-icon-btn"
@@ -284,6 +300,10 @@ export default function WQQueue() {
   const [escalatedIds, setEscalatedIds] = useState(new Set())
   const [toast, setToast] = useState(null)
 
+  const [sortMode,       setSortMode]       = useState('default')
+  const [categoryFilter, setCategoryFilter] = useState([])
+  const [ownerFilter,    setOwnerFilter]    = useState([])
+
   // Deep-link filters from Overview CTAs
   const initSev  = searchParams.get('severity')
   const initType = searchParams.get('type')
@@ -358,10 +378,19 @@ export default function WQQueue() {
       if (studioFilter.length && !studioFilter.includes(e.studio)) return false
       if (combinedTypeFilter.length && !combinedTypeFilter.includes(e.type)) return false
       if (sevFilter.length && !sevFilter.includes(e.severity)) return false
+      if (mode === 'team' && ownerFilter.length && !ownerFilter.includes(e.ownerId)) return false
+      if (categoryFilter.length) {
+        const matchesType   = categoryFilter.includes(e.type)
+        const matchesOrigin = categoryFilter.includes(e.origin)
+        if (!matchesType && !matchesOrigin) return false
+      }
       if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec?.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
+      if (sortMode === 'today')    return e.dueToday === true
+      if (sortMode === 'act-now')  return e.severity === 'now'
+      if (sortMode === 'critical') return e.severity === 'now' || e.severity === 'red'
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter, categoryFilter, ownerFilter, sortMode, mode])
 
   const grouped = SEVERITY_ORDER.map(sev => {
     const events = filtered.filter(e => e.severity === sev)
@@ -382,12 +411,32 @@ export default function WQQueue() {
     count: baseEvents.filter(e => e.type === t.key).length,
   }))
 
+  const categoryOptions = CATEGORY_OPTIONS.map(c => ({
+    value: c.value, label: c.label,
+    count: c.group === 'type'
+      ? baseEvents.filter(e => e.type === c.value).length
+      : baseEvents.filter(e => e.origin === c.value).length,
+  }))
+
+  const ownerOptions = mode === 'team'
+    ? PEOPLE.map(p => ({ value: p.id, label: p.name, count: baseEvents.filter(e => e.ownerId === p.id).length }))
+        .filter(o => o.count > 0)
+    : []
+
   const activeFilters = [
-    ...studioFilter.map(v => ({ key: `s:${v}`, label: STUDIOS[v]?.short,      clear: () => setStudioFilter(f => f.filter(x => x !== v)) })),
-    ...combinedTypeFilter.map(v => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label, clear: () => setActiveTypeFilter(f => f.filter(x => x !== v)) })),
+    ...studioFilter.map(v     => ({ key: `s:${v}`,  label: STUDIOS[v]?.short,                clear: () => setStudioFilter(f => f.filter(x => x !== v)) })),
+    ...combinedTypeFilter.map(v => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label,            clear: () => setActiveTypeFilter(f => f.filter(x => x !== v)) })),
+    ...categoryFilter.map(v   => ({ key: `c:${v}`,  label: CATEGORY_OPTIONS.find(c => c.value === v)?.label, clear: () => setCategoryFilter(f => f.filter(x => x !== v)) })),
+    ...ownerFilter.map(v      => ({ key: `o:${v}`,  label: PEOPLE.find(p => p.id === v)?.name, clear: () => setOwnerFilter(f => f.filter(x => x !== v)) })),
   ]
 
-  const clearAll = () => { setStudioFilter([]); setActiveTypeFilter([]) }
+  const clearAll = () => {
+    setStudioFilter([])
+    setActiveTypeFilter([])
+    setCategoryFilter([])
+    setOwnerFilter([])
+    setSortMode('default')
+  }
 
   return (
     <div className="wq-queue">
@@ -424,8 +473,31 @@ export default function WQQueue() {
             </button>
           )}
         </div>
-        <MultiSelect label="Studio"     options={studioOptions} selected={studioFilter}      onChange={setStudioFilter}      />
-        <MultiSelect label="Event Type" options={typeOptions}   selected={combinedTypeFilter} onChange={setActiveTypeFilter}  />
+        <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
+        <MultiSelect label="Type"  options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+        {mode === 'team' && (
+          <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+        )}
+      </div>
+
+      {/* Sort pills */}
+      <div className="wq-sort-bar">
+        <span className="wq-sort-label">Sort:</span>
+        {[
+          { id: 'default',  label: 'Default' },
+          { id: 'today',    label: 'Today',    icon: <CalendarDays size={11} /> },
+          { id: 'act-now',  label: 'Act Now',  icon: <Zap size={11} /> },
+          { id: 'critical', label: 'Critical', icon: <Flame size={11} /> },
+        ].map(s => (
+          <button
+            key={s.id}
+            className={`wq-sort-pill${sortMode === s.id ? ' wq-sort-pill--active' : ''}`}
+            onClick={() => setSortMode(prev => prev === s.id ? 'default' : s.id)}
+          >
+            {s.icon && s.icon}
+            {s.label}
+          </button>
+        ))}
       </div>
 
           {/* Active filter chips */}
