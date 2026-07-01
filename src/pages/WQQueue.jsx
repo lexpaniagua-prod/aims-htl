@@ -24,7 +24,8 @@ const TYPE_ACTIONS = {
 const CATEGORY_OPTIONS = [
   { value: 'approve',     label: 'Approvals',   group: 'type'   },
   { value: 'review',      label: 'Revisions',   group: 'type'   },
-  { value: 'respond',     label: 'Messages',    group: 'type'   },
+  { value: 'respond',     label: 'Respond',     group: 'type'   },
+  { value: 'message',     label: 'Messages',    group: 'type'   },
   { value: 'acknowledge', label: 'Audit',       group: 'type'   },
   { value: 'train',       label: 'Train Me',    group: 'type'   },
   { value: 'customer',    label: 'Customer',    group: 'origin' },

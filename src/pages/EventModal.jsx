@@ -53,6 +53,7 @@ function getInitialView(type, action) {
     resolve:     { 'Review Conflict': 'detail', Resolve: 'resolve' },
     acknowledge: { View: 'detail' },
     train:       { 'Review and Edit': 'detail', Promote: 'confirm-promote', Reject: 'confirm-reject' },
+    message:     { 'View Message': 'detail', Reply: 'detail' },
   }
   return MAP[type]?.[action] ?? 'detail'
 }
@@ -904,6 +905,130 @@ function TrainDetail({ event, editVal, setEditVal }) {
   )
 }
 
+// ── Message detail ─────────────────────────────────────────────────────────────
+
+const MSG_KIND_LABEL = { question: 'Question', 'attestation-request': 'Attestation Request', fyi: 'FYI' }
+
+function MessageDetail({ event, onDecide }) {
+  const md = event.messageData
+  const [reply, setReply] = useState('')
+  const [forwarding, setForwarding] = useState(false)
+  const [forwardTo, setForwardTo] = useState('')
+  const [sent, setSent] = useState(false)
+  const [forwarded, setForwarded] = useState(false)
+
+  if (!md) return <div className="evm-section"><p className="evm-situation-text">{event.detail}</p></div>
+
+  const kindLabel = MSG_KIND_LABEL[md.kind] || 'Message'
+  const msgCount = md.thread?.length ?? 0
+
+  function handleSendReply() {
+    setSent(true)
+    setReply('')
+    setTimeout(() => onDecide('Reply sent'), 800)
+  }
+
+  function handleForward() {
+    if (!forwardTo) return
+    setForwarded(true)
+    setTimeout(() => onDecide('Message forwarded'), 800)
+  }
+
+  return (
+    <>
+      <div className="evm-section">
+        <div className="evm-section-title">SITUATION</div>
+        <p className="evm-situation-text">{event.detail}</p>
+      </div>
+
+      <div className="evm-section">
+        <div className="evm-section-title evm-msg-thread-title">
+          <span>{kindLabel.toUpperCase()} · {md.subject}</span>
+          <span className="evm-msg-thread-count">{msgCount} {msgCount === 1 ? 'message' : 'messages'}</span>
+        </div>
+        <div className="evm-msg-thread">
+          {(md.thread || []).map((msg, i) => {
+            const sender = PEOPLE.find(p => p.id === msg.from)
+            const isLast = i === md.thread.length - 1
+            return (
+              <div key={i} className={`evm-msg-bubble${isLast ? ' evm-msg-bubble--latest' : ''}`}>
+                <div className="evm-msg-bubble-meta">
+                  <span className="evm-msg-bubble-avatar">{sender?.initials ?? '?'}</span>
+                  <span className="evm-msg-bubble-name">{sender?.name ?? 'Unknown'}</span>
+                  <span className="evm-msg-bubble-role">{sender?.role}</span>
+                  <span className="evm-msg-bubble-time">{fmtTs(msg.timestamp)}</span>
+                </div>
+                <div className="evm-msg-bubble-body">{msg.body}</div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="evm-section evm-msg-compose-section">
+        <div className="evm-section-title">YOUR REPLY</div>
+        {sent ? (
+          <div className="evm-msg-sent-banner">Reply sent successfully.</div>
+        ) : (
+          <>
+            <textarea
+              className="evm-form-textarea evm-msg-reply-input"
+              placeholder="Type your reply…"
+              rows={3}
+              value={reply}
+              onChange={e => setReply(e.target.value)}
+            />
+            <div className="evm-msg-compose-actions">
+              <button
+                className="wq-btn wq-btn--ghost evm-msg-forward-toggle"
+                onClick={() => setForwarding(f => !f)}
+              >
+                {forwarding ? '↑ Hide forward' : 'Forward →'}
+              </button>
+              <button
+                className="wq-btn wq-btn--primary"
+                disabled={!reply.trim()}
+                onClick={handleSendReply}
+              >
+                Send Reply →
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {forwarding && !sent && (
+        <div className="evm-section evm-msg-forward-section">
+          <div className="evm-section-title">FORWARD TO</div>
+          {forwarded ? (
+            <div className="evm-msg-sent-banner">Message forwarded.</div>
+          ) : (
+            <div className="evm-msg-forward-row">
+              <select
+                className="evm-form-select evm-msg-forward-select"
+                value={forwardTo}
+                onChange={e => setForwardTo(e.target.value)}
+              >
+                <option value="">— select person —</option>
+                {PEOPLE.filter(p => p.scope !== 'executive').map(p => (
+                  <option key={p.id} value={p.id}>{p.name} · {p.role}</option>
+                ))}
+              </select>
+              <button
+                className="wq-btn wq-btn--primary"
+                disabled={!forwardTo}
+                onClick={handleForward}
+              >
+                Confirm Forward →
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  )
+}
+
 // ── Confirm / form bodies ──────────────────────────────────────────────────────
 
 function ConfirmApproveBody({ event, note, setNote }) {
@@ -1192,6 +1317,14 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
     </>
   )
 
+  if (type === 'message') return (
+    <>
+      <div style={{ flex: 1 }} />
+      <button className="wq-btn wq-btn--ghost evm-escalate-btn" onClick={onEscalate}>Escalate</button>
+      <button className="wq-btn wq-btn--ghost" onClick={onClose}>Dismiss</button>
+    </>
+  )
+
   return <button className="wq-btn wq-btn--ghost" onClick={onClose}>Close</button>
 }
 
@@ -1215,6 +1348,7 @@ function BodyContent({ view, event, note, setNote, reason, setReason, choice, se
       case 'resolve':     return <ResolveDetail     event={event} choice={choice} setChoice={setChoice} />
       case 'acknowledge': return <AcknowledgeDetail event={event} />
       case 'train':       return <TrainDetail       event={event} editVal={editVal} setEditVal={setEditVal} />
+      case 'message':     return <MessageDetail     event={event} onDecide={onDecide} />
       default:            return <div className="evm-section"><p className="evm-situation-text">{event.detail}</p></div>
     }
   }

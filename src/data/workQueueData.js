@@ -15,6 +15,7 @@ export const EVENT_TYPES = {
   resolve:     { key: 'resolve',     label: 'Resolve',     verb: 'Resolve',     desc: 'Conflict or issue to be resolved',         color: '#f59e0b' },
   acknowledge: { key: 'acknowledge', label: 'Acknowledge', verb: 'Acknowledge', desc: 'Informational — confirm awareness',        color: '#10b981' },
   train:       { key: 'train',       label: 'Train Me',    verb: 'Decide',      desc: 'Human decision trains the model',          color: '#f43f5e' },
+  message:     { key: 'message',     label: 'Message',     verb: 'Reply',       desc: 'Agent-intercepted message requiring human review', color: '#06b6d4' },
 }
 
 // ─── Studios ──────────────────────────────────────────────────────────────────
@@ -278,6 +279,58 @@ export const EVENTS = [
     dueLabel: 'Open', type: 'resolve', origin: 'internal', dueToday: false, missionCritical: false,
     quickActions: ['Merge Entities', 'Keep Separate', 'Request More Data'],
     spec: 'ENT-DEDUP-0441', kind: 'Entity Resolution',
+  },
+
+  // ── Messages ──────────────────────────────────────────────────────────
+  {
+    id: 'EVT-019', severity: 'yellow', studio: 'gov', ownerId: 'p2',
+    title: 'Jordan T. asking about GE-FIN-001 vs GE-FIN-007 conflict',
+    detail: 'Jordan T. has a question about conflicting knowledge sources in the latest DIAN intake. Needs your context before they can proceed.',
+    blastRadius: { workflows: 0, agents: 0, description: '' },
+    dueLabel: 'Awaiting reply', type: 'message', origin: 'internal', dueToday: false, missionCritical: false,
+    quickActions: ['Reply', 'Forward', 'Dismiss'],
+    spec: 'MSG-0441', kind: 'Team Message',
+    messageData: {
+      kind: 'question',
+      subject: 'Quick question on GE-FIN conflict',
+      thread: [
+        {
+          from: 'p4',
+          timestamp: '2026-06-30T14:22:00Z',
+          body: 'Hey Marcus — quick question. Do you have context on why GE-FIN-001 and GE-FIN-007 are showing as conflicting in the latest DIAN intake? I can see them flagged but I don\'t have access to the original source documents to verify which one is actually correct. Is this something that was already reviewed last quarter?',
+        },
+      ],
+    },
+  },
+  {
+    id: 'EVT-020', severity: 'yellow', studio: 'agentic', ownerId: 'p6',
+    title: 'Morgan C. requesting attestation on SalesForecastPA migration',
+    detail: 'Morgan C. is asking Casey to confirm ownership of the SalesForecastPA migration before the Truth v3.1 cutover. Two messages unread.',
+    blastRadius: { workflows: 0, agents: 0, description: '' },
+    dueLabel: 'Reply needed', type: 'message', origin: 'internal', dueToday: true, missionCritical: false,
+    quickActions: ['Reply', 'Forward', 'Dismiss'],
+    spec: 'MSG-0512', kind: 'Attestation Request',
+    messageData: {
+      kind: 'attestation-request',
+      subject: 'SalesForecastPA — Truth v3.1 migration ownership',
+      thread: [
+        {
+          from: 'p10',
+          timestamp: '2026-07-01T08:45:00Z',
+          body: 'Casey — heads up on the SalesForecastPA workflow spec. It\'s still pinned to Truth v3.1 which retires Jul 1. Do you know if Taylor already started the migration, or do we need to escalate this?',
+        },
+        {
+          from: 'p6',
+          timestamp: '2026-07-01T08:52:00Z',
+          body: 'Looking into it now. Taylor was supposed to handle it but I haven\'t seen any PR yet.',
+        },
+        {
+          from: 'p10',
+          timestamp: '2026-07-01T09:03:00Z',
+          body: 'Can you take ownership and push the update today? I\'ll send the attestation once it\'s ready. We can\'t let this slip past cutover.',
+        },
+      ],
+    },
   },
 ]
 
