@@ -2974,6 +2974,14 @@ body.evm-active .drawer {
   font-size: 13px;
   font-family: inherit;
   box-sizing: border-box;
+  color-scheme: light;
+}
+[data-theme="dark"] .evm-form-select {
+  color-scheme: dark;
+}
+.evm-form-select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 /* ── Two-source comparison ────────────────────────────────────────────────────── */
@@ -6024,11 +6032,102 @@ body.evm-active .drawer {
 .evm-msg-forward-row {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: flex-start;
 }
-.evm-msg-forward-select {
+
+/* Custom person picker */
+.evm-picker {
   flex: 1;
   min-width: 0;
+  position: relative;
+}
+.evm-picker-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.evm-picker-trigger:hover {
+  border-color: var(--accent-blue);
+}
+.evm-picker-caret {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.evm-picker-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.evm-picker-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.evm-picker-option:hover {
+  background: var(--bg-hover);
+}
+.evm-picker-option--selected {
+  background: #3b82f614;
+  color: var(--accent-blue);
+}
+.evm-picker-option-name {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.evm-picker-option-role {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.evm-picker-avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg-hover);
+  border: 1px solid var(--border);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
 }
 
 /* Success banners */

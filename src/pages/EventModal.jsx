@@ -905,6 +905,42 @@ function TrainDetail({ event, editVal, setEditVal }) {
   )
 }
 
+// ── Themed person picker (replaces native select to fix dark-mode popup) ────────
+
+function PersonPicker({ value, onChange, people }) {
+  const [open, setOpen] = useState(false)
+  const selected = people.find(p => p.id === value)
+
+  return (
+    <div className="evm-picker" onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false) }} tabIndex={-1}>
+      <button
+        type="button"
+        className="evm-picker-trigger"
+        onClick={() => setOpen(o => !o)}
+      >
+        {selected ? <><span className="evm-picker-avatar">{selected.initials}</span>{selected.name} · {selected.role}</> : '— select person —'}
+        <span className="evm-picker-caret">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="evm-picker-list">
+          {people.map(p => (
+            <button
+              key={p.id}
+              type="button"
+              className={`evm-picker-option${value === p.id ? ' evm-picker-option--selected' : ''}`}
+              onMouseDown={() => { onChange(p.id); setOpen(false) }}
+            >
+              <span className="evm-picker-avatar">{p.initials}</span>
+              <span className="evm-picker-option-name">{p.name}</span>
+              <span className="evm-picker-option-role">{p.role}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Message detail ─────────────────────────────────────────────────────────────
 
 const MSG_KIND_LABEL = { question: 'Question', 'attestation-request': 'Attestation Request', fyi: 'FYI' }
@@ -1004,16 +1040,11 @@ function MessageDetail({ event, onDecide }) {
             <div className="evm-msg-sent-banner">Message forwarded.</div>
           ) : (
             <div className="evm-msg-forward-row">
-              <select
-                className="evm-form-select evm-msg-forward-select"
+              <PersonPicker
                 value={forwardTo}
-                onChange={e => setForwardTo(e.target.value)}
-              >
-                <option value="">— select person —</option>
-                {PEOPLE.filter(p => p.scope !== 'executive').map(p => (
-                  <option key={p.id} value={p.id}>{p.name} · {p.role}</option>
-                ))}
-              </select>
+                onChange={setForwardTo}
+                people={PEOPLE.filter(p => p.scope !== 'executive')}
+              />
               <button
                 className="wq-btn wq-btn--primary"
                 disabled={!forwardTo}
