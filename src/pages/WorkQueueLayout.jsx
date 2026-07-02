@@ -8,6 +8,7 @@ const TABS = [
   { label: 'Overview',     path: '/work-queue/overview'     },
   { label: 'Work Queues',  path: '/work-queue/work-queues'  },
   { label: 'Messages',     path: '/work-queue/messages'     },
+  { label: 'Messages',     path: '/work-queue/messages-proposal', proposal: true },
   { label: 'Activity',     path: '/work-queue/activity'     },
   { label: 'Attestations', path: '/work-queue/attestations' },
   { label: 'Task View',    path: '/work-queue/task-view',   proposal: true },
@@ -169,7 +170,7 @@ export default function WorkQueueLayout() {
         <div className="wq-subnav">
           <nav className="wq-tabs">
             {TABS.map(t => {
-              const active = location.pathname.startsWith(t.path)
+              const active = location.pathname === t.path || location.pathname.startsWith(t.path + '/')
               return (
                 <NavLink
                   key={t.path}

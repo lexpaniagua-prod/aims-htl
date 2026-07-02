@@ -23,6 +23,7 @@ import WQActivity from './pages/WQActivity.jsx'
 import WQAttestations from './pages/WQAttestations.jsx'
 import WQTaskView from './pages/WQTaskView.jsx'
 import WQMessages from './pages/WQMessages.jsx'
+import WQMessagesProposal from './pages/WQMessagesProposal.jsx'
 import Overview from './pages/Overview.jsx'
 import Routing from './pages/Routing.jsx'
 import Destinations from './pages/Destinations.jsx'
@@ -339,6 +340,7 @@ export default function App() {
               <Route path="work-queues" element={<WQQueue />} />
               <Route path="queue" element={<Navigate to="/work-queue/work-queues" replace />} />
               <Route path="messages" element={<WQMessages />} />
+              <Route path="messages-proposal" element={<WQMessagesProposal />} />
               <Route path="activity" element={<WQActivity />} />
               <Route path="attestations" element={<WQAttestations />} />
               <Route path="task-view" element={<WQTaskView />} />

@@ -33,6 +33,17 @@ const CATEGORY_OPTIONS = [
 ]
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+const TODAY = '2026-07-02'
+
+function dueUrgency(event) {
+  if (!event.dueDate) return 'none'
+  if (event.dueDate < TODAY)  return 'overdue'
+  if (event.dueDate === TODAY) return 'today'
+  const diff = (new Date(event.dueDate) - new Date(TODAY)) / 86400000
+  if (diff <= 7) return 'week'
+  return 'future'
+}
+
 function personName(id) {
   return PEOPLE.find(p => p.id === id)?.name || id
 }
@@ -122,6 +133,7 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
   const owner  = PEOPLE.find(p => p.id === event.ownerId)
   const isOwn      = event.ownerId === currentUser.id
   const isCovering = event.coveringFor && delegatedTo(event) === currentUser.id
+  const urgency = dueUrgency(event)
 
   const actions  = TYPE_ACTIONS[event.type] || ['View']
   const [primary, ...secondary] = actions
@@ -177,7 +189,9 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
             </button>
           )}
           <span className="wq-card-id">{event.id}</span>
-          <span className="wq-card-due">{event.dueLabel}</span>
+          {event.dueLabel && (
+            <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
+          )}
         </div>
       </div>
 
@@ -304,6 +318,7 @@ export default function WQQueue() {
   const [sortMode,       setSortMode]       = useState('default')
   const [categoryFilter, setCategoryFilter] = useState([])
   const [ownerFilter,    setOwnerFilter]    = useState([])
+  const [dueFilter,      setDueFilter]      = useState([])
 
   // Deep-link filters from Overview CTAs
   const initSev  = searchParams.get('severity')
@@ -385,21 +400,33 @@ export default function WQQueue() {
         const matchesOrigin = categoryFilter.includes(e.origin)
         if (!matchesType && !matchesOrigin) return false
       }
+      if (dueFilter.length) {
+        const urg = dueUrgency(e)
+        if (!dueFilter.includes(urg)) return false
+      }
       if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec?.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
       if (sortMode === 'today')    return e.dueToday === true
       if (sortMode === 'act-now')  return e.severity === 'now'
       if (sortMode === 'critical') return e.severity === 'now' || e.severity === 'red'
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter, categoryFilter, ownerFilter, sortMode, mode])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter, categoryFilter, ownerFilter, dueFilter, sortMode, mode])
 
   const grouped = SEVERITY_ORDER.map(sev => {
     const events = filtered.filter(e => e.severity === sev)
-    const sorted = [
-      ...events.filter(e => !skippedIds.has(e.id)),
-      ...events.filter(e =>  skippedIds.has(e.id)),
-    ]
-    return { sev, events: sorted }
+    const active  = events.filter(e => !skippedIds.has(e.id))
+    const skipped = events.filter(e =>  skippedIds.has(e.id))
+
+    const sortedActive = sortMode === 'due-date'
+      ? [...active].sort((a, b) => {
+          if (!a.dueDate && !b.dueDate) return 0
+          if (!a.dueDate) return 1
+          if (!b.dueDate) return -1
+          return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0
+        })
+      : active
+
+    return { sev, events: [...sortedActive, ...skipped] }
   }).filter(g => g.events.length > 0)
 
   const studioOptions = Object.values(STUDIOS).map(s => ({
@@ -424,11 +451,21 @@ export default function WQQueue() {
         .filter(o => o.count > 0)
     : []
 
+  const DUE_OPTIONS = [
+    { value: 'overdue', label: 'Overdue', count: baseEvents.filter(e => dueUrgency(e) === 'overdue').length },
+    { value: 'today',   label: 'Due Today', count: baseEvents.filter(e => dueUrgency(e) === 'today').length },
+    { value: 'week',    label: 'This Week', count: baseEvents.filter(e => dueUrgency(e) === 'week').length },
+    { value: 'none',    label: 'No Date',   count: baseEvents.filter(e => dueUrgency(e) === 'none').length },
+  ]
+
+  const DUE_LABEL = { overdue: 'Overdue', today: 'Due today', week: 'This week', none: 'No date' }
+
   const activeFilters = [
     ...studioFilter.map(v     => ({ key: `s:${v}`,  label: STUDIOS[v]?.short,                clear: () => setStudioFilter(f => f.filter(x => x !== v)) })),
     ...combinedTypeFilter.map(v => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label,            clear: () => setActiveTypeFilter(f => f.filter(x => x !== v)) })),
     ...categoryFilter.map(v   => ({ key: `c:${v}`,  label: CATEGORY_OPTIONS.find(c => c.value === v)?.label, clear: () => setCategoryFilter(f => f.filter(x => x !== v)) })),
     ...ownerFilter.map(v      => ({ key: `o:${v}`,  label: PEOPLE.find(p => p.id === v)?.name, clear: () => setOwnerFilter(f => f.filter(x => x !== v)) })),
+    ...dueFilter.map(v        => ({ key: `d:${v}`,  label: DUE_LABEL[v],                      clear: () => setDueFilter(f => f.filter(x => x !== v)) })),
   ]
 
   const clearAll = () => {
@@ -436,6 +473,7 @@ export default function WQQueue() {
     setActiveTypeFilter([])
     setCategoryFilter([])
     setOwnerFilter([])
+    setDueFilter([])
     setSortMode('default')
   }
 
@@ -475,7 +513,8 @@ export default function WQQueue() {
           )}
         </div>
         <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
-        <MultiSelect label="Type"  options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+        <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
+        <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
         {mode === 'team' && (
           <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
         )}
@@ -489,6 +528,7 @@ export default function WQQueue() {
           { id: 'today',    label: 'Today',    icon: <CalendarDays size={11} /> },
           { id: 'act-now',  label: 'Act Now',  icon: <Zap size={11} /> },
           { id: 'critical', label: 'Critical', icon: <Flame size={11} /> },
+          { id: 'due-date', label: 'Due Date', icon: <CalendarDays size={11} /> },
         ].map(s => (
           <button
             key={s.id}
