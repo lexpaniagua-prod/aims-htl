@@ -1,16 +1,18 @@
 ﻿import { useState, useEffect } from 'react'
-import { X, AlertTriangle, CheckCircle, FileText } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, AlertTriangle, CheckCircle, FileText, ExternalLink } from 'lucide-react'
 import {
   EVENT_TYPES, PEOPLE, ATTESTATIONS, AUDIT_LOG, EVENT_MODAL_DATA,
 } from '../data/workQueueData'
+import CommentsSection from './EventComments'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function fmtTs(iso) {
+export function fmtTs(iso) {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-const SEV_COLORS  = { now: '#f43f5e', red: '#ef4444', yellow: '#f59e0b', green: '#10b981' }
+export const SEV_COLORS  = { now: '#f43f5e', red: '#ef4444', yellow: '#f59e0b', green: '#10b981' }
 const SEV_LABELS  = { now: 'Act Now', red: 'Critical', yellow: 'Action', green: 'Heads-up' }
 
 // ── Confirm Review Banner — shown above every confirmation form ────────────────
@@ -45,7 +47,7 @@ function ConfirmReviewBanner({ event, onReviewDetail }) {
   )
 }
 
-function getInitialView(type, action) {
+export function getInitialView(type, action) {
   const MAP = {
     approve:     { Review: 'detail', Approve: 'confirm-approve', Reject: 'confirm-reject' },
     review:      { 'Open Review': 'detail', 'Request Changes': 'change-request', Approve: 'confirm-approve' },
@@ -1191,7 +1193,7 @@ function AcceptConfirmBody({ event, choice }) {
 
 // ── Attestation + Audit block ──────────────────────────────────────────────────
 
-function AttestAuditBlock({ event, onRequestAttestation }) {
+export function AttestAuditBlock({ event, onRequestAttestation }) {
   const linked = ATTESTATIONS.filter(a => a.linkedEvent === event.id)
   const eventLogs = AUDIT_LOG
     .filter(a => a.artifact?.includes(event.id) || a.artifact?.includes(event.spec))
@@ -1230,7 +1232,7 @@ function AttestAuditBlock({ event, onRequestAttestation }) {
 
 // ── Footer actions ─────────────────────────────────────────────────────────────
 
-function FooterActions({ view, event, reason, changeRequest, setView, setChoice, onEscalate, onDecide, onClose }) {
+export function FooterActions({ view, event, reason, changeRequest, setView, setChoice, onEscalate, onDecide, onClose }) {
   const type = event.type
 
   if (view === 'confirm-approve') return (
@@ -1361,9 +1363,9 @@ function FooterActions({ view, event, reason, changeRequest, setView, setChoice,
 
 // ── Body router ────────────────────────────────────────────────────────────────
 
-const CONFIRM_VIEW_SET = new Set(['confirm-approve', 'confirm-reject', 'change-request', 'confirm-promote', 'accept-confirm'])
+export const CONFIRM_VIEW_SET = new Set(['confirm-approve', 'confirm-reject', 'change-request', 'confirm-promote', 'accept-confirm'])
 
-function BodyContent({ view, event, note, setNote, reason, setReason, choice, setChoice, editVal, setEditVal, changeRequest, setChangeRequest, assignTo, setAssignTo, dueBy, setDueBy, onDecide, onReviewDetail }) {
+export function BodyContent({ view, event, note, setNote, reason, setReason, choice, setChoice, editVal, setEditVal, changeRequest, setChangeRequest, assignTo, setAssignTo, dueBy, setDueBy, onDecide, onReviewDetail }) {
   function inner() {
     if (view === 'confirm-approve') return <ConfirmApproveBody event={event} note={note} setNote={setNote} />
     if (view === 'confirm-reject')  return <ConfirmRejectBody  event={event} reason={reason} setReason={setReason} />
@@ -1395,7 +1397,7 @@ function BodyContent({ view, event, note, setNote, reason, setReason, choice, se
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
-const VIEW_LABELS = {
+export const VIEW_LABELS = {
   detail:           'Event Detail',
   respond:          'Resolution Options',
   resolve:          'Source Comparison',
@@ -1406,7 +1408,11 @@ const VIEW_LABELS = {
   'accept-confirm':  'Confirm Resolution',
 }
 
-export default function EventModal({ event, action, onClose, onRequestAttestation, onEscalate, onDecide }) {
+export default function EventModal({
+  event, action, onClose, onRequestAttestation, onEscalate, onDecide,
+  currentUser, commentThread, onAddComment, onCloseThread, onReopenThread, notify,
+  focusComments, commentsSignal,
+}) {
   const [view,          setView]          = useState(() => getInitialView(event?.type, action))
   const [note,          setNote]          = useState('')
   const [reason,        setReason]        = useState('')
@@ -1415,6 +1421,7 @@ export default function EventModal({ event, action, onClose, onRequestAttestatio
   const [changeRequest, setChangeRequest] = useState('')
   const [assignTo,      setAssignTo]      = useState(null)
   const [dueBy,         setDueBy]         = useState('')
+  const navigate = useNavigate()
 
   useEffect(() => {
     document.body.classList.add('evm-active')
@@ -1444,7 +1451,16 @@ export default function EventModal({ event, action, onClose, onRequestAttestatio
               <span className="evm-header-kind">{event.kind}</span>
               <span className="evm-header-type" style={{ color: etype.color }}>{etype.label.toUpperCase()}</span>
             </div>
-            <button className="evm-close-btn" onClick={onClose} aria-label="Close"><X size={16} /></button>
+            <div className="evm-header-actions">
+              <button
+                className="evm-fullpage-link"
+                title="Open full page"
+                onClick={() => navigate(`/work-queue/event/${event.id}`)}
+              >
+                Open full page <ExternalLink size={11} />
+              </button>
+              <button className="evm-close-btn" onClick={onClose} aria-label="Close"><X size={16} /></button>
+            </div>
           </div>
           <div className="evm-header-title">{event.title}</div>
           <div className="evm-header-sub">
@@ -1470,6 +1486,18 @@ export default function EventModal({ event, action, onClose, onRequestAttestatio
           </div>
           {showAudit && (
             <AttestAuditBlock event={event} onRequestAttestation={onRequestAttestation} />
+          )}
+          {currentUser && (
+            <CommentsSection
+              event={event}
+              thread={commentThread}
+              currentUser={currentUser}
+              onAddComment={onAddComment}
+              onCloseThread={onCloseThread}
+              onReopenThread={onReopenThread}
+              notify={notify}
+              focusSignal={focusComments ? commentsSignal : 0}
+            />
           )}
         </div>
 

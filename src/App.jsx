@@ -24,6 +24,7 @@ import WQAttestations from './pages/WQAttestations.jsx'
 import WQTaskView from './pages/WQTaskView.jsx'
 import WQMessages from './pages/WQMessages.jsx'
 import WQMessagesProposal from './pages/WQMessagesProposal.jsx'
+import WQEventPage from './pages/WQEventPage.jsx'
 import Overview from './pages/Overview.jsx'
 import Routing from './pages/Routing.jsx'
 import Destinations from './pages/Destinations.jsx'
@@ -344,6 +345,7 @@ export default function App() {
               <Route path="activity" element={<WQActivity />} />
               <Route path="attestations" element={<WQAttestations />} />
               <Route path="task-view" element={<WQTaskView />} />
+              <Route path="event/:id" element={<WQEventPage />} />
             </Route>
             <Route path="/inbox/items/:id" element={<InboxItem />} />
             <Route path="/inbox/handled" element={<Handled />} />

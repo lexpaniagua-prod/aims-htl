@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, SkipForward, CalendarDays, Flame, Zap
+  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, Flame, Zap, MoreVertical, Check, MessageSquare
 } from 'lucide-react'
-import { Drawer } from '../components/Modal'
+import { Drawer, Modal } from '../components/Modal'
 import {
   EVENTS, SEVERITY, SEVERITY_ORDER, EVENT_TYPES, STUDIOS, PEOPLE
 } from '../data/workQueueData'
@@ -54,23 +54,23 @@ function delegatedTo(event) {
   return owner.ooo.delegate
 }
 
-function getMyEvents(currentUser) {
-  return EVENTS.filter(e => {
+function getMyEvents(events, currentUser) {
+  return events.filter(e => {
     if (e.ownerId === currentUser.id) return true
     const delegatee = delegatedTo(e)
     return delegatee === currentUser.id
   })
 }
 
-function getTeamEvents(currentUser) {
-  if (currentUser.scope === 'executive') return EVENTS
+function getTeamEvents(events, currentUser) {
+  if (currentUser.scope === 'executive') return events
   if (currentUser.scope === 'manager') {
-    return EVENTS.filter(e => {
+    return events.filter(e => {
       const owner = PEOPLE.find(p => p.id === e.ownerId)
       return owner && currentUser.studios.some(s => owner.studios.includes(s))
     })
   }
-  return EVENTS.filter(e => e.ownerId === currentUser.id || delegatedTo(e) === currentUser.id)
+  return events.filter(e => e.ownerId === currentUser.id || delegatedTo(e) === currentUser.id)
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -125,8 +125,47 @@ function TraceDrawer({ event, onClose }) {
   )
 }
 
+// ─── Card overflow menu (My Team: Take it / Nudge / Reassign) ─────────────────
+function CardMenu({ onTakeIt, onNudge, onReassign }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const pick = (fn) => {
+    setOpen(false)
+    fn()
+  }
+
+  return (
+    <div className="wq-card-menu-wrap" ref={wrapRef}>
+      <button
+        className="wq-card-menu-btn"
+        title="More actions"
+        onClick={() => setOpen(o => !o)}
+      >
+        <MoreVertical size={13} />
+      </button>
+      {open && (
+        <div className="wq-card-menu">
+          <button onClick={() => pick(onTakeIt)}>Take it</button>
+          <button onClick={() => pick(onNudge)}>Nudge</button>
+          <button onClick={() => pick(onReassign)}>Reassign</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── EventCard ────────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, onAskTeammate, isSkipped, isEscalated }) {
+function EventCard({ event, currentUser, teamMode, onTrace, onDetails, onSkip, onAskTeammate, onEscalate, onTakeIt, onNudge, onReassign, isSkipped, isEscalated, thread, hasUnread }) {
   const sev    = SEVERITY[event.severity]
   const etype  = EVENT_TYPES[event.type]
   const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
@@ -134,9 +173,7 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
   const isOwn      = event.ownerId === currentUser.id
   const isCovering = event.coveringFor && delegatedTo(event) === currentUser.id
   const urgency = dueUrgency(event)
-
-  const actions  = TYPE_ACTIONS[event.type] || ['View']
-  const [primary, ...secondary] = actions
+  const commentCount = thread?.comments.length || 0
 
   return (
     <div className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}>
@@ -174,28 +211,45 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
             <span className="wq-badge wq-badge--escalated">Escalated</span>
           )}
         </div>
-        {/* Trace + Skip + meta */}
+        {/* Trace + overflow menu + Skip + meta */}
         <div className="wq-card-right">
           <button className="wq-trace-btn" onClick={() => onTrace(event)}>
             <GitBranch size={10} /> Trace
           </button>
+          {teamMode && !isSkipped && (
+            <CardMenu
+              onTakeIt={() => onTakeIt(event)}
+              onNudge={() => onNudge(event)}
+              onReassign={() => onReassign(event)}
+            />
+          )}
           {!isSkipped && (
             <button
               className="wq-skip-icon-btn"
-              title="Skip — resurfaces in 2 hours"
+              title="Skip — resurfaces in 2h"
               onClick={() => onSkip(event)}
             >
-              <SkipForward size={12} />
+              <ChevronDown size={13} />
             </button>
           )}
           <span className="wq-card-id">{event.id}</span>
+          {thread && (
+            <button
+              className={`wq-comment-indicator${hasUnread ? ' wq-comment-indicator--unread' : ''}`}
+              title={`${commentCount} comment${commentCount === 1 ? '' : 's'}`}
+              onClick={() => onAskTeammate(event)}
+            >
+              <MessageSquare size={12} />
+              <span>{commentCount}</span>
+            </button>
+          )}
           {event.dueLabel && (
             <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
           )}
         </div>
       </div>
 
-      {/* Body: content (left) + actions (right) */}
+      {/* Body: content (left) + actions row (right, fills the empty space) */}
       <div className="wq-card-body">
         <div className="wq-card-content">
           <div className="wq-card-title">{event.title}</div>
@@ -209,26 +263,84 @@ function EventCard({ event, currentUser, teamMode, onTrace, onAction, onSkip, on
         </div>
 
         {!isSkipped && (
-          <div className="wq-card-action-col">
-            <button className="wq-btn wq-btn--primary" onClick={() => onAction(event, primary)}>
-              {primary}
-            </button>
-            {secondary.map(a => (
-              <button key={a} className="wq-btn wq-btn--ghost" onClick={() => onAction(event, a)}>
-                {a}
-              </button>
-            ))}
-            <div className="wq-card-action-secondary">
-              <button className="wq-btn wq-btn--ask" onClick={() => onAskTeammate(event)}>Ask</button>
-              {event.type === 'train' && (
-                <button className="wq-btn wq-btn--train" onClick={() => onAction(event, 'Review and Edit')}>Train</button>
-              )}
-              <button className="wq-btn wq-btn--escalate" onClick={() => onAction(event, 'Escalate')}>Escalate</button>
-            </div>
+          <div className="wq-card-action-row">
+            <button className="wq-btn wq-btn--primary" onClick={() => onDetails(event)}>Details</button>
+            <button className="wq-btn wq-btn--ghost" onClick={() => onAskTeammate(event)}>Ask</button>
+            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
           </div>
         )}
       </div>
     </div>
+  )
+}
+
+// ─── Reassign modal (My Team overflow menu) ────────────────────────────────────
+function ReassignModal({ event, onClose, onConfirm }) {
+  const [query, setQuery] = useState('')
+  const [pickedId, setPickedId] = useState(null)
+
+  const candidates = useMemo(() => {
+    const q = query.toLowerCase()
+    return PEOPLE.filter(p =>
+      p.id !== event.ownerId &&
+      (!q || p.name.toLowerCase().includes(q) || p.role.toLowerCase().includes(q) || p.dept.toLowerCase().includes(q))
+    )
+  }, [query, event.ownerId])
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title="Reassign Event"
+      subtitle={`${event.id} · ${event.title.slice(0, 55)}`}
+      size="md"
+      footer={
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button className="wq-btn wq-btn--ghost" onClick={onClose}>Cancel</button>
+          <button
+            className="wq-btn wq-btn--primary"
+            disabled={!pickedId}
+            onClick={() => onConfirm(pickedId)}
+          >
+            Reassign
+          </button>
+        </div>
+      }
+    >
+      <div className="esc-body">
+        <div className="esc-field">
+          <label className="esc-label">Reassign to</label>
+          <div className="esc-search-wrap">
+            <Search size={12} className="esc-search-icon" />
+            <input
+              className="esc-search-input"
+              placeholder="Search person…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="esc-people">
+            {candidates.map(p => {
+              const isOn = pickedId === p.id
+              return (
+                <button
+                  key={p.id}
+                  className={`esc-person${isOn ? ' esc-person--on' : ''}`}
+                  onClick={() => setPickedId(isOn ? null : p.id)}
+                >
+                  <span className="esc-initials">{p.initials}</span>
+                  <div className="esc-person-info">
+                    <span className="esc-person-name">{p.name}</span>
+                    <span className="esc-person-role">{p.role} · {p.dept}</span>
+                  </div>
+                  {isOn && <Check size={13} style={{ color: 'var(--accent-blue)', marginLeft: 'auto' }} />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </Modal>
   )
 }
 
@@ -292,7 +404,7 @@ function MultiSelect({ label, options, selected, onChange }) {
 
 // ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
-  const { currentUser } = useOutletContext()
+  const { currentUser, commentThreads, addComment, closeThread, reopenThread, notify } = useOutletContext()
   const [searchParams, setSearchParams] = useSearchParams()
 
   // Derive view + mode from URL
@@ -308,12 +420,19 @@ export default function WQQueue() {
   const [activeModal,    setActiveModal]    = useState(null)
   const [attestTarget,   setAttestTarget]   = useState(null)
   const [escalateTarget, setEscalateTarget] = useState(null)
+  const [reassignTarget, setReassignTarget] = useState(null)
 
   // Event status sets
   const [skippedIds,   setSkippedIds]   = useState(new Set())
   const [resolvedIds,  setResolvedIds]  = useState(new Set())
   const [escalatedIds, setEscalatedIds] = useState(new Set())
   const [toast, setToast] = useState(null)
+
+  // Local ownership overrides (Take it / Reassign) — never mutates workQueueData.js
+  const [ownerOverrides, setOwnerOverrides] = useState({})
+
+  // Comment threads the current persona has opened this session — drives the unread indicator
+  const [readThreads, setReadThreads] = useState(new Set())
 
   const [sortMode,       setSortMode]       = useState('default')
   const [categoryFilter, setCategoryFilter] = useState([])
@@ -324,31 +443,45 @@ export default function WQQueue() {
   const initSev  = searchParams.get('severity')
   const initType = searchParams.get('type')
 
-  const [sevFilter]  = useState(initSev  ? [initSev]  : [])
+  const [sevFilter, setSevFilter] = useState(initSev ? [initSev] : [])
   const [activeTypeFilter, setActiveTypeFilter] = useState(initType ? [initType] : typeFilter)
 
-  // Scroll to severity group when arriving via Overview CTA
+  const toggleSeverityFilter = (sev) => {
+    setSevFilter(prev => prev.includes(sev) ? prev.filter(s => s !== sev) : [...prev, sev])
+  }
+
+  // Scroll to first matching card when arriving via Overview CTA
   useEffect(() => {
     if (!initSev) return
     const t = setTimeout(() => {
-      const el = document.querySelector(`.wq-group-header--${initSev}`)
+      const el = document.querySelector(`.wq-event-card--${initSev}`)
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 120)
     return () => clearTimeout(t)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handlers
-  const handleAction = (event, action) => {
-    if (action === 'Escalate') {
-      setEscalateTarget(event)
-      return
-    }
-    if (action === 'Acknowledge') {
-      setResolvedIds(prev => new Set([...prev, event.id]))
-      setToast('Acknowledged — logged to audit')
-      return
-    }
-    setActiveModal({ event, action })
+  const handleDetails = (event) => {
+    const defaultAction = TYPE_ACTIONS[event.type]?.[0] || 'View'
+    setActiveModal({ event, action: defaultAction, focusComments: false, commentsSignal: 0 })
+    setReadThreads(prev => new Set([...prev, event.id]))
+  }
+
+  // Ask opens the same slideout scrolled to Comments. If it's already open for
+  // this event, just bump the signal so the effect re-fires and re-scrolls.
+  const handleAsk = (event) => {
+    setActiveModal(prev => {
+      if (prev && prev.event.id === event.id) {
+        return { ...prev, focusComments: true, commentsSignal: (prev.commentsSignal || 0) + 1 }
+      }
+      const defaultAction = TYPE_ACTIONS[event.type]?.[0] || 'View'
+      return { event, action: defaultAction, focusComments: true, commentsSignal: 1 }
+    })
+    setReadThreads(prev => new Set([...prev, event.id]))
+  }
+
+  const handleEscalateCard = (event) => {
+    setEscalateTarget(event)
   }
 
   const handleModalDecide = (msg) => {
@@ -375,25 +508,49 @@ export default function WQQueue() {
     setToast('Skipped — will resurface in 2 hours')
   }
 
-  const handleAskTeammate = (event) => {
-    setAttestTarget({ event, mode: 'informal' })
-  }
-
   const handleRequestAttestation = (event) => {
     setAttestTarget({ event: activeModal?.event || event, mode: 'formal' })
   }
 
-  const baseEvents = mode === 'my' ? getMyEvents(currentUser) : getTeamEvents(currentUser)
+  const handleTakeIt = (event) => {
+    setOwnerOverrides(prev => ({ ...prev, [event.id]: currentUser.id }))
+    setToast(`You took ${event.id}`)
+  }
+
+  const handleNudge = (event) => {
+    const owner = PEOPLE.find(p => p.id === event.ownerId)
+    setToast(`Nudged ${owner?.name || 'owner'} on ${event.id}`)
+  }
+
+  const handleReassignOpen = (event) => {
+    setReassignTarget(event)
+  }
+
+  const handleReassignConfirm = (personId) => {
+    if (reassignTarget) {
+      setOwnerOverrides(prev => ({ ...prev, [reassignTarget.id]: personId }))
+      const person = PEOPLE.find(p => p.id === personId)
+      setToast(`Reassigned to ${person?.name || 'teammate'}`)
+    }
+    setReassignTarget(null)
+  }
+
+  const effectiveEvents = useMemo(() => {
+    if (!Object.keys(ownerOverrides).length) return EVENTS
+    return EVENTS.map(e => ownerOverrides[e.id] ? { ...e, ownerId: ownerOverrides[e.id] } : e)
+  }, [ownerOverrides])
+
+  const baseEvents = mode === 'my' ? getMyEvents(effectiveEvents, currentUser) : getTeamEvents(effectiveEvents, currentUser)
 
   const combinedTypeFilter = initType ? activeTypeFilter : typeFilter
 
-  const filtered = useMemo(() => {
+  // Filters excluding severity — used to compute live counts on the severity chips
+  const preSeverityFiltered = useMemo(() => {
     const q = search.toLowerCase()
     return baseEvents.filter(e => {
       if (resolvedIds.has(e.id)) return false
       if (studioFilter.length && !studioFilter.includes(e.studio)) return false
       if (combinedTypeFilter.length && !combinedTypeFilter.includes(e.type)) return false
-      if (sevFilter.length && !sevFilter.includes(e.severity)) return false
       if (mode === 'team' && ownerFilter.length && !ownerFilter.includes(e.ownerId)) return false
       if (categoryFilter.length) {
         const matchesType   = categoryFilter.includes(e.type)
@@ -410,9 +567,23 @@ export default function WQQueue() {
       if (sortMode === 'critical') return e.severity === 'now' || e.severity === 'red'
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, sevFilter, categoryFilter, ownerFilter, dueFilter, sortMode, mode])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, dueFilter, sortMode, mode])
 
-  const grouped = SEVERITY_ORDER.map(sev => {
+  const filtered = useMemo(() => {
+    if (!sevFilter.length) return preSeverityFiltered
+    return preSeverityFiltered.filter(e => sevFilter.includes(e.severity))
+  }, [preSeverityFiltered, sevFilter])
+
+  const severityCounts = useMemo(() => {
+    const counts = {}
+    SEVERITY_ORDER.forEach(sev => {
+      counts[sev] = preSeverityFiltered.filter(e => e.severity === sev).length
+    })
+    return counts
+  }, [preSeverityFiltered])
+
+  // Flat list, severity descending — active events first within each tier, skipped at the bottom
+  const flatEvents = SEVERITY_ORDER.flatMap(sev => {
     const events = filtered.filter(e => e.severity === sev)
     const active  = events.filter(e => !skippedIds.has(e.id))
     const skipped = events.filter(e =>  skippedIds.has(e.id))
@@ -426,8 +597,8 @@ export default function WQQueue() {
         })
       : active
 
-    return { sev, events: [...sortedActive, ...skipped] }
-  }).filter(g => g.events.length > 0)
+    return [...sortedActive, ...skipped]
+  })
 
   const studioOptions = Object.values(STUDIOS).map(s => ({
     value: s.key, label: s.name,
@@ -474,11 +645,32 @@ export default function WQQueue() {
     setCategoryFilter([])
     setOwnerFilter([])
     setDueFilter([])
+    setSevFilter([])
     setSortMode('default')
   }
 
   return (
     <div className="wq-queue">
+
+      {/* ── Severity stat chips ─────────────────────────────────────────── */}
+      <div className="wq-sev-chips">
+        {SEVERITY_ORDER.map(sev => {
+          const meta = SEVERITY[sev]
+          const active = sevFilter.includes(sev)
+          return (
+            <button
+              key={sev}
+              className={`wq-sev-chip${active ? ' wq-sev-chip--active' : ''}`}
+              style={active ? { background: meta.color, borderColor: meta.color } : { borderColor: meta.color + '55' }}
+              onClick={() => toggleSeverityFilter(sev)}
+            >
+              <span className="wq-sev-chip-dot" style={{ background: active ? '#fff' : meta.color }} />
+              {meta.label}
+              <span className="wq-sev-chip-count">{severityCounts[sev] || 0}</span>
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── Filter bar with My Work / My Team toggle ─────────────────────── */}
       <div className="wq-filter-bar">
@@ -554,36 +746,37 @@ export default function WQQueue() {
             </div>
           )}
 
-          {/* Event list */}
-          {grouped.length === 0 ? (
+          {/* Event list — flat, severity descending, no section headers */}
+          {flatEvents.length === 0 ? (
             <div className="wq-empty">No events match the current filters.</div>
           ) : (
-            grouped.map(({ sev, events }) => {
-              const meta = SEVERITY[sev]
-              return (
-                <div key={sev} className="wq-severity-group">
-                  <div className={`wq-group-header wq-group-header--${sev}`}>
-                    <span className={`wq-group-dot wq-group-dot--${sev}`} />
-                    <span className="wq-group-label">{meta.label}</span>
-                    <span className="wq-group-count">{events.length}</span>
-                  </div>
-                  {events.map(e => (
-                    <EventCard
-                      key={e.id}
-                      event={e}
-                      currentUser={currentUser}
-                      teamMode={mode === 'team'}
-                      onTrace={setTraceEvent}
-                      onAction={handleAction}
-                      onSkip={handleSkip}
-                      onAskTeammate={handleAskTeammate}
-                      isSkipped={skippedIds.has(e.id)}
-                      isEscalated={escalatedIds.has(e.id)}
-                    />
-                  ))}
-                </div>
-              )
-            })
+            <div className="wq-event-list">
+              {flatEvents.map(e => {
+                const thread = commentThreads?.[e.id]
+                const hasUnread = !!thread && thread.status === 'open' && !readThreads.has(e.id) &&
+                  thread.comments.some(c => c.authorId !== currentUser.id)
+                return (
+                  <EventCard
+                    key={e.id}
+                    event={e}
+                    currentUser={currentUser}
+                    teamMode={mode === 'team'}
+                    onTrace={setTraceEvent}
+                    onDetails={handleDetails}
+                    onSkip={handleSkip}
+                    onAskTeammate={handleAsk}
+                    onEscalate={handleEscalateCard}
+                    onTakeIt={handleTakeIt}
+                    onNudge={handleNudge}
+                    onReassign={handleReassignOpen}
+                    isSkipped={skippedIds.has(e.id)}
+                    isEscalated={escalatedIds.has(e.id)}
+                    thread={thread}
+                    hasUnread={hasUnread}
+                  />
+                )
+              })}
+            </div>
           )}
 
       {/* Trace drawer */}
@@ -598,6 +791,14 @@ export default function WQQueue() {
           onRequestAttestation={() => handleRequestAttestation(activeModal.event)}
           onEscalate={handleModalEscalate}
           onDecide={handleModalDecide}
+          currentUser={currentUser}
+          commentThread={commentThreads?.[activeModal.event.id]}
+          onAddComment={addComment}
+          onCloseThread={closeThread}
+          onReopenThread={reopenThread}
+          notify={notify}
+          focusComments={activeModal.focusComments}
+          commentsSignal={activeModal.commentsSignal}
         />
       )}
 
@@ -617,6 +818,15 @@ export default function WQQueue() {
           defaultMode={attestTarget.mode}
           currentUserId={currentUser.id}
           onClose={() => setAttestTarget(null)}
+        />
+      )}
+
+      {/* Reassign modal (My Team overflow menu) */}
+      {reassignTarget && (
+        <ReassignModal
+          event={reassignTarget}
+          onClose={() => setReassignTarget(null)}
+          onConfirm={handleReassignConfirm}
         />
       )}
 

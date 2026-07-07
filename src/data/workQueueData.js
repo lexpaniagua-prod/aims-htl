@@ -76,6 +76,22 @@ export const PEOPLE = [
     scope: 'individual', studios: ['gov'],           partitions: ['knowledge'],
     ooo: { until: '2026-06-25', delegate: 'p3' },
   },
+  {
+    id: 'p13', name: 'Priya S.',   initials: 'PS', role: 'Compliance Reviewer', dept: 'Risk',
+    scope: 'individual', studios: ['gov'],           partitions: ['compliance'],
+  },
+  {
+    id: 'p14', name: 'Marcus A.',  initials: 'MA', role: 'Governance Analyst', dept: 'Risk',
+    scope: 'individual', studios: ['gov'],           partitions: ['compliance','legal'],
+  },
+  {
+    id: 'p15', name: 'Jamie C.',   initials: 'JC', role: 'IT Operations',      dept: 'IT',
+    scope: 'individual', studios: ['gov','data'],    partitions: ['security'],
+  },
+  {
+    id: 'p16', name: 'Luis R.',    initials: 'LR', role: 'Data Analyst',       dept: 'Data',
+    scope: 'individual', studios: ['data'],          partitions: ['data-ops'],
+  },
 ]
 
 // ─── Events (18 entries) ──────────────────────────────────────────────────────
@@ -618,3 +634,57 @@ export const MESSAGES = [
     timestamp: '2026-06-17T10:00:00Z',
   },
 ]
+
+// ─── Comment threads (per-event async discussion) ─────────────────────────────
+// A comment thread belongs to the event, not to a person. Multiple participants
+// can be added. `initiatorId` is who started the thread — used to gate "Close
+// thread" alongside manager/executive scope. `mentions` lists person ids (or
+// the literal 'agent') referenced with @ in that comment's body.
+export const COMMENT_THREADS = {
+  'EVT-001': {
+    status: 'open',
+    initiatorId: 'p13',
+    participants: ['p13', 'p14'],
+    comments: [
+      {
+        id: 'CMT-001', authorId: 'p13', timestamp: '2026-07-02T07:00:00Z',
+        body: 'Can someone confirm which source takes precedence for the GE-COMP threshold conflict? @Marcus A.',
+        mentions: ['p14'],
+      },
+      {
+        id: 'CMT-002', authorId: 'p14', timestamp: '2026-07-02T08:00:00Z',
+        body: 'Source B is the one aligned with the latest compliance update. Approve against that.',
+        mentions: [],
+      },
+    ],
+  },
+  'EVT-005': {
+    status: 'open',
+    initiatorId: 'p15',
+    participants: ['p15'],
+    comments: [
+      {
+        id: 'CMT-003', authorId: 'p15', timestamp: '2026-07-02T06:00:00Z',
+        body: 'IT confirmed the rotation window is tonight between 11pm–1am UTC. Snoozing until then.',
+        mentions: [],
+      },
+    ],
+  },
+  'EVT-012': {
+    status: 'closed',
+    initiatorId: 'p16',
+    participants: ['p16', 'p13'],
+    comments: [
+      {
+        id: 'CMT-004', authorId: 'p16', timestamp: '2026-07-01T08:00:00Z',
+        body: "Checked with the data team. Accept 0.90 — that's the verified threshold from last audit.",
+        mentions: [],
+      },
+      {
+        id: 'CMT-005', authorId: 'p13', timestamp: '2026-07-01T08:20:00Z',
+        body: 'Confirmed. Resolved.',
+        mentions: [],
+      },
+    ],
+  },
+}

@@ -1,21 +1,22 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, X, SkipForward, Folder, Shield } from 'lucide-react'
-import { PEOPLE } from '../data/workQueueData'
+import { PEOPLE, COMMENT_THREADS } from '../data/workQueueData'
 import './WorkQueue.css'
 
 const TABS = [
-  { label: 'Overview',     path: '/work-queue/overview'     },
+  { label: 'Overview',     path: '/work-queue/overview',          notV1: true },
   { label: 'Work Queues',  path: '/work-queue/work-queues'  },
-  { label: 'Messages',     path: '/work-queue/messages'     },
-  { label: 'Messages',     path: '/work-queue/messages-proposal', proposal: true },
+  { label: 'Messages',     path: '/work-queue/messages',          notV1: true },
+  { label: 'Messages',     path: '/work-queue/messages-proposal', proposal: true, notV1: true },
   { label: 'Activity',     path: '/work-queue/activity'     },
-  { label: 'Attestations', path: '/work-queue/attestations' },
-  { label: 'Task View',    path: '/work-queue/task-view',   proposal: true },
+  { label: 'Attestations', path: '/work-queue/attestations',      notV1: true },
+  { label: 'Task View',    path: '/work-queue/task-view',   proposal: true, notV1: true },
 ]
 
 const WQ_PERSONA_KEY = 'htl-wq-persona'
 const WQ_WHATSNEW_KEY = 'htl-wq-whatsnew-seen'
+const WQ_SHOW_NOT_V1_KEY = 'htl-wq-show-not-v1'
 
 // ─── What's New Modal ─────────────────────────────────────────────────────────
 function WhatsnewModal({ onClose, onNavigate }) {
@@ -144,14 +145,78 @@ export default function WorkQueueLayout() {
   const [whatsnewOpen, setWhatsnewOpen] = useState(
     () => !sessionStorage.getItem(WQ_WHATSNEW_KEY)
   )
+  const [showNotV1, setShowNotV1] = useState(
+    () => localStorage.getItem(WQ_SHOW_NOT_V1_KEY) !== '0'
+  )
+  // Comment threads live here (not in WQQueue.jsx) so both the Work Queues list
+  // and the standalone full-page event view share the same state.
+  const [commentThreads, setCommentThreads] = useState(
+    () => JSON.parse(JSON.stringify(COMMENT_THREADS))
+  )
+  const [toast, setToast] = useState(null)
   const location = useLocation()
   const navigate = useNavigate()
 
   const currentUser = PEOPLE.find(p => p.id === personaId) || PEOPLE[0]
 
+  const visibleTabs = TABS.filter(t => showNotV1 || !t.notV1)
+
   const handlePersonaChange = (id) => {
     setPersonaId(id)
     localStorage.setItem(WQ_PERSONA_KEY, id)
+  }
+
+  const handleToggleNotV1 = () => {
+    setShowNotV1(prev => {
+      const next = !prev
+      localStorage.setItem(WQ_SHOW_NOT_V1_KEY, next ? '1' : '0')
+      return next
+    })
+  }
+
+  // If hiding non-V1 tabs while sitting on one of them, bounce to Work Queues
+  useEffect(() => {
+    if (showNotV1) return
+    const onHiddenTab = TABS.some(t => t.notV1 && (location.pathname === t.path || location.pathname.startsWith(t.path + '/')))
+    if (onHiddenTab) navigate('/work-queue/work-queues', { replace: true })
+  }, [showNotV1, location.pathname, navigate])
+
+  // Toast auto-dismiss for comment-thread notifications
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 3500)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  const notify = (msg) => setToast(msg)
+
+  const addComment = (eventId, { authorId, body, mentions, addParticipantIds }) => {
+    setCommentThreads(prev => {
+      const existing = prev[eventId]
+      const newComment = { id: `CMT-${eventId}-${Date.now()}`, authorId, timestamp: new Date().toISOString(), body, mentions }
+      if (existing) {
+        const participants = [...new Set([...existing.participants, authorId, ...addParticipantIds])]
+        return {
+          ...prev,
+          [eventId]: { ...existing, participants, comments: [...existing.comments, newComment] },
+        }
+      }
+      const participants = [...new Set([authorId, ...addParticipantIds])]
+      return {
+        ...prev,
+        [eventId]: { status: 'open', initiatorId: authorId, participants, comments: [newComment] },
+      }
+    })
+  }
+
+  const closeThread = (eventId) => {
+    setCommentThreads(prev => prev[eventId] ? { ...prev, [eventId]: { ...prev[eventId], status: 'closed' } } : prev)
+    notify('Thread closed')
+  }
+
+  const reopenThread = (eventId) => {
+    setCommentThreads(prev => prev[eventId] ? { ...prev, [eventId]: { ...prev[eventId], status: 'open' } } : prev)
+    notify('Thread reopened')
   }
 
   const openModal  = () => setWhatsnewOpen(true)
@@ -169,7 +234,7 @@ export default function WorkQueueLayout() {
       <div className="wq-root">
         <div className="wq-subnav">
           <nav className="wq-tabs">
-            {TABS.map(t => {
+            {visibleTabs.map(t => {
               const active = location.pathname === t.path || location.pathname.startsWith(t.path + '/')
               return (
                 <NavLink
@@ -190,6 +255,18 @@ export default function WorkQueueLayout() {
               <Sparkles size={11} />
               What's new
             </button>
+            <label className="wq-notv1-toggle">
+              <span className="wq-notv1-toggle-label">Not for V1</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showNotV1}
+                className={`wq-switch${showNotV1 ? ' wq-switch--on' : ''}`}
+                onClick={handleToggleNotV1}
+              >
+                <span className="wq-switch-knob" />
+              </button>
+            </label>
             <span className="wq-persona-label">Persona:</span>
             <select
               className="wq-persona-select"
@@ -206,13 +283,15 @@ export default function WorkQueueLayout() {
         </div>
 
         <div className="wq-page">
-          <Outlet context={{ currentUser, personaId }} />
+          <Outlet context={{ currentUser, personaId, commentThreads, addComment, closeThread, reopenThread, notify }} />
         </div>
       </div>
 
       {whatsnewOpen && (
         <WhatsnewModal onClose={closeModal} onNavigate={handleModalNav} />
       )}
+
+      {toast && <div className="wq-toast">{toast}</div>}
     </>
   )
 }
