@@ -1408,6 +1408,12 @@ export const VIEW_LABELS = {
   'accept-confirm':  'Confirm Resolution',
 }
 
+// NOTE: this default-exported drawer is legacy — Work Queues (WQQueue.jsx)
+// no longer opens it; it now uses EventSlideout.jsx (Level 1) and
+// WQEventPage.jsx (Level 2), which reuse the shared building blocks below
+// (BodyContent, FooterActions, AttestAuditBlock, etc.). This component is
+// kept only because WQMyDay.jsx and WQTaskView.jsx (outside this session's
+// scope) still import it directly.
 export default function EventModal({
   event, action, onClose, onRequestAttestation, onEscalate, onDecide,
   currentUser, commentThread, onAddComment, onCloseThread, onReopenThread, notify,

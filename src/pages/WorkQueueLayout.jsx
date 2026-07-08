@@ -153,6 +153,12 @@ export default function WorkQueueLayout() {
   const [commentThreads, setCommentThreads] = useState(
     () => JSON.parse(JSON.stringify(COMMENT_THREADS))
   )
+  // Resolved/escalated status also lives here so a decision made on the full
+  // event page is reflected back in the Work Queues list after navigating back.
+  const [resolvedIds,  setResolvedIds]  = useState(new Set())
+  const [escalatedIds, setEscalatedIds] = useState(new Set())
+  const markResolved  = (id) => setResolvedIds(prev => new Set([...prev, id]))
+  const markEscalated = (id) => setEscalatedIds(prev => new Set([...prev, id]))
   const [toast, setToast] = useState(null)
   const location = useLocation()
   const navigate = useNavigate()
@@ -283,7 +289,10 @@ export default function WorkQueueLayout() {
         </div>
 
         <div className="wq-page">
-          <Outlet context={{ currentUser, personaId, commentThreads, addComment, closeThread, reopenThread, notify }} />
+          <Outlet context={{
+            currentUser, personaId, commentThreads, addComment, closeThread, reopenThread, notify,
+            resolvedIds, markResolved, escalatedIds, markEscalated,
+          }} />
         </div>
       </div>
 

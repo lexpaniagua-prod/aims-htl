@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { useOutletContext, useSearchParams } from 'react-router-dom'
+import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, Flame, Zap, MoreVertical, Check, MessageSquare
 } from 'lucide-react'
@@ -7,19 +7,8 @@ import { Drawer, Modal } from '../components/Modal'
 import {
   EVENTS, SEVERITY, SEVERITY_ORDER, EVENT_TYPES, STUDIOS, PEOPLE
 } from '../data/workQueueData'
-import EventModal from './EventModal'
-import AttestModal from './AttestModal'
+import EventSlideout from './EventSlideout'
 import EscalationModal from './EscalationModal'
-
-// ─── Type-based standardized quick actions ────────────────────────────────────
-const TYPE_ACTIONS = {
-  approve:     ['Review', 'Approve', 'Reject'],
-  review:      ['Open Review', 'Request Changes', 'Approve'],
-  respond:     ['View Details', 'Respond'],
-  resolve:     ['Review Conflict', 'Resolve'],
-  acknowledge: ['View', 'Acknowledge'],
-  train:       ['Review and Edit', 'Promote', 'Reject'],
-}
 
 const CATEGORY_OPTIONS = [
   { value: 'approve',     label: 'Approvals',   group: 'type'   },
@@ -165,7 +154,7 @@ function CardMenu({ onTakeIt, onNudge, onReassign }) {
 }
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, teamMode, onTrace, onDetails, onSkip, onAskTeammate, onEscalate, onTakeIt, onNudge, onReassign, isSkipped, isEscalated, thread, hasUnread }) {
+function EventCard({ event, currentUser, teamMode, onTrace, onOpenSlideout, onDetails, onSkip, onAskTeammate, onEscalate, onTakeIt, onNudge, onReassign, isSkipped, isEscalated, thread, hasUnread }) {
   const sev    = SEVERITY[event.severity]
   const etype  = EVENT_TYPES[event.type]
   const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
@@ -175,8 +164,18 @@ function EventCard({ event, currentUser, teamMode, onTrace, onDetails, onSkip, o
   const urgency = dueUrgency(event)
   const commentCount = thread?.comments.length || 0
 
+  // Level 1: clicking anywhere on the card body (not a button) opens the slideout
+  const handleCardClick = (e) => {
+    if (isSkipped) return
+    if (e.target.closest('button')) return
+    onOpenSlideout(event)
+  }
+
   return (
-    <div className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}>
+    <div
+      className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}
+      onClick={handleCardClick}
+    >
       {/* Header row */}
       <div className="wq-card-header">
         <div className="wq-card-badges">
@@ -404,8 +403,10 @@ function MultiSelect({ label, options, selected, onChange }) {
 
 // ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
-  const { currentUser, commentThreads, addComment, closeThread, reopenThread, notify } = useOutletContext()
+  const { currentUser, commentThreads, resolvedIds, escalatedIds, markEscalated } = useOutletContext()
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Derive view + mode from URL
   const view = searchParams.get('view') || 'my-work'
@@ -416,16 +417,24 @@ export default function WQQueue() {
   const [typeFilter,   setTypeFilter]   = useState([])
   const [traceEvent,   setTraceEvent]   = useState(null)
 
-  // Modal state
-  const [activeModal,    setActiveModal]    = useState(null)
-  const [attestTarget,   setAttestTarget]   = useState(null)
+  // Level 1 slideout state — { event, askSignal }
+  const [slideout, setSlideout] = useState(null)
   const [escalateTarget, setEscalateTarget] = useState(null)
   const [reassignTarget, setReassignTarget] = useState(null)
 
+  // Restore scroll position when returning from the full event page
+  useEffect(() => {
+    const y = sessionStorage.getItem('htl-wq-return-scroll')
+    if (!y) return
+    sessionStorage.removeItem('htl-wq-return-scroll')
+    const t = setTimeout(() => {
+      document.querySelector('.wq-page')?.scrollTo({ top: Number(y) })
+    }, 0)
+    return () => clearTimeout(t)
+  }, [])
+
   // Event status sets
   const [skippedIds,   setSkippedIds]   = useState(new Set())
-  const [resolvedIds,  setResolvedIds]  = useState(new Set())
-  const [escalatedIds, setEscalatedIds] = useState(new Set())
   const [toast, setToast] = useState(null)
 
   // Local ownership overrides (Take it / Reassign) — never mutates workQueueData.js
@@ -461,21 +470,35 @@ export default function WQQueue() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handlers
-  const handleDetails = (event) => {
-    const defaultAction = TYPE_ACTIONS[event.type]?.[0] || 'View'
-    setActiveModal({ event, action: defaultAction, focusComments: false, commentsSignal: 0 })
+  // Level 1 — card body click opens the fast-context slideout
+  const handleOpenSlideout = (event) => {
+    setSlideout({ event, askSignal: 0 })
     setReadThreads(prev => new Set([...prev, event.id]))
   }
 
-  // Ask opens the same slideout scrolled to Comments. If it's already open for
-  // this event, just bump the signal so the effect re-fires and re-scrolls.
+  const handleCloseSlideout = () => setSlideout(null)
+
+  // Level 2 — Details always navigates straight to the full page, skipping
+  // the slideout. Stash the current view + scroll so the back link can restore it.
+  const handleOpenFullPage = (event, opts) => {
+    sessionStorage.setItem('htl-wq-return-url', location.pathname + location.search)
+    sessionStorage.setItem('htl-wq-return-scroll', String(document.querySelector('.wq-page')?.scrollTop || 0))
+    setSlideout(null)
+    navigate(`/work-queue/event/${event.id}`, opts?.focusComments ? { state: { focusComments: true } } : undefined)
+  }
+
+  // "View thread →" inside the slideout's comment indicator goes all the way
+  // to the full page's Comments column, scrolled/focused there.
+  const handleViewThread = (event) => handleOpenFullPage(event, { focusComments: true })
+
+  // Ask opens the slideout (if not already open for this event) and bumps a
+  // signal so the slideout scrolls to its comment indicator every time.
   const handleAsk = (event) => {
-    setActiveModal(prev => {
+    setSlideout(prev => {
       if (prev && prev.event.id === event.id) {
-        return { ...prev, focusComments: true, commentsSignal: (prev.commentsSignal || 0) + 1 }
+        return { ...prev, askSignal: (prev.askSignal || 0) + 1 }
       }
-      const defaultAction = TYPE_ACTIONS[event.type]?.[0] || 'View'
-      return { event, action: defaultAction, focusComments: true, commentsSignal: 1 }
+      return { event, askSignal: 1 }
     })
     setReadThreads(prev => new Set([...prev, event.id]))
   }
@@ -484,21 +507,9 @@ export default function WQQueue() {
     setEscalateTarget(event)
   }
 
-  const handleModalDecide = (msg) => {
-    if (activeModal) {
-      setResolvedIds(prev => new Set([...prev, activeModal.event.id]))
-      setActiveModal(null)
-    }
-    setToast(msg)
-  }
-
-  const handleModalEscalate = () => {
-    if (activeModal) setEscalateTarget(activeModal.event)
-  }
-
   const handleEscalateConfirm = ({ recipient, urgency }) => {
-    const target = escalateTarget || activeModal?.event
-    if (target) setEscalatedIds(prev => new Set([...prev, target.id]))
+    const target = escalateTarget
+    if (target) markEscalated(target.id)
     const name = recipient?.name || 'team'
     setToast(`Escalated to ${name}${urgency === 'urgent' ? ' — marked urgent' : ''}`)
   }
@@ -506,10 +517,6 @@ export default function WQQueue() {
   const handleSkip = (event) => {
     setSkippedIds(prev => new Set([...prev, event.id]))
     setToast('Skipped — will resurface in 2 hours')
-  }
-
-  const handleRequestAttestation = (event) => {
-    setAttestTarget({ event: activeModal?.event || event, mode: 'formal' })
   }
 
   const handleTakeIt = (event) => {
@@ -762,7 +769,8 @@ export default function WQQueue() {
                     currentUser={currentUser}
                     teamMode={mode === 'team'}
                     onTrace={setTraceEvent}
-                    onDetails={handleDetails}
+                    onOpenSlideout={handleOpenSlideout}
+                    onDetails={handleOpenFullPage}
                     onSkip={handleSkip}
                     onAskTeammate={handleAsk}
                     onEscalate={handleEscalateCard}
@@ -782,23 +790,18 @@ export default function WQQueue() {
       {/* Trace drawer */}
       <TraceDrawer event={traceEvent} onClose={() => setTraceEvent(null)} />
 
-      {/* Event modal */}
-      {activeModal && (
-        <EventModal
-          event={activeModal.event}
-          action={activeModal.action}
-          onClose={() => setActiveModal(null)}
-          onRequestAttestation={() => handleRequestAttestation(activeModal.event)}
-          onEscalate={handleModalEscalate}
-          onDecide={handleModalDecide}
-          currentUser={currentUser}
-          commentThread={commentThreads?.[activeModal.event.id]}
-          onAddComment={addComment}
-          onCloseThread={closeThread}
-          onReopenThread={reopenThread}
-          notify={notify}
-          focusComments={activeModal.focusComments}
-          commentsSignal={activeModal.commentsSignal}
+      {/* Level 1 — fast-context slideout */}
+      {slideout && (
+        <EventSlideout
+          event={slideout.event}
+          thread={commentThreads?.[slideout.event.id]}
+          askSignal={slideout.askSignal}
+          onClose={handleCloseSlideout}
+          onOpenFullPage={handleOpenFullPage}
+          onAsk={handleAsk}
+          onViewThread={handleViewThread}
+          onEscalate={handleEscalateCard}
+          onTrace={setTraceEvent}
         />
       )}
 
@@ -808,16 +811,6 @@ export default function WQQueue() {
           event={escalateTarget}
           onClose={() => setEscalateTarget(null)}
           onConfirm={handleEscalateConfirm}
-        />
-      )}
-
-      {/* Attestation / Ask teammate modal */}
-      {attestTarget && (
-        <AttestModal
-          event={attestTarget.event}
-          defaultMode={attestTarget.mode}
-          currentUserId={currentUser.id}
-          onClose={() => setAttestTarget(null)}
         />
       )}
 

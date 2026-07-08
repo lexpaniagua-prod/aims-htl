@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import './shell.css'
+import { EVENTS } from './data/workQueueData'
 
 // Pages
 import Demo from './pages/Demo.jsx'
@@ -88,6 +89,10 @@ const NAV = [
 
 function useBreadcrumb(path) {
   const parts = path.split('/').filter(Boolean)
+  if (parts[0] === 'work-queue' && parts[1] === 'event' && parts[2]) {
+    const evt = EVENTS.find(e => e.id === parts[2])
+    return ['HTL', 'Work Queue', 'Work Queues', evt ? evt.title : parts[2]]
+  }
   const labels = {
     configure: 'Configure', connect: 'Connect', inbox: 'Inbox',
     reports: 'Reports', settings: 'Settings', demo: 'Demo',

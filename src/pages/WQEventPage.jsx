@@ -1,21 +1,83 @@
 import { useState } from 'react'
-import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom'
+import { useParams, useNavigate, useLocation, useOutletContext, Link } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
-import { EVENTS, EVENT_TYPES, SEVERITY } from '../data/workQueueData'
+import { EVENTS, EVENT_TYPES, SEVERITY, STUDIOS, ATTESTATIONS, AUDIT_LOG, PEOPLE } from '../data/workQueueData'
 import {
-  BodyContent, FooterActions, AttestAuditBlock, getInitialView, CONFIRM_VIEW_SET, VIEW_LABELS, SEV_COLORS,
+  BodyContent, FooterActions, getInitialView, VIEW_LABELS, SEV_COLORS, fmtTs,
 } from './EventModal'
 import CommentsSection from './EventComments'
 import EscalationModal from './EscalationModal'
 import AttestModal from './AttestModal'
 
-// ─── Full-page event view ───────────────────────────────────────────────────────
-// Same content as the slideout, laid out wide: decision surface on the left,
-// full-height Comments on the right. Slideout = fast actions, this = complex work.
+function person(id) {
+  return PEOPLE.find(p => p.id === id)
+}
+
+// ── Attestation strip (right column) ────────────────────────────────────────────
+function AttestationStrip({ event, onRequestVerification }) {
+  const linked = ATTESTATIONS.filter(a => a.linkedEvent === event.id)
+  return (
+    <div className="wqep-side-block">
+      <div className="wqep-side-block-title">Attestations</div>
+      {linked.length === 0 ? (
+        <div className="wqep-side-empty">No attestations linked to this event.</div>
+      ) : (
+        <div className="wqep-attest-list">
+          {linked.map(a => {
+            const attester = person(a.to)
+            return (
+              <div key={a.id} className="wqep-attest-row">
+                <span className={`evm-att-dot evm-att-dot--${a.status}`} />
+                <div className="wqep-attest-info">
+                  <span className="wqep-attest-name">{attester?.name || a.to}</span>
+                  <span className="wqep-attest-date">{fmtTs(a.requestedDate)}</span>
+                </div>
+                <span className={`wqep-attest-status wqep-attest-status--${a.status}`}>{a.status}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      <button className="evm-footer-link" onClick={onRequestVerification}>Request verification →</button>
+    </div>
+  )
+}
+
+// ── Audit trail (right column) ──────────────────────────────────────────────────
+function AuditTrailBlock({ event, onViewFullAudit }) {
+  const logs = AUDIT_LOG
+    .filter(a => a.artifact?.includes(event.id) || a.artifact?.includes(event.spec))
+    .slice(-5)
+    .reverse()
+  return (
+    <div className="wqep-side-block">
+      <div className="wqep-side-block-title">Audit Trail</div>
+      {logs.length === 0 ? (
+        <div className="wqep-side-empty">No audit activity yet for this event.</div>
+      ) : (
+        <div className="wqep-audit-list">
+          {logs.map(a => (
+            <div key={a.id} className="wqep-audit-row">
+              <span className="wqep-audit-actor">{a.actor}</span>
+              <span className="wqep-audit-action">{a.action}</span>
+              <span className="wqep-audit-ts">{fmtTs(a.timestamp)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <button className="evm-footer-link" onClick={onViewFullAudit}>View full audit →</button>
+    </div>
+  )
+}
+
+// ── Full-page event view ───────────────────────────────────────────────────────
+// Level 2 of the two-level pattern: full screen, all information, full decision
+// flows. Reached only via the Details button on a card or in the slideout.
 export default function WQEventPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { currentUser, commentThreads, addComment, closeThread, reopenThread, notify } = useOutletContext()
+  const location = useLocation()
+  const { currentUser, commentThreads, addComment, closeThread, reopenThread, notify, markResolved, markEscalated } = useOutletContext()
 
   const event = EVENTS.find(e => e.id === id)
 
@@ -30,6 +92,12 @@ export default function WQEventPage() {
   const [escalateOpen,  setEscalateOpen]  = useState(false)
   const [attestOpen,    setAttestOpen]    = useState(false)
   const [toast,         setToast]         = useState(null)
+  const [status,        setStatus]        = useState('Open')
+
+  const handleBack = () => {
+    const returnUrl = sessionStorage.getItem('htl-wq-return-url') || '/work-queue/work-queues?view=my-work'
+    navigate(returnUrl)
+  }
 
   if (!event) {
     return (
@@ -42,49 +110,64 @@ export default function WQEventPage() {
 
   const etype    = EVENT_TYPES[event.type]
   const sev      = SEVERITY[event.severity]
+  const studio   = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
   const sevColor = SEV_COLORS[event.severity]
-  const showAudit = !CONFIRM_VIEW_SET.has(view)
 
   const handleDecide = (msg) => {
+    setStatus('Resolved')
+    markResolved(event.id)
     setToast(msg)
-    setTimeout(() => navigate('/work-queue/work-queues'), 900)
+    setTimeout(handleBack, 1500)
+  }
+
+  const handleEscalateConfirm = ({ recipient, urgency }) => {
+    setEscalateOpen(false)
+    setStatus('Escalated')
+    markEscalated(event.id)
+    setToast(`Escalated to ${recipient?.name || 'team'}${urgency === 'urgent' ? ' — marked urgent' : ''}`)
   }
 
   return (
     <div className="wqep-root">
-      <button className="wqep-back" onClick={() => navigate('/work-queue/work-queues')}>
-        <ArrowLeft size={13} /> Work Queues
-      </button>
+      <div className="wqep-sticky-header">
+        <button className="wqep-back" onClick={handleBack}>
+          <ArrowLeft size={13} /> Work Queues
+        </button>
+        <div className="wqep-sticky-row">
+          <div className="wqep-header-meta">
+            <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
+            <span className="wq-badge wq-badge--studio" style={{ color: studio.accentColor, borderColor: studio.accentColor + '44' }}>
+              {studio.short}
+            </span>
+            <span className="evm-header-id">{event.id}</span>
+            <span className="evm-header-sep">·</span>
+            <span className="evm-header-spec">{event.spec}</span>
+            <span className="evm-header-sep">·</span>
+            <span className="evm-header-kind">{event.kind}</span>
+            <span className="evm-header-type" style={{ color: etype.color }}>{etype.label.toUpperCase()}</span>
+            {event.missionCritical && (
+              <span className="wq-badge wq-badge--critical">
+                <AlertTriangle size={9} /> Mission Critical
+              </span>
+            )}
+          </div>
+          <div className="wqep-sticky-right">
+            <span className="evm-header-due">{event.dueLabel}</span>
+            <span className={`wqep-status wqep-status--${status.toLowerCase().replace(' ', '-')}`}>{status}</span>
+          </div>
+        </div>
+        <h1 className="wqep-title">{event.title}</h1>
+      </div>
 
       <div className="wqep-sev-strip" style={{ background: sevColor }} />
 
       <div className="wqep-columns">
         {/* Left — event detail / decision surface */}
         <div className="wqep-detail">
-          <div className="wqep-header">
-            <div className="wqep-header-meta">
-              <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
-              <span className="evm-header-id">{event.id}</span>
-              <span className="evm-header-sep">·</span>
-              <span className="evm-header-spec">{event.spec}</span>
-              <span className="evm-header-sep">·</span>
-              <span className="evm-header-kind">{event.kind}</span>
-              <span className="evm-header-type" style={{ color: etype.color }}>{etype.label.toUpperCase()}</span>
-            </div>
-            <h1 className="wqep-title">{event.title}</h1>
-            <div className="evm-header-sub">
-              <span className="evm-header-view-label">{VIEW_LABELS[view] || 'Event Detail'}</span>
-              <span className="evm-header-due">{event.dueLabel}</span>
-            </div>
-            {event.missionCritical && event.blastRadius?.workflows > 0 && (
-              <div className="wq-card-blast" style={{ marginTop: 10 }}>
-                <AlertTriangle size={11} />
-                Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
-              </div>
-            )}
-          </div>
-
           <div className="wqep-body">
+            <div className="evm-header-sub" style={{ marginBottom: 12 }}>
+              <span className="evm-header-view-label">{VIEW_LABELS[view] || 'Event Detail'}</span>
+            </div>
             <BodyContent
               view={view} event={event}
               note={note} setNote={setNote}
@@ -97,9 +180,6 @@ export default function WQEventPage() {
               onDecide={handleDecide}
               onReviewDetail={() => setView('detail')}
             />
-            {showAudit && (
-              <AttestAuditBlock event={event} onRequestAttestation={() => setAttestOpen(true)} />
-            )}
           </div>
 
           <div className="wqep-footer">
@@ -109,22 +189,29 @@ export default function WQEventPage() {
               setView={setView} setChoice={setChoice}
               onEscalate={() => setEscalateOpen(true)}
               onDecide={handleDecide}
-              onClose={() => navigate('/work-queue/work-queues')}
+              onClose={handleBack}
             />
           </div>
         </div>
 
-        {/* Right — full-height comments */}
-        <div className="wqep-comments">
-          <CommentsSection
-            event={event}
-            thread={commentThreads?.[event.id]}
-            currentUser={currentUser}
-            onAddComment={addComment}
-            onCloseThread={closeThread}
-            onReopenThread={reopenThread}
-            notify={notify}
-          />
+        {/* Right — attestations, comments, audit trail */}
+        <div className="wqep-side">
+          <AttestationStrip event={event} onRequestVerification={() => setAttestOpen(true)} />
+
+          <div className="wqep-comments">
+            <CommentsSection
+              event={event}
+              thread={commentThreads?.[event.id]}
+              currentUser={currentUser}
+              onAddComment={addComment}
+              onCloseThread={closeThread}
+              onReopenThread={reopenThread}
+              notify={notify}
+              focusSignal={location.state?.focusComments ? 1 : 0}
+            />
+          </div>
+
+          <AuditTrailBlock event={event} onViewFullAudit={() => navigate(`/work-queue/activity?artifact=${event.id}`)} />
         </div>
       </div>
 
@@ -132,10 +219,7 @@ export default function WQEventPage() {
         <EscalationModal
           event={event}
           onClose={() => setEscalateOpen(false)}
-          onConfirm={({ recipient, urgency }) => {
-            setEscalateOpen(false)
-            setToast(`Escalated to ${recipient?.name || 'team'}${urgency === 'urgent' ? ' — marked urgent' : ''}`)
-          }}
+          onConfirm={handleEscalateConfirm}
         />
       )}
 
