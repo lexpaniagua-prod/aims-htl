@@ -103,6 +103,7 @@ export const EVENTS = [
     detail: '7 claims extracted, 2 knowledge conflicts detected. Will block FinancePolicyBot until resolved.',
     blastRadius: { workflows: 14, agents: 3, description: 'Blocks FinancePolicyBot and downstream compliance workflows' },
     dueLabel: 'Due now', dueDate: '2026-07-02', type: 'approve', origin: 'customer', dueToday: true, missionCritical: true,
+    eventCategory: 'gov-proposal',
     quickActions: ['Approve Intake', 'View Claims', 'Reject'],
     spec: 'DIAN-4821', kind: 'DIAN Intake',
     sourceWorkflow: {
@@ -122,6 +123,7 @@ export const EVENTS = [
     detail: 'Agent paused before GE-COMM action. Confidence 0.71 — below threshold. External recipient: partner@gefinancial.com.',
     blastRadius: { workflows: 3, agents: 1, description: 'SalesForecastPA stalled, downstream report generation blocked' },
     dueLabel: 'Paused', dueDate: '2026-07-02', type: 'approve', origin: 'customer', dueToday: true, missionCritical: true,
+    eventCategory: 'htl-continuation',
     quickActions: ['Allow Send', 'Block Send', 'Edit Draft'],
     spec: 'GE-COMM', kind: 'HITL Pause',
     sourceWorkflow: {
@@ -150,6 +152,7 @@ export const EVENTS = [
     detail: 'Emergency PII access for incident response. Requires 2 approvers. 1 of 2 approvals received.',
     blastRadius: { workflows: 1, agents: 0, description: 'Incident response workflow stalled pending second approval' },
     dueLabel: 'Awaiting 2nd approval', dueDate: '2026-07-02', type: 'approve', origin: 'internal', dueToday: true, missionCritical: true,
+    eventCategory: 'gov-break-glass',
     quickActions: ['Approve Access', 'Deny Access'],
     spec: 'BG-0091', kind: 'Break Glass',
   },
@@ -170,6 +173,7 @@ export const EVENTS = [
     detail: 'Knowledge Base Unit auto-expires in 6 days. Review and extend TTL or replace with updated policy.',
     blastRadius: { workflows: 12, agents: 4, description: 'ReturnPolicyBot and ServiceDesk agents will lose policy context' },
     dueLabel: 'Jun 23', dueDate: '2026-06-23', type: 'review', origin: 'internal', dueToday: false, missionCritical: false,
+    eventCategory: 'gov-review',
     quickActions: ['Extend TTL', 'Replace KBU', 'Archive'],
     spec: 'KBU-4490', kind: 'KBU Expiry',
     coveringFor: 'p12',
@@ -225,6 +229,7 @@ export const EVENTS = [
     detail: 'Model predicted 1.12 but ground truth is 1.15. Your decision will update the regional pricing model.',
     blastRadius: { workflows: 2, agents: 1, description: 'Pricing model accuracy affected until decision made' },
     dueLabel: 'Open', type: 'train', origin: 'internal', dueToday: false, missionCritical: false,
+    eventCategory: 'train-me',
     quickActions: ['Confirm 1.15', 'Override', 'Skip'],
     spec: 'TM-0881', kind: 'Train Me',
     coveringFor: 'p12',
@@ -235,6 +240,7 @@ export const EVENTS = [
     detail: 'Compliance threshold GE-COMP-004: Source A says 0.85, Source B says 0.90. Resolution determines bot behavior.',
     blastRadius: { workflows: 6, agents: 3, description: 'ComplianceBot using lower threshold until conflict resolved' },
     dueLabel: 'Open', type: 'resolve', origin: 'internal', dueToday: false, missionCritical: false,
+    eventCategory: 'gov-change-request',
     quickActions: ['Accept 0.90', 'Accept 0.85', 'Request Review'],
     spec: 'CONF-GE-004', kind: 'Truth Conflict',
   },
@@ -348,6 +354,37 @@ export const EVENTS = [
       ],
     },
   },
+
+  // ── V1 event types — HTL-Handoff & Message ──────────────────────────────
+  {
+    id: 'EVT-021', severity: 'yellow', studio: 'agentic', ownerId: 'p6',
+    title: 'Lead Qualification: high-intent prospect requires personal follow-up',
+    detail: 'Agent completed qualification scoring. Lead score 94/100. Handoff triggered — human must handle next contact directly.',
+    blastRadius: { workflows: 1, agents: 1, description: 'AdvisorCopilot handoff — awaiting human follow-up' },
+    dueLabel: 'Awaiting follow-up', dueDate: '2026-07-02', type: 'acknowledge', origin: 'customer', dueToday: true, missionCritical: true,
+    eventCategory: 'htl-handoff',
+    quickActions: ['Acknowledge', 'Reassign'],
+    spec: 'LEAD-8834', kind: 'HTL Handoff',
+    sourceWorkflow: {
+      id: 'WF-4410', name: 'AdvisorCopilot Lead Qualification',
+      steps: [
+        { step: 1, timestamp: '2026-07-02T07:00:00Z', label: 'Lead Captured',         status: 'done',   detail: 'Inbound inquiry captured via web form' },
+        { step: 2, timestamp: '2026-07-02T07:05:00Z', label: 'Qualification Scoring', status: 'done',   detail: 'Lead scored 94/100 — high intent' },
+        { step: 3, timestamp: '2026-07-02T07:06:00Z', label: 'Threshold Check',       status: 'done',   detail: 'Score exceeds the 90-point auto-handoff threshold' },
+        { step: 4, timestamp: '2026-07-02T07:06:05Z', label: 'HTL Handoff',           status: 'paused', detail: 'Ownership transferred — agent will not continue' },
+      ],
+    },
+  },
+  {
+    id: 'EVT-022', severity: 'yellow', studio: 'gov', ownerId: 'p1',
+    title: 'Q2 governance posture — platform-wide update',
+    detail: "Platform-wide: Governance is in Watch. Let's close the KCON and promotion-rate dip this week.",
+    blastRadius: { workflows: 0, agents: 0, description: '' },
+    dueLabel: 'Awaiting reply', dueDate: '2026-07-02', type: 'message', origin: 'internal', dueToday: false, missionCritical: false,
+    eventCategory: 'message',
+    quickActions: ['Reply', 'Forward'],
+    spec: 'MSG-0601', kind: 'Broadcast',
+  },
 ]
 
 // ─── Transfers (3 entries) ────────────────────────────────────────────────────
@@ -449,12 +486,17 @@ export const EVENT_MODAL_DATA = {
     requestorRole: 'Governance Lead',
     requestTime: '2026-06-17T08:00:00Z',
     targetPartition: 'PII — Identity Records',
+    partitionClassification: 'Restricted — PII',
+    accessScope: 'Read + Write',
     justification: 'Incident IR-2026-0617: Unauthorized access detected in identity partition. Requires immediate forensic review to assess scope and remediate.',
+    incidentRef: 'IR-2026-0617',
     duration: '4 hours',
     firstApprover: 'Devon N.',
     firstApprovalTime: '2026-06-17T08:10:00Z',
+    secondApprover: 'Alexa M.',
     approvalRequired: 2,
     approvalReceived: 1,
+    lastBreakGlass: { date: '2026-05-02', requester: 'Devon N.', outcome: 'Approved — no incidents' },
   },
 
   'EVT-007': {
@@ -509,6 +551,10 @@ export const EVENT_MODAL_DATA = {
   },
 
   'EVT-002': {
+    agent: 'SalesForecastPA',
+    model: 'GE-Comms-v2.1',
+    confidence: 0.71,
+    geClass: 'GE-COMM',
     draftEmail: {
       to: 'partner@gefinancial.com',
       subject: 'Q3 2026 Sales Forecast — Northfield Partners Portfolio Review',
@@ -519,6 +565,11 @@ export const EVENT_MODAL_DATA = {
   'EVT-006': {
     kbuText: 'RETURN POLICY v3.0 — Effective Sep 1, 2025\n\nStandard Returns: Customers may return most items within 30 days of purchase for a full refund to the original payment method. Items must be in original condition with all packaging intact.\n\nExtended Window: Premium account holders receive a 60-day return window. Electronics carry a 15-day return window regardless of account tier.\n\nNon-Returnable: Customized products, digital downloads, and perishables are non-returnable. Gift cards may be exchanged but not refunded.\n\nProcess: Returns must be initiated through the customer portal or by contacting support. Refunds processed within 5–7 business days.',
     history: { lastModified: '2025-09-01', by: 'Jordan T.', version: '3.0' },
+    versionHistory: [
+      { version: '3.0', summary: 'Extended premium window to 60 days; added electronics carve-out', author: 'Jordan T.', date: '2025-09-01' },
+      { version: '2.1', summary: 'Clarified non-returnable categories (digital, perishables)', author: 'Priya K.',  date: '2025-04-12' },
+      { version: '2.0', summary: 'Standardized refund processing window to 5–7 business days', author: 'Jordan T.', date: '2024-11-03' },
+    ],
     ttlDays: 6,
     usedBy: ['ReturnPolicyBot', 'ServiceDeskAgent', 'CustomerResolutionFlow'],
   },
@@ -533,6 +584,7 @@ export const EVENT_MODAL_DATA = {
     currentValue: '1.12',
     proposedValue: '1.15',
     submitter: 'Riley P.',
+    submitterRole: 'Finance Analyst',
     submittedAt: '2026-06-14T10:30:00Z',
     note: 'Ground truth from Q1 2026 regional performance audit confirms the multiplier should be 1.15. The model has been predicting 1.12 based on training data from 2024 that predates the regional pricing restructure.',
     canonRecord: 'GE-PRICING-REGIONAL-MULT',
@@ -545,6 +597,31 @@ export const EVENT_MODAL_DATA = {
     affectedAgents:    ['ComplianceBot v2.3', 'RiskScoringAgent', 'AuditPrepAgent'],
     affectedWorkflows: ['Quarterly Compliance Check', 'Risk Assessment Pipeline', 'Audit Preparation Workflow'],
     canonRecord: 'GE-COMP-004',
+    changeType: 'Correct conflict',
+    submitter: 'Devon N.',
+    submitterRole: 'IT Security',
+    submittedAt: '2026-06-17T11:00:00Z',
+    rationale: 'Compliance Standards Manual v4 supersedes Risk Framework Q1 2026 following the May compliance update. The 0.90 threshold reflects the current regulatory requirement.',
+  },
+
+  'EVT-021': {
+    entityName: 'Jordan Ellis — Northfield Capital Partners',
+    recordId: 'LEAD-8834',
+    sourceSystem: 'Web Inquiry Form',
+    handoffReason: 'Lead score 94/100 exceeds the 90-point auto-handoff threshold',
+    keyFacts: [
+      'Prospect manages a $12M portfolio currently with a competitor',
+      'Requested a callback within 24 hours',
+      'Mentioned dissatisfaction with current advisor responsiveness',
+    ],
+    recommendations: [
+      'Lead with responsiveness and dedicated advisor access',
+      'Reference competitive fee structure in the first call',
+    ],
+    nextSuggestedAction: 'Call within 24 hours — prospect flagged urgency',
+    crmRecord: 'CRM-99213',
+    transcriptSummary: 'Prospect asked about portfolio rebalancing fees and advisor availability; agent answered fee questions and offered to schedule a call with a human advisor.',
+    knowledgeContract: 'KC-ADVISORY-ONBOARDING',
   },
 
   'EVT-014': {
@@ -683,6 +760,20 @@ export const COMMENT_THREADS = {
       {
         id: 'CMT-005', authorId: 'p13', timestamp: '2026-07-01T08:20:00Z',
         body: 'Confirmed. Resolved.',
+        mentions: [],
+      },
+    ],
+  },
+
+  // Message events: the message itself is the thread starter — no separate messageData.
+  'EVT-022': {
+    status: 'open',
+    initiatorId: 'p11',
+    participants: ['p11', 'p1'],
+    comments: [
+      {
+        id: 'CMT-007', authorId: 'p11', timestamp: '2026-07-02T07:30:00Z',
+        body: "Platform-wide: Governance is in Watch. Let's close the KCON and promotion-rate dip this week.",
         mentions: [],
       },
     ],

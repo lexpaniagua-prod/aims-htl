@@ -403,7 +403,7 @@ function MultiSelect({ label, options, selected, onChange }) {
 
 // ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
-  const { currentUser, commentThreads, resolvedIds, escalatedIds, markEscalated } = useOutletContext()
+  const { currentUser, commentThreads, addComment, notify, resolvedIds, escalatedIds, markEscalated } = useOutletContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -796,6 +796,9 @@ export default function WQQueue() {
           event={slideout.event}
           thread={commentThreads?.[slideout.event.id]}
           askSignal={slideout.askSignal}
+          currentUser={currentUser}
+          onAddComment={addComment}
+          notify={notify}
           onClose={handleCloseSlideout}
           onOpenFullPage={handleOpenFullPage}
           onAsk={handleAsk}

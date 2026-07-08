@@ -62,7 +62,7 @@ export function getInitialView(type, action) {
 
 // ── Shared trace timeline ──────────────────────────────────────────────────────
 
-function TraceTimeline({ steps }) {
+export function TraceTimeline({ steps }) {
   const ICON = { done: '✓', paused: '⏸', error: '✗', blocked: '⊘', pending: '·' }
   const CLS  = { done: 'evm-step--done', paused: 'evm-step--paused', error: 'evm-step--error', blocked: 'evm-step--error', pending: 'evm-step--pending' }
   return (

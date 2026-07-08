@@ -1,6 +1,7 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { X, AlertTriangle, GitBranch, ExternalLink } from 'lucide-react'
 import { SEVERITY, EVENT_TYPES, STUDIOS, PEOPLE, AUDIT_LOG } from '../data/workQueueData'
+import { SlideoutTypeContext } from './EventTypeBlocks'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -43,9 +44,10 @@ function fmtDate(iso) {
 }
 
 // ── Event slideout — Level 1 fast-context drawer ────────────────────────────────
-export default function EventSlideout({ event, thread, askSignal, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace }) {
+export default function EventSlideout({ event, thread, askSignal, currentUser, onAddComment, notify, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace }) {
   const drawerRef  = useRef(null)
   const commentRef = useRef(null)
+  const [draft, setDraft] = useState('')
 
   useEffect(() => {
     document.body.classList.add('evsl-active')
@@ -78,6 +80,13 @@ export default function EventSlideout({ event, thread, askSignal, onClose, onOpe
 
   const lastComment = thread?.comments?.[thread.comments.length - 1]
   const lastAuthor  = lastComment ? person(lastComment.authorId) : null
+
+  const handlePost = () => {
+    if (!draft.trim() || !currentUser) return
+    onAddComment(event.id, { authorId: currentUser.id, body: draft.trim(), mentions: [], addParticipantIds: [] })
+    notify?.('Comment posted')
+    setDraft('')
+  }
 
   return (
     <>
@@ -134,6 +143,11 @@ export default function EventSlideout({ event, thread, askSignal, onClose, onOpe
             </button>
           )}
 
+          {/* Type context block — event-category-specific summary */}
+          {event.eventCategory && (
+            <SlideoutTypeContext event={event} thread={thread} />
+          )}
+
           {/* Actions */}
           <div className="evsl-actions">
             <button className="wq-btn wq-btn--primary evsl-details-btn" onClick={() => onOpenFullPage(event)}>
@@ -158,6 +172,22 @@ export default function EventSlideout({ event, thread, askSignal, onClose, onOpe
               <span className="evsl-no-comments">No comments yet</span>
             )}
           </div>
+
+          {/* Minimal comment composer — same thread as the full page */}
+          {currentUser && (
+            <div className="evsl-composer">
+              <textarea
+                className="evsl-composer-input"
+                placeholder="Add a comment…"
+                rows={2}
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+              />
+              <button className="wq-btn wq-btn--primary evsl-composer-post" disabled={!draft.trim()} onClick={handlePost}>
+                Post
+              </button>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="evsl-footer">

@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams, useNavigate, useLocation, useOutletContext, Link } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
 import { EVENTS, EVENT_TYPES, SEVERITY, STUDIOS, ATTESTATIONS, AUDIT_LOG, PEOPLE } from '../data/workQueueData'
 import {
   BodyContent, FooterActions, getInitialView, VIEW_LABELS, SEV_COLORS, fmtTs,
 } from './EventModal'
+import { DecisionSurface } from './EventTypeBlocks'
 import CommentsSection from './EventComments'
 import EscalationModal from './EscalationModal'
 import AttestModal from './AttestModal'
@@ -93,10 +94,17 @@ export default function WQEventPage() {
   const [attestOpen,    setAttestOpen]    = useState(false)
   const [toast,         setToast]         = useState(null)
   const [status,        setStatus]        = useState('Open')
+  const [commentsSignal, setCommentsSignal] = useState(location.state?.focusComments ? 1 : 0)
+  const commentsRef = useRef(null)
 
   const handleBack = () => {
     const returnUrl = sessionStorage.getItem('htl-wq-return-url') || '/work-queue/work-queues?view=my-work'
     navigate(returnUrl)
+  }
+
+  const handleAsk = () => {
+    commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setCommentsSignal(s => s + 1)
   }
 
   if (!event) {
@@ -164,41 +172,60 @@ export default function WQEventPage() {
       <div className="wqep-columns">
         {/* Left — event detail / decision surface */}
         <div className="wqep-detail">
-          <div className="wqep-body">
-            <div className="evm-header-sub" style={{ marginBottom: 12 }}>
-              <span className="evm-header-view-label">{VIEW_LABELS[view] || 'Event Detail'}</span>
+          {event.eventCategory ? (
+            <div className="wqep-body">
+              <DecisionSurface
+                event={event}
+                onDecide={handleDecide}
+                onAsk={handleAsk}
+                onEscalate={() => setEscalateOpen(true)}
+                thread={commentThreads?.[event.id]}
+                onCloseThread={closeThread}
+                notify={notify}
+                status={status}
+                onStatusChange={setStatus}
+                currentUser={currentUser}
+              />
             </div>
-            <BodyContent
-              view={view} event={event}
-              note={note} setNote={setNote}
-              reason={reason} setReason={setReason}
-              choice={choice} setChoice={setChoice}
-              editVal={editVal} setEditVal={setEditVal}
-              changeRequest={changeRequest} setChangeRequest={setChangeRequest}
-              assignTo={assignTo} setAssignTo={setAssignTo}
-              dueBy={dueBy} setDueBy={setDueBy}
-              onDecide={handleDecide}
-              onReviewDetail={() => setView('detail')}
-            />
-          </div>
+          ) : (
+            <>
+              <div className="wqep-body">
+                <div className="evm-header-sub" style={{ marginBottom: 12 }}>
+                  <span className="evm-header-view-label">{VIEW_LABELS[view] || 'Event Detail'}</span>
+                </div>
+                <BodyContent
+                  view={view} event={event}
+                  note={note} setNote={setNote}
+                  reason={reason} setReason={setReason}
+                  choice={choice} setChoice={setChoice}
+                  editVal={editVal} setEditVal={setEditVal}
+                  changeRequest={changeRequest} setChangeRequest={setChangeRequest}
+                  assignTo={assignTo} setAssignTo={setAssignTo}
+                  dueBy={dueBy} setDueBy={setDueBy}
+                  onDecide={handleDecide}
+                  onReviewDetail={() => setView('detail')}
+                />
+              </div>
 
-          <div className="wqep-footer">
-            <FooterActions
-              view={view} event={event}
-              reason={reason} changeRequest={changeRequest}
-              setView={setView} setChoice={setChoice}
-              onEscalate={() => setEscalateOpen(true)}
-              onDecide={handleDecide}
-              onClose={handleBack}
-            />
-          </div>
+              <div className="wqep-footer">
+                <FooterActions
+                  view={view} event={event}
+                  reason={reason} changeRequest={changeRequest}
+                  setView={setView} setChoice={setChoice}
+                  onEscalate={() => setEscalateOpen(true)}
+                  onDecide={handleDecide}
+                  onClose={handleBack}
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Right — attestations, comments, audit trail */}
         <div className="wqep-side">
           <AttestationStrip event={event} onRequestVerification={() => setAttestOpen(true)} />
 
-          <div className="wqep-comments">
+          <div className="wqep-comments" ref={commentsRef}>
             <CommentsSection
               event={event}
               thread={commentThreads?.[event.id]}
@@ -207,7 +234,7 @@ export default function WQEventPage() {
               onCloseThread={closeThread}
               onReopenThread={reopenThread}
               notify={notify}
-              focusSignal={location.state?.focusComments ? 1 : 0}
+              focusSignal={commentsSignal}
             />
           </div>
 
