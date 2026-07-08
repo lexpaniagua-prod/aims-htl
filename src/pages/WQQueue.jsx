@@ -11,14 +11,16 @@ import EventSlideout from './EventSlideout'
 import EscalationModal from './EscalationModal'
 
 const CATEGORY_OPTIONS = [
-  { value: 'approve',     label: 'Approvals',   group: 'type'   },
-  { value: 'review',      label: 'Revisions',   group: 'type'   },
-  { value: 'respond',     label: 'Respond',     group: 'type'   },
-  { value: 'message',     label: 'Messages',    group: 'type'   },
-  { value: 'acknowledge', label: 'Audit',       group: 'type'   },
-  { value: 'train',       label: 'Train Me',    group: 'type'   },
-  { value: 'customer',    label: 'Customer',    group: 'origin' },
-  { value: 'internal',    label: 'Internal',    group: 'origin' },
+  { value: 'htl-continuation',   label: 'HTL Continuation',   group: 'eventCategory' },
+  { value: 'htl-handoff',        label: 'HTL Handoff',        group: 'eventCategory' },
+  { value: 'message',            label: 'Message',            group: 'eventCategory' },
+  { value: 'train-me',           label: 'Train Me',           group: 'eventCategory' },
+  { value: 'gov-proposal',       label: 'Gov Proposal',       group: 'eventCategory' },
+  { value: 'gov-review',         label: 'Gov Review',         group: 'eventCategory' },
+  { value: 'gov-break-glass',    label: 'Gov Break Glass',    group: 'eventCategory' },
+  { value: 'gov-change-request', label: 'Gov Change Request', group: 'eventCategory' },
+  { value: 'customer',           label: 'Customer',           group: 'origin' },
+  { value: 'internal',           label: 'Internal',           group: 'origin' },
 ]
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -560,9 +562,9 @@ export default function WQQueue() {
       if (combinedTypeFilter.length && !combinedTypeFilter.includes(e.type)) return false
       if (mode === 'team' && ownerFilter.length && !ownerFilter.includes(e.ownerId)) return false
       if (categoryFilter.length) {
-        const matchesType   = categoryFilter.includes(e.type)
-        const matchesOrigin = categoryFilter.includes(e.origin)
-        if (!matchesType && !matchesOrigin) return false
+        const matchesCategory = categoryFilter.includes(e.eventCategory)
+        const matchesOrigin   = categoryFilter.includes(e.origin)
+        if (!matchesCategory && !matchesOrigin) return false
       }
       if (dueFilter.length) {
         const urg = dueUrgency(e)
@@ -619,8 +621,8 @@ export default function WQQueue() {
 
   const categoryOptions = CATEGORY_OPTIONS.map(c => ({
     value: c.value, label: c.label,
-    count: c.group === 'type'
-      ? baseEvents.filter(e => e.type === c.value).length
+    count: c.group === 'eventCategory'
+      ? baseEvents.filter(e => e.eventCategory === c.value).length
       : baseEvents.filter(e => e.origin === c.value).length,
   }))
 

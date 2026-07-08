@@ -98,7 +98,7 @@ export const PEOPLE = [
 export const EVENTS = [
   // ── Act Now ─────────────────────────────────────────────────────────
   {
-    id: 'EVT-001', severity: 'now', studio: 'gov', ownerId: 'p2',
+    id: 'EVT-001', severity: 'now', studio: 'gov', ownerId: 'p1',
     title: 'DIAN Intake: Financial Policy PDF requires approval',
     detail: '7 claims extracted, 2 knowledge conflicts detected. Will block FinancePolicyBot until resolved.',
     blastRadius: { workflows: 14, agents: 3, description: 'Blocks FinancePolicyBot and downstream compliance workflows' },
@@ -118,7 +118,7 @@ export const EVENTS = [
     },
   },
   {
-    id: 'EVT-002', severity: 'now', studio: 'agentic', ownerId: 'p10',
+    id: 'EVT-002', severity: 'now', studio: 'agentic', ownerId: 'p1',
     title: 'HITL Pause: SalesForecastPA about to send external email',
     detail: 'Agent paused before GE-COMM action. Confidence 0.71 — below threshold. External recipient: partner@gefinancial.com.',
     blastRadius: { workflows: 3, agents: 1, description: 'SalesForecastPA stalled, downstream report generation blocked' },
@@ -168,7 +168,7 @@ export const EVENTS = [
     spec: 'CONN-SF-001', kind: 'Connector Health',
   },
   {
-    id: 'EVT-006', severity: 'red', studio: 'gov', ownerId: 'p12',
+    id: 'EVT-006', severity: 'red', studio: 'gov', ownerId: 'p1',
     title: 'KBU TTL expiring: Return Policy v3 — 6 days',
     detail: 'Knowledge Base Unit auto-expires in 6 days. Review and extend TTL or replace with updated policy.',
     blastRadius: { workflows: 12, agents: 4, description: 'ReturnPolicyBot and ServiceDesk agents will lose policy context' },
@@ -224,7 +224,7 @@ export const EVENTS = [
     spec: 'RC-4412', kind: 'KCON Review',
   },
   {
-    id: 'EVT-011', severity: 'yellow', studio: 'gov', ownerId: 'p12',
+    id: 'EVT-011', severity: 'yellow', studio: 'gov', ownerId: 'p1',
     title: 'Train Me: Regional multiplier correction awaiting decision',
     detail: 'Model predicted 1.12 but ground truth is 1.15. Your decision will update the regional pricing model.',
     blastRadius: { workflows: 2, agents: 1, description: 'Pricing model accuracy affected until decision made' },
@@ -235,7 +235,7 @@ export const EVENTS = [
     coveringFor: 'p12',
   },
   {
-    id: 'EVT-012', severity: 'yellow', studio: 'gov', ownerId: 'p2',
+    id: 'EVT-012', severity: 'yellow', studio: 'gov', ownerId: 'p1',
     title: 'Conflict in Truth: GE-COMP threshold — two sources disagree',
     detail: 'Compliance threshold GE-COMP-004: Source A says 0.85, Source B says 0.90. Resolution determines bot behavior.',
     blastRadius: { workflows: 6, agents: 3, description: 'ComplianceBot using lower threshold until conflict resolved' },
@@ -357,7 +357,7 @@ export const EVENTS = [
 
   // ── V1 event types — HTL-Handoff & Message ──────────────────────────────
   {
-    id: 'EVT-021', severity: 'yellow', studio: 'agentic', ownerId: 'p6',
+    id: 'EVT-021', severity: 'yellow', studio: 'agentic', ownerId: 'p1',
     title: 'Lead Qualification: high-intent prospect requires personal follow-up',
     detail: 'Agent completed qualification scoring. Lead score 94/100. Handoff triggered — human must handle next contact directly.',
     blastRadius: { workflows: 1, agents: 1, description: 'AdvisorCopilot handoff — awaiting human follow-up' },
