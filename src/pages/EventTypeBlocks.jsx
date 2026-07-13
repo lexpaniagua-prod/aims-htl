@@ -133,15 +133,14 @@ function GovProposalSlide({ event, md }) {
 }
 
 function GovReviewSlide({ event, md }) {
+  const claimCount = md.claims?.length || 0
   return (
     <div className="etb-slide-block">
-      <div className="etb-slide-row"><span className="etb-slide-label">Record</span><span className="etb-slide-val">{event.kind}</span></div>
-      {md.ttlDays != null && (
-        <p className="etb-slide-line">Auto-expires in {md.ttlDays} days.</p>
-      )}
-      <div className="etb-slide-row"><span className="etb-slide-label">Version</span><span className="etb-slide-val">v{md.history?.version} · {md.history?.by}</span></div>
-      {md.usedBy && (
-        <p className="etb-slide-line etb-slide-line--muted">Used by {md.usedBy.length} agent{md.usedBy.length === 1 ? '' : 's'}.</p>
+      <div className="etb-slide-row"><span className="etb-slide-label">Requested by</span><span className="etb-slide-val">{md.requestedBy?.name} · {md.requestedBy?.role}</span></div>
+      <p className="etb-slide-line etb-slide-clamp">{md.requestReason}</p>
+      <div className="etb-slide-row"><span className="etb-slide-label">Awaiting review</span><span className="etb-slide-val">{claimCount} claim{claimCount === 1 ? '' : 's'}</span></div>
+      {md.linkedProposal && (
+        <p className="etb-slide-line etb-slide-line--muted">From {md.linkedProposal.spec} · {md.linkedProposal.title}</p>
       )}
     </div>
   )
@@ -515,6 +514,43 @@ function TrainMeFull({ event, md, onDecide, onAsk, onEscalate }) {
   )
 }
 
+// Shared claim-decision list — used by Governance Proposal (attesting new claims)
+// and Governance Review (deciding a claim routed over by a colleague).
+function ClaimsList({ title, claims, conflicts, decisions, setDecision }) {
+  return (
+    <div className="evm-section">
+      <div className="evm-section-title">{title}</div>
+      <div className="evm-claims-list">
+        {claims.map(c => {
+          const conflict = (conflicts || []).find(cf => cf.claimId === c.id)
+          const decision = decisions[c.id]
+          return (
+            <div key={c.id} className={`evm-claim${c.conflict ? ' evm-claim--conflict' : ''}`}>
+              <div className="evm-claim-header">
+                <span className="evm-claim-id">{c.id}</span>
+                <span className="evm-claim-conf" style={{ color: confidenceColor(c.confidence) }}>{Math.round(c.confidence * 100)}%</span>
+                {c.conflict && <span className="evm-claim-conflict-badge">CONFLICT</span>}
+              </div>
+              <div className="evm-claim-text">{c.text}</div>
+              {conflict && (
+                <div className="etb-mini-compare">
+                  <div className="etb-mini-source"><span className="evm-source-badge evm-source-badge--a">Source A</span> {conflict.sourceA.name} — {conflict.sourceA.value}</div>
+                  <div className="etb-mini-source"><span className="evm-source-badge evm-source-badge--b">Source B</span> {conflict.sourceB.name} — {conflict.sourceB.value}</div>
+                </div>
+              )}
+              <div className="etb-claim-actions">
+                <button className={`etb-claim-btn${decision === 'approve' ? ' etb-claim-btn--approve-on' : ''}`} onClick={() => setDecision(c.id, 'approve')}>Approve</button>
+                <button className={`etb-claim-btn${decision === 'reject' ? ' etb-claim-btn--reject-on' : ''}`} onClick={() => setDecision(c.id, 'reject')}>Reject</button>
+                <button className="etb-claim-btn" onClick={() => setDecision(c.id, 'correct')}>Correct</button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── 5. Governance Proposal ───────────────────────────────────────────────────────
 function GovProposalFull({ event, md, onDecide, onAsk, onEscalate }) {
   const [decisions, setDecisions] = useState({}) // claimId -> 'approve' | 'reject'
@@ -550,36 +586,11 @@ function GovProposalFull({ event, md, onDecide, onAsk, onEscalate }) {
         </div>
       </div>
 
-      <div className="evm-section">
-        <div className="evm-section-title">CLAIMS EXTRACTED ({claims.length})</div>
-        <div className="evm-claims-list">
-          {claims.map(c => {
-            const conflict = (md.conflicts || []).find(cf => cf.claimId === c.id)
-            const decision = decisions[c.id]
-            return (
-              <div key={c.id} className={`evm-claim${c.conflict ? ' evm-claim--conflict' : ''}`}>
-                <div className="evm-claim-header">
-                  <span className="evm-claim-id">{c.id}</span>
-                  <span className="evm-claim-conf" style={{ color: confidenceColor(c.confidence) }}>{Math.round(c.confidence * 100)}%</span>
-                  {c.conflict && <span className="evm-claim-conflict-badge">CONFLICT</span>}
-                </div>
-                <div className="evm-claim-text">{c.text}</div>
-                {conflict && (
-                  <div className="etb-mini-compare">
-                    <div className="etb-mini-source"><span className="evm-source-badge evm-source-badge--a">Source A</span> {conflict.sourceA.name} — {conflict.sourceA.value}</div>
-                    <div className="etb-mini-source"><span className="evm-source-badge evm-source-badge--b">Source B</span> {conflict.sourceB.name} — {conflict.sourceB.value}</div>
-                  </div>
-                )}
-                <div className="etb-claim-actions">
-                  <button className={`etb-claim-btn${decision === 'approve' ? ' etb-claim-btn--approve-on' : ''}`} onClick={() => setDecision(c.id, 'approve')}>Approve</button>
-                  <button className={`etb-claim-btn${decision === 'reject' ? ' etb-claim-btn--reject-on' : ''}`} onClick={() => setDecision(c.id, 'reject')}>Reject</button>
-                  <button className="etb-claim-btn" onClick={() => setDecision(c.id, 'correct')}>Correct</button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      <ClaimsList
+        title={`CLAIMS EXTRACTED (${claims.length})`}
+        claims={claims} conflicts={md.conflicts}
+        decisions={decisions} setDecision={setDecision}
+      />
 
       <div className="evm-section">
         <div className="evm-section-title">DECISION</div>
@@ -608,100 +619,64 @@ function GovProposalFull({ event, md, onDecide, onAsk, onEscalate }) {
 }
 
 // ── 6. Governance Review ─────────────────────────────────────────────────────────
+// A colleague working a Governance Proposal was unsure about a claim (or lacked
+// sign-off authority on it) and routed it here for a specific person to decide.
 function GovReviewFull({ event, md, onDecide, onAsk, onEscalate }) {
-  const [view, setView] = useState('idle') // idle | edit | replace | confirm-archive | confirm-extend
-  const [content, setContent] = useState(md.kbuText || '')
-  const [newSource, setNewSource] = useState('')
-  const [newTtl, setNewTtl] = useState('30')
-  const [expanded, setExpanded] = useState(null)
+  const [decisions, setDecisions] = useState({}) // claimId -> 'approve' | 'reject' | 'correct'
+  const [view, setView] = useState('idle') // idle | confirm-submit
+  const claims = md.claims || []
+  const requester = md.requestedBy
+
+  const setDecision = (id, val) => setDecisions(prev => ({ ...prev, [id]: prev[id] === val ? undefined : val }))
+  const allDecided = claims.length > 0 && claims.every(c => decisions[c.id])
+  const approvedCount = Object.values(decisions).filter(v => v === 'approve').length
+  const rejectedCount = Object.values(decisions).filter(v => v === 'reject').length
 
   return (
     <>
       <div className="evm-section">
-        <div className="evm-section-title">CURRENT STATE</div>
-        {view === 'edit' ? (
-          <textarea className="evm-form-textarea" rows={8} value={content} onChange={e => setContent(e.target.value)} />
-        ) : (
-          <div className="etb-code-block">{content}</div>
-        )}
-        <div className="etb-fact-grid" style={{ marginTop: 10 }}>
-          <div><span className="etb-fact-label">Version</span><span className="etb-fact-val">v{md.history?.version}</span></div>
-          <div><span className="etb-fact-label">Last modified</span><span className="etb-fact-val">{md.history?.lastModified} by {md.history?.by}</span></div>
-        </div>
-        {md.usedBy && (
-          <div className="evm-impact-group" style={{ marginTop: 10 }}>
-            <span className="evm-impact-label">Used by</span>
-            <div className="evm-blast-affected">
-              {md.usedBy.map(u => <span key={u} className="evm-blast-chip">{u}</span>)}
+        <div className="evm-section-title">REQUEST</div>
+        {requester && (
+          <div className="etb-message-header">
+            <span className="evc-comment-avatar">{person(PEOPLE.find(p => p.name === requester.name)?.id)?.initials}</span>
+            <div>
+              <div className="etb-message-sender">{requester.name}</div>
+              <div className="etb-message-role">{requester.role} · {fmtTs(md.requestedAt)}</div>
             </div>
+          </div>
+        )}
+        <p className="etb-reason-note" style={{ marginTop: 10 }}>{md.requestReason}</p>
+        {md.linkedProposal && (
+          <div className="etb-fact-grid" style={{ marginTop: 10 }}>
+            <div><span className="etb-fact-label">Linked proposal</span><span className="etb-fact-val">{md.linkedProposal.spec} · {md.linkedProposal.title}</span></div>
           </div>
         )}
       </div>
 
-      {md.versionHistory && (
-        <div className="evm-section">
-          <div className="evm-section-title">HISTORY</div>
-          <div className="etb-version-list">
-            {md.versionHistory.map(v => (
-              <div key={v.version} className="etb-version-row" onClick={() => setExpanded(expanded === v.version ? null : v.version)}>
-                <div className="etb-version-top">
-                  <span className="etb-version-num">v{v.version}</span>
-                  <span className="etb-version-author">{v.author}</span>
-                  <span className="etb-version-date">{v.date}</span>
-                </div>
-                {expanded === v.version && <p className="etb-version-summary">{v.summary}</p>}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <ClaimsList
+        title={`ITEMS TO REVIEW (${claims.length})`}
+        claims={claims} conflicts={md.conflicts}
+        decisions={decisions} setDecision={setDecision}
+      />
 
       <div className="evm-section">
         <div className="evm-section-title">DECISION</div>
-        {view === 'confirm-extend' && (
+        {view === 'confirm-submit' ? (
           <ConfirmBar
-            text={`Extend TTL by ${newTtl} days?`}
-            confirmLabel="Confirm Extend"
+            text={`${approvedCount} claim${approvedCount === 1 ? '' : 's'} approved, ${rejectedCount} rejected. Logged to audit and returned to ${requester?.name || 'requester'}.`}
+            confirmLabel="Confirm Review"
             onCancel={() => setView('idle')}
-            onConfirm={() => onDecide(`TTL extended by ${newTtl} days`)}
-          >
-            <input className="evm-form-input" type="number" value={newTtl} onChange={e => setNewTtl(e.target.value)} style={{ maxWidth: 120 }} />
-          </ConfirmBar>
-        )}
-        {view === 'confirm-archive' && (
-          <ConfirmBar
-            text={`Archiving removes this record from active retrieval. ${md.usedBy?.length || 0} agents will degrade.`}
-            confirmLabel="Confirm Archive"
-            danger
-            onCancel={() => setView('idle')}
-            onConfirm={() => onDecide('Archived — removed from active retrieval')}
+            onConfirm={() => onDecide('Review submitted — logged to audit')}
           />
-        )}
-        {view === 'replace' && (
-          <ConfirmBar
-            text="Select a replacement source to link to this record."
-            confirmLabel="Confirm Replace"
-            disabled={!newSource.trim()}
-            onCancel={() => setView('idle')}
-            onConfirm={() => onDecide(`Replaced with ${newSource}`)}
-          >
-            <input className="evm-form-input" placeholder="Source document or file name…" value={newSource} onChange={e => setNewSource(e.target.value)} />
-          </ConfirmBar>
-        )}
-        {view === 'idle' && (
+        ) : (
           <div className="etb-action-row">
-            {md.ttlDays != null && <button className="wq-btn wq-btn--primary" onClick={() => setView('confirm-extend')}>Extend TTL</button>}
-            <button className="wq-btn wq-btn--ghost" onClick={() => setView(view === 'edit' ? 'idle' : 'edit')}>
-              {view === 'edit' ? 'Cancel edit' : 'Update content'}
+            <button className="wq-btn wq-btn--primary" disabled={!allDecided} onClick={() => setView('confirm-submit')}>
+              Submit review
             </button>
-            <button className="wq-btn wq-btn--ghost" onClick={() => setView('replace')}>Replace</button>
-            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => setView('confirm-archive')}>Archive</button>
           </div>
         )}
-        {view === 'edit' && (
-          <div className="etb-action-row">
-            <button className="wq-btn wq-btn--primary" onClick={() => onDecide('Content updated — logged to audit')}>Save changes</button>
-          </div>
+        {!allDecided && view === 'idle' && (
+          <p className="etb-hint-text">Requires a decision on every item before submitting.</p>
         )}
         <SecondaryLinks onAsk={onAsk} onEscalate={onEscalate} />
       </div>

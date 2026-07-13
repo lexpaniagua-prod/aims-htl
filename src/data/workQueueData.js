@@ -169,13 +169,13 @@ export const EVENTS = [
   },
   {
     id: 'EVT-006', severity: 'red', studio: 'gov', ownerId: 'p1',
-    title: 'KBU TTL expiring: Return Policy v3 — 6 days',
-    detail: 'Knowledge Base Unit auto-expires in 6 days. Review and extend TTL or replace with updated policy.',
-    blastRadius: { workflows: 12, agents: 4, description: 'ReturnPolicyBot and ServiceDesk agents will lose policy context' },
+    title: 'Review requested: Interest rate sensitivity threshold — need your call',
+    detail: "Marcus H. flagged this claim as a conflict outside his sign-off authority and is asking you to make the call before the DIAN proposal can be attested.",
+    blastRadius: { workflows: 14, agents: 3, description: 'Blocks attestation on DIAN Claim Extraction Pipeline until resolved' },
     dueLabel: 'Jun 23', dueDate: '2026-06-23', type: 'review', origin: 'internal', dueToday: false, missionCritical: false,
     eventCategory: 'gov-review',
-    quickActions: ['Extend TTL', 'Replace KBU', 'Archive'],
-    spec: 'KBU-4490', kind: 'KBU Expiry',
+    quickActions: ['Approve', 'Reject', 'Edit'],
+    spec: 'KBU-4490', kind: 'Review Request',
     coveringFor: 'p12',
   },
   {
@@ -423,7 +423,7 @@ export const AUDIT_LOG = [
   { id: 'AUD-001', timestamp: '2026-06-17T07:00:00Z', actor: 'System',    action: 'OOO Transfer',         studio: 'gov',     artifact: 'EVT-006, EVT-011', risk: 'low',      outcome: 'success',   hash: 'a1b2c3d4', prevHash: '00000000' },
   { id: 'AUD-002', timestamp: '2026-06-17T07:15:00Z', actor: 'Alexa M.',  action: 'Login',                studio: 'cross',   artifact: 'Session',          risk: 'none',     outcome: 'success',   hash: 'e5f6a7b8', prevHash: 'a1b2c3d4' },
   { id: 'AUD-003', timestamp: '2026-06-17T07:32:00Z', actor: 'Marcus H.', action: 'Approved Intake',      studio: 'gov',     artifact: 'EVT-003',          risk: 'medium',   outcome: 'success',   hash: 'c9d0e1f2', prevHash: 'e5f6a7b8' },
-  { id: 'AUD-004', timestamp: '2026-06-17T07:45:00Z', actor: 'Priya K.',  action: 'Reviewed KBU',         studio: 'gov',     artifact: 'KBU-4490',         risk: 'low',      outcome: 'success',   hash: 'a3b4c5d6', prevHash: 'c9d0e1f2' },
+  { id: 'AUD-004', timestamp: '2026-06-17T07:45:00Z', actor: 'Priya K.',  action: 'Reviewed Claim',       studio: 'gov',     artifact: 'KBU-4490',         risk: 'low',      outcome: 'success',   hash: 'a3b4c5d6', prevHash: 'c9d0e1f2' },
   { id: 'AUD-005', timestamp: '2026-06-17T08:02:10Z', actor: 'System',    action: 'HITL Pause Triggered', studio: 'agentic', artifact: 'EVT-002',          risk: 'high',     outcome: 'paused',    hash: 'e7f8a9b0', prevHash: 'a3b4c5d6' },
   { id: 'AUD-006', timestamp: '2026-06-17T08:10:00Z', actor: 'Devon N.',  action: 'Approved Break Glass', studio: 'gov',     artifact: 'BG-0091',          risk: 'critical', outcome: 'partial',   hash: 'c1d2e3f4', prevHash: 'e7f8a9b0' },
   { id: 'AUD-007', timestamp: '2026-06-17T08:30:00Z', actor: 'Jordan T.', action: 'Responded to Claim',   studio: 'gov',     artifact: 'RC-4412',          risk: 'medium',   outcome: 'pending',   hash: 'a5b6c7d8', prevHash: 'c1d2e3f4' },
@@ -563,15 +563,20 @@ export const EVENT_MODAL_DATA = {
   },
 
   'EVT-006': {
-    kbuText: 'RETURN POLICY v3.0 — Effective Sep 1, 2025\n\nStandard Returns: Customers may return most items within 30 days of purchase for a full refund to the original payment method. Items must be in original condition with all packaging intact.\n\nExtended Window: Premium account holders receive a 60-day return window. Electronics carry a 15-day return window regardless of account tier.\n\nNon-Returnable: Customized products, digital downloads, and perishables are non-returnable. Gift cards may be exchanged but not refunded.\n\nProcess: Returns must be initiated through the customer portal or by contacting support. Refunds processed within 5–7 business days.',
-    history: { lastModified: '2025-09-01', by: 'Jordan T.', version: '3.0' },
-    versionHistory: [
-      { version: '3.0', summary: 'Extended premium window to 60 days; added electronics carve-out', author: 'Jordan T.', date: '2025-09-01' },
-      { version: '2.1', summary: 'Clarified non-returnable categories (digital, perishables)', author: 'Priya K.',  date: '2025-04-12' },
-      { version: '2.0', summary: 'Standardized refund processing window to 5–7 business days', author: 'Jordan T.', date: '2024-11-03' },
+    requestedBy: { name: 'Marcus H.', role: 'Governance Lead' },
+    requestedAt: '2026-06-17T09:40:00Z',
+    requestReason: "I don't have sign-off authority on interest rate sensitivity thresholds — this conflicts with the Risk Framework Q1 2026 update and needs Compliance Lead review before I can attest to it.",
+    linkedProposal: { id: 'EVT-001', spec: 'DIAN-4821', title: 'DIAN Intake: Financial Policy PDF requires approval' },
+    claims: [
+      { id: 'CLM-005', text: 'Interest rate sensitivity threshold: ±150bps triggers mandatory review', confidence: 0.79, conflict: true },
     ],
-    ttlDays: 6,
-    usedBy: ['ReturnPolicyBot', 'ServiceDeskAgent', 'CustomerResolutionFlow'],
+    conflicts: [
+      {
+        claimId: 'CLM-005',
+        sourceA: { name: 'Financial Policy Manual v12', value: '±150bps', lastVerified: '2026-03-01' },
+        sourceB: { name: 'Risk Framework Q1 2026',    value: '±200bps', lastVerified: '2026-04-15' },
+      },
+    ],
   },
 
   'EVT-009': {
@@ -698,7 +703,7 @@ export const MESSAGES = [
     id: 'MSG-004', type: 'dm', pinned: false,
     from: 'p3', to: 'p1',
     subject: "Covering Luis's queue",
-    body: "Just a heads up — I've picked up Luis's delegated items (EVT-006, EVT-011). Will action KBU review today.",
+    body: "Just a heads up — I've picked up Luis's delegated items (EVT-006, EVT-011). Will action the governance review today.",
     linkedEvent: 'EVT-006',
     timestamp: '2026-06-17T07:30:00Z',
   },
