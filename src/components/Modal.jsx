@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import './Modal.css'
 
-export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md' }) {
+export function Modal({ open, onClose, icon, title, subtitle, children, footer, size = 'md' }) {
   useEffect(() => {
     if (!open) return
     const handler = e => { if (e.key === 'Escape') onClose?.() }
@@ -15,9 +15,12 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose?.()}>
       <div className={`modal modal--${size}`}>
         <div className="modal-header">
-          <div>
-            <div className="modal-title">{title}</div>
-            {subtitle && <div className="modal-subtitle">{subtitle}</div>}
+          <div className="modal-header-main">
+            {icon && <div className="modal-header-icon">{icon}</div>}
+            <div>
+              <div className="modal-title">{title}</div>
+              {subtitle && <div className="modal-subtitle">{subtitle}</div>}
+            </div>
           </div>
           <button className="modal-close" onClick={onClose}><X size={15} /></button>
         </div>

@@ -3811,6 +3811,16 @@ body.evm-active .drawer {
 }
 
 /* ── Escalation modal (esc-*) ─────────────────────────────────────────────────── */
+.esc-header-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
+  background: rgba(245,158,11,0.15);
+  color: var(--accent-amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .esc-body {
   display: flex;
   flex-direction: column;
@@ -3832,7 +3842,96 @@ body.evm-active .drawer {
   letter-spacing: 0;
 }
 .esc-required { color: var(--accent-coral); }
-.esc-who-filters { display: flex; gap: 8px; }
+
+/* Item summary card */
+.esc-summary-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: var(--bg-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.esc-summary-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.esc-summary-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.esc-summary-spec { font-size: 11px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.esc-summary-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.esc-summary-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid;
+  background: transparent;
+}
+.esc-summary-meta { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+.esc-summary-conf { font-size: 12px; font-weight: 600; color: var(--accent-green); }
+.esc-summary-risk { font-size: 12px; font-weight: 600; }
+
+/* Chip rows — reason / priority */
+.esc-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.esc-chip {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.esc-chip:hover { background: var(--bg-card); }
+.esc-chip--on {
+  background: rgba(59,130,246,0.12);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+.esc-chip--high-on {
+  background: rgba(244,63,94,0.12) !important;
+  border-color: var(--accent-coral) !important;
+  color: var(--accent-coral) !important;
+}
+
+/* Assign collaborators */
+.esc-collab-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2px; }
+.esc-collab-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.esc-collab-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+.esc-collab-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
+.esc-collab-role { font-size: 11px; color: var(--text-muted); }
+.esc-collab-remove {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.esc-collab-remove:hover { background: var(--bg-card); color: var(--text-primary); }
+
 .esc-search-wrap { flex: 1; position: relative; }
 .esc-search-icon {
   position: absolute;
@@ -3854,85 +3953,52 @@ body.evm-active .drawer {
   box-sizing: border-box;
 }
 .esc-search-input:focus { outline: none; border-color: var(--accent-blue); }
-.esc-dept-select {
-  padding: 8px 12px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  flex-shrink: 0;
-}
-.esc-people {
+
+.esc-candidate-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  max-height: 200px;
+  gap: 2px;
+  max-height: 160px;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px;
   background: var(--bg-elevated);
 }
-.esc-person {
+.esc-candidate-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 8px;
+  padding: 6px 8px;
   border-radius: 6px;
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   cursor: pointer;
   text-align: left;
   transition: background 0.12s;
   width: 100%;
 }
-.esc-person:hover { background: var(--bg-card); }
-.esc-person--on { background: rgba(59,130,246,0.08); border-color: var(--accent-blue); }
-.esc-initials {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
+.esc-candidate-row:hover { background: var(--bg-card); }
 .esc-person-info { display: flex; flex-direction: column; flex: 1; }
 .esc-person-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .esc-person-role { font-size: 11px; color: var(--text-muted); }
-.esc-urgency-toggle {
+
+.esc-submit-btn {
   display: flex;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  overflow: hidden;
-  align-self: flex-start;
-}
-.esc-urgency-btn {
-  padding: 8px 20px;
-  background: transparent;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 7px;
   border: none;
-  color: var(--text-muted);
-  cursor: pointer;
+  background: var(--accent-amber);
+  color: #1a1300;
   font-size: 13px;
-  font-family: inherit;
-  transition: background 0.12s, color 0.12s;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.12s;
 }
-.esc-urgency-btn--on {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.esc-urgency-btn--urgent-on {
-  background: rgba(244,63,94,0.12) !important;
-  color: var(--accent-coral) !important;
-}
+.esc-submit-btn:hover { opacity: 0.9; }
+.esc-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── WQMessages ─────────────────────────────────────────────────────────────── */
 .wqm-root {
@@ -7597,6 +7663,16 @@ body.evm-active .drawer {
 .evsl-details-btn {
   flex: 1 1 auto;
   justify-content: center;
+}
+
+/* Comments area — indicator + composer, highlighted by Ask */
+.evsl-comments-area {
+  border-radius: 8px;
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+.evsl-comments-area--highlight {
+  background: rgba(59,130,246,0.08);
+  box-shadow: 0 0 0 1px rgba(59,130,246,0.35);
 }
 
 /* Comment indicator */

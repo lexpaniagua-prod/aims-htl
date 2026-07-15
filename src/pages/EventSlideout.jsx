@@ -45,9 +45,11 @@ function fmtDate(iso) {
 
 // ── Event slideout — Level 1 fast-context drawer ────────────────────────────────
 export default function EventSlideout({ event, thread, askSignal, currentUser, onAddComment, notify, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace }) {
-  const drawerRef  = useRef(null)
-  const commentRef = useRef(null)
+  const drawerRef       = useRef(null)
+  const commentsAreaRef = useRef(null)
+  const composerRef     = useRef(null)
   const [draft, setDraft] = useState('')
+  const [highlightComments, setHighlightComments] = useState(false)
 
   useEffect(() => {
     document.body.classList.add('evsl-active')
@@ -61,13 +63,17 @@ export default function EventSlideout({ event, thread, askSignal, currentUser, o
   }, [onClose])
 
   // Ask (from the card, or re-clicked while the slideout is already open)
-  // scrolls down to the comment indicator instead of opening anything new.
+  // scrolls to and highlights the comments area, then focuses the composer —
+  // the same position-and-focus behavior as Ask on the full details view.
   useEffect(() => {
     if (!askSignal) return
     const t = setTimeout(() => {
-      commentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      commentsAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      composerRef.current?.focus()
+      setHighlightComments(true)
     }, 60)
-    return () => clearTimeout(t)
+    const clearHighlight = setTimeout(() => setHighlightComments(false), 1400)
+    return () => { clearTimeout(t); clearTimeout(clearHighlight) }
   }, [askSignal])
 
   if (!event) return null
@@ -157,37 +163,45 @@ export default function EventSlideout({ event, thread, askSignal, currentUser, o
             <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
           </div>
 
-          {/* Comment indicator */}
-          <div className="evsl-comment-indicator" ref={commentRef}>
-            {lastComment ? (
-              <>
-                <div className="evsl-comment-preview">
-                  <span className="evsl-comment-preview-name">{lastAuthor?.name || 'Unknown'}</span>
-                  <span className="evsl-comment-preview-text">{lastComment.body.slice(0, 90)}{lastComment.body.length > 90 ? '…' : ''}</span>
-                  <span className="evsl-comment-preview-time">{timeAgo(lastComment.timestamp)}</span>
-                </div>
-                <button className="evsl-view-thread-link" onClick={() => onViewThread(event)}>View thread →</button>
-              </>
-            ) : (
-              <span className="evsl-no-comments">No comments yet</span>
+          {/* Comments area — indicator + composer. Scrolled to and highlighted
+              by Ask, on the card or in the slideout, same as the full page. */}
+          <div
+            className={`evsl-comments-area${highlightComments ? ' evsl-comments-area--highlight' : ''}`}
+            ref={commentsAreaRef}
+          >
+            {/* Comment indicator */}
+            <div className="evsl-comment-indicator">
+              {lastComment ? (
+                <>
+                  <div className="evsl-comment-preview">
+                    <span className="evsl-comment-preview-name">{lastAuthor?.name || 'Unknown'}</span>
+                    <span className="evsl-comment-preview-text">{lastComment.body.slice(0, 90)}{lastComment.body.length > 90 ? '…' : ''}</span>
+                    <span className="evsl-comment-preview-time">{timeAgo(lastComment.timestamp)}</span>
+                  </div>
+                  <button className="evsl-view-thread-link" onClick={() => onViewThread(event)}>View thread →</button>
+                </>
+              ) : (
+                <span className="evsl-no-comments">No comments yet</span>
+              )}
+            </div>
+
+            {/* Minimal comment composer — same thread as the full page */}
+            {currentUser && (
+              <div className="evsl-composer">
+                <textarea
+                  ref={composerRef}
+                  className="evsl-composer-input"
+                  placeholder="Add a comment…"
+                  rows={2}
+                  value={draft}
+                  onChange={e => setDraft(e.target.value)}
+                />
+                <button className="wq-btn wq-btn--primary evsl-composer-post" disabled={!draft.trim()} onClick={handlePost}>
+                  Post
+                </button>
+              </div>
             )}
           </div>
-
-          {/* Minimal comment composer — same thread as the full page */}
-          {currentUser && (
-            <div className="evsl-composer">
-              <textarea
-                className="evsl-composer-input"
-                placeholder="Add a comment…"
-                rows={2}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-              />
-              <button className="wq-btn wq-btn--primary evsl-composer-post" disabled={!draft.trim()} onClick={handlePost}>
-                Post
-              </button>
-            </div>
-          )}
 
           {/* Footer */}
           <div className="evsl-footer">

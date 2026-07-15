@@ -40,6 +40,18 @@
   gap: 12px;
 }
 
+.modal-header-main { display: flex; align-items: flex-start; gap: 12px; }
+
+.modal-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .modal-title {
   font-family: 'Inter', sans-serif;
   font-size: 15px;
