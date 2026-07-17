@@ -18,7 +18,7 @@ function person(id) {
   return PEOPLE.find(p => p.id === id)
 }
 
-function getExpertiseTags(p) {
+export function getExpertiseTags(p) {
   const tags = []
   if (p.partitions?.includes('compliance')) tags.push('Compliance')
   if (p.partitions?.includes('finance'))    tags.push('Finance')
@@ -100,7 +100,7 @@ function MentionPopover({ query, onPick }) {
 }
 
 // ── "Add people..." participant picker ──────────────────────────────────────────
-function AddPeoplePicker({ query, setQuery, excludeIds, onPick }) {
+export function AddPeoplePicker({ query, setQuery, excludeIds, onPick }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
 
@@ -156,8 +156,43 @@ function AddPeoplePicker({ query, setQuery, excludeIds, onPick }) {
   )
 }
 
+// ── Question bubble — a visually distinct comment entry created by Ask ─────────
+function QuestionBubble({ c, onMarkAnswered }) {
+  const asker    = person(c.authorId)
+  const assignee = person(c.assignedToId)
+  return (
+    <div className="evc-question-bubble">
+      <div className="evc-question-top">
+        <span className="evc-comment-avatar">{asker?.initials || '??'}</span>
+        <div className="evc-question-top-info">
+          <span className="evc-comment-name">{asker?.name || 'Unknown'}</span>
+          <span className="evc-question-badge">Question</span>
+          {assignee && <span className="evc-question-assignee-chip">→ {assignee.name}</span>}
+        </div>
+        <span className="evc-comment-time">{timeAgo(c.timestamp)}</span>
+      </div>
+      <div className="evc-question-text">{c.questionText}</div>
+      <div className="evc-question-status-row">
+        <span className={`evc-question-status-dot evc-question-status-dot--${c.status}`} />
+        <span className="evc-question-status-label">{c.status === 'answered' ? 'Answered' : 'Awaiting response'}</span>
+        {c.status !== 'answered' && (
+          <button type="button" className="evc-question-mark-answered" onClick={() => onMarkAnswered(c)}>
+            Mark answered
+          </button>
+        )}
+      </div>
+      {c.status === 'answered' && c.responseText && (
+        <div className="evc-question-response">
+          <span className="evc-question-response-label">Response</span>
+          <p className="evc-question-response-text">{c.responseText}</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Comments section (shared by the slideout and the full-page view) ───────────
-export default function CommentsSection({ event, thread, currentUser, onAddComment, onCloseThread, onReopenThread, notify, focusSignal }) {
+export default function CommentsSection({ event, thread, currentUser, onAddComment, onCloseThread, onReopenThread, notify, focusSignal, onMarkAnswered }) {
   const [draft, setDraft] = useState('')
   const [pendingParticipants, setPendingParticipants] = useState([])
   const [addPeopleQuery, setAddPeopleQuery] = useState('')
@@ -285,6 +320,9 @@ export default function CommentsSection({ event, thread, currentUser, onAddComme
           <div className="evc-empty">No comments yet. Be the first to ask a question.</div>
         ) : (
           thread.comments.map(c => {
+            if (c.type === 'question') {
+              return <QuestionBubble key={c.id} c={c} onMarkAnswered={onMarkAnswered} />
+            }
             const author = person(c.authorId)
             return (
               <div key={c.id} className="evc-comment">

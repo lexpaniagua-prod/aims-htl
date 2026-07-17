@@ -8,6 +8,7 @@ import {
 import { DecisionSurface } from './EventTypeBlocks'
 import CommentsSection from './EventComments'
 import EscalationModal from './EscalationModal'
+import QuestionModal from './QuestionModal'
 import AttestModal from './AttestModal'
 
 function person(id) {
@@ -19,7 +20,6 @@ function AttestationStrip({ event, onRequestVerification }) {
   const linked = ATTESTATIONS.filter(a => a.linkedEvent === event.id)
   return (
     <div className="wqep-side-block">
-      <div className="wqep-side-block-title">Attestations</div>
       {linked.length === 0 ? (
         <div className="wqep-side-empty">No attestations linked to this event.</div>
       ) : (
@@ -46,24 +46,41 @@ function AttestationStrip({ event, onRequestVerification }) {
 
 // ── Audit trail (right column) ──────────────────────────────────────────────────
 function AuditTrailBlock({ event, onViewFullAudit }) {
+  const [expandedId, setExpandedId] = useState(null)
   const logs = AUDIT_LOG
     .filter(a => a.artifact?.includes(event.id) || a.artifact?.includes(event.spec))
-    .slice(-5)
+    .slice(-10)
     .reverse()
   return (
     <div className="wqep-side-block">
-      <div className="wqep-side-block-title">Audit Trail</div>
       {logs.length === 0 ? (
         <div className="wqep-side-empty">No audit activity yet for this event.</div>
       ) : (
         <div className="wqep-audit-list">
-          {logs.map(a => (
-            <div key={a.id} className="wqep-audit-row">
-              <span className="wqep-audit-actor">{a.actor}</span>
-              <span className="wqep-audit-action">{a.action}</span>
-              <span className="wqep-audit-ts">{fmtTs(a.timestamp)}</span>
-            </div>
-          ))}
+          {logs.map(a => {
+            const expanded = expandedId === a.id
+            return (
+              <button
+                key={a.id}
+                type="button"
+                className={`wqep-audit-row${expanded ? ' wqep-audit-row--expanded' : ''}`}
+                onClick={() => setExpandedId(expanded ? null : a.id)}
+              >
+                <div className="wqep-audit-row-top">
+                  <span className="wqep-audit-actor">{a.actor}</span>
+                  <span className="wqep-audit-action">{a.action}</span>
+                  <span className="wqep-audit-ts">{fmtTs(a.timestamp)}</span>
+                </div>
+                {expanded && (
+                  <div className="wqep-audit-detail">
+                    <span><span className="wqep-audit-detail-label">Artifact</span> {a.artifact}</span>
+                    <span><span className="wqep-audit-detail-label">Risk</span> {a.risk}</span>
+                    <span><span className="wqep-audit-detail-label">Outcome</span> {a.outcome}</span>
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       )}
       <button className="evm-footer-link" onClick={onViewFullAudit}>View full audit →</button>
@@ -78,9 +95,12 @@ export default function WQEventPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { currentUser, commentThreads, addComment, closeThread, reopenThread, notify, markResolved, markEscalated } = useOutletContext()
+  const {
+    currentUser, commentThreads, addComment, closeThread, reopenThread, notify, markResolved, markEscalated,
+    questionEvents, createQuestion, markQuestionAnswered,
+  } = useOutletContext()
 
-  const event = EVENTS.find(e => e.id === id)
+  const event = [...EVENTS, ...questionEvents].find(e => e.id === id)
 
   const [view,          setView]          = useState(() => getInitialView(event?.type, undefined))
   const [note,          setNote]          = useState('')
@@ -95,6 +115,8 @@ export default function WQEventPage() {
   const [toast,         setToast]         = useState(null)
   const [status,        setStatus]        = useState('Open')
   const [commentsSignal, setCommentsSignal] = useState(location.state?.focusComments ? 1 : 0)
+  const [activeTab, setActiveTab] = useState('thread') // thread | attestation | audit
+  const [questionOpen, setQuestionOpen] = useState(false)
   const commentsRef = useRef(null)
 
   const handleBack = () => {
@@ -102,9 +124,26 @@ export default function WQEventPage() {
     navigate(returnUrl)
   }
 
-  const handleAsk = () => {
-    commentsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setCommentsSignal(s => s + 1)
+  // Ask opens the Question modal — it no longer scrolls to the thread.
+  const handleAsk = () => setQuestionOpen(true)
+
+  const handleQuestionSubmit = ({ recipient, question, why, dueDate }) => {
+    createQuestion({ originatingEvent: event, recipient, question, why, dueDate })
+    notify(`Question sent to ${recipient.name} — added to their Work Queue`)
+    setQuestionOpen(false)
+  }
+
+  const handleMarkAnswered = (c) => {
+    markQuestionAnswered({ eventId: event.id, questionEventId: c.linkedQuestionEventId, responseText: 'Responded to this question.' })
+  }
+
+  // Response composer on a Question event's own full page.
+  const handleAnswerQuestion = (responseText) => {
+    markQuestionAnswered({ eventId: event.linkedEventId, questionEventId: event.id, responseText })
+    const asker = PEOPLE.find(p => p.id === event.askedById)
+    setStatus('Resolved')
+    setToast(`Response sent — ${asker?.name || 'the sender'} has been notified`)
+    setTimeout(handleBack, 1500)
   }
 
   if (!event) {
@@ -185,6 +224,8 @@ export default function WQEventPage() {
                 status={status}
                 onStatusChange={setStatus}
                 currentUser={currentUser}
+                onAnswer={handleAnswerQuestion}
+                onNavigateToEvent={(eventId) => navigate(`/work-queue/event/${eventId}`)}
               />
             </div>
           ) : (
@@ -221,24 +262,52 @@ export default function WQEventPage() {
           )}
         </div>
 
-        {/* Right — attestations, comments, audit trail */}
+        {/* Right — thread / attestation / audit trail, tabbed */}
         <div className="wqep-side">
-          <AttestationStrip event={event} onRequestVerification={() => setAttestOpen(true)} />
-
-          <div className="wqep-comments" ref={commentsRef}>
-            <CommentsSection
-              event={event}
-              thread={commentThreads?.[event.id]}
-              currentUser={currentUser}
-              onAddComment={addComment}
-              onCloseThread={closeThread}
-              onReopenThread={reopenThread}
-              notify={notify}
-              focusSignal={commentsSignal}
-            />
+          <div className="wqep-tabs">
+            <button
+              className={`wqep-tab${activeTab === 'thread' ? ' wqep-tab--active' : ''}`}
+              onClick={() => setActiveTab('thread')}
+            >
+              Thread
+            </button>
+            <button
+              className={`wqep-tab${activeTab === 'attestation' ? ' wqep-tab--active' : ''}`}
+              onClick={() => setActiveTab('attestation')}
+            >
+              Attestation
+            </button>
+            <button
+              className={`wqep-tab${activeTab === 'audit' ? ' wqep-tab--active' : ''}`}
+              onClick={() => setActiveTab('audit')}
+            >
+              Audit Trail
+            </button>
           </div>
 
-          <AuditTrailBlock event={event} onViewFullAudit={() => navigate(`/work-queue/activity?artifact=${event.id}`)} />
+          <div className="wqep-tab-panel">
+            {activeTab === 'thread' && (
+              <div className="wqep-comments" ref={commentsRef}>
+                <CommentsSection
+                  event={event}
+                  thread={commentThreads?.[event.id]}
+                  currentUser={currentUser}
+                  onAddComment={addComment}
+                  onCloseThread={closeThread}
+                  onReopenThread={reopenThread}
+                  notify={notify}
+                  focusSignal={commentsSignal}
+                  onMarkAnswered={handleMarkAnswered}
+                />
+              </div>
+            )}
+            {activeTab === 'attestation' && (
+              <AttestationStrip event={event} onRequestVerification={() => setAttestOpen(true)} />
+            )}
+            {activeTab === 'audit' && (
+              <AuditTrailBlock event={event} onViewFullAudit={() => navigate(`/work-queue/activity?artifact=${event.id}`)} />
+            )}
+          </div>
         </div>
       </div>
 
@@ -247,6 +316,14 @@ export default function WQEventPage() {
           event={event}
           onClose={() => setEscalateOpen(false)}
           onConfirm={handleEscalateConfirm}
+        />
+      )}
+
+      {questionOpen && (
+        <QuestionModal
+          event={event}
+          onClose={() => setQuestionOpen(false)}
+          onSubmit={handleQuestionSubmit}
         />
       )}
 

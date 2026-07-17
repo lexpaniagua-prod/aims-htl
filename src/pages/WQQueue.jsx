@@ -5,17 +5,18 @@ import {
 } from 'lucide-react'
 import { Drawer, Modal } from '../components/Modal'
 import {
-  EVENTS, SEVERITY, SEVERITY_ORDER, EVENT_TYPES, STUDIOS, PEOPLE
+  EVENTS, SEVERITY, SEVERITY_ORDER, EVENT_TYPES, STUDIOS, PEOPLE, TEAMS
 } from '../data/workQueueData'
 import EventSlideout from './EventSlideout'
 import EscalationModal from './EscalationModal'
+import QuestionModal from './QuestionModal'
 
 const CATEGORY_OPTIONS = [
   { value: 'htl-continuation',   label: 'HTL Continuation',   group: 'eventCategory' },
   { value: 'htl-handoff',        label: 'HTL Handoff',        group: 'eventCategory' },
-  { value: 'message',            label: 'Message',            group: 'eventCategory' },
+  { value: 'inbound-question',   label: 'Question',           group: 'eventCategory' },
   { value: 'train-me',           label: 'Train Me',           group: 'eventCategory' },
-  { value: 'gov-proposal',       label: 'Gov Proposal',       group: 'eventCategory' },
+  { value: 'gov-promotion',      label: 'Gov Promotion',      group: 'eventCategory' },
   { value: 'gov-review',         label: 'Gov Review',         group: 'eventCategory' },
   { value: 'gov-break-glass',    label: 'Gov Break Glass',    group: 'eventCategory' },
   { value: 'gov-change-request', label: 'Gov Change Request', group: 'eventCategory' },
@@ -156,11 +157,28 @@ function CardMenu({ onTakeIt, onNudge, onReassign }) {
 }
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
-function EventCard({ event, currentUser, teamMode, onTrace, onOpenSlideout, onDetails, onSkip, onAskTeammate, onEscalate, onTakeIt, onNudge, onReassign, isSkipped, isEscalated, thread, hasUnread }) {
+function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSlideout, onDetails, onSkip, onAskTeammate, onEscalate, onTakeIt, onNudge, onReassign, isSkipped, isEscalated, thread, hasUnread }) {
   const sev    = SEVERITY[event.severity]
   const etype  = EVENT_TYPES[event.type]
   const studio = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
   const owner  = PEOPLE.find(p => p.id === event.ownerId)
+  const ownerTeams = owner?.teams || []
+  // When a Team filter is active, the badge shows the team(s) that actually
+  // matched the filter — not just the owner's first team — so the tag always
+  // agrees with why this card is visible. Otherwise, if the owner belongs to
+  // several teams, prefer whichever one shares this event's studio (so e.g.
+  // an executive on both Governance Operations and Agentic Oversight shows
+  // the one that actually explains this specific card).
+  let displayTeams
+  if (teamFilter?.length) {
+    const matchedTeams = ownerTeams.filter(t => teamFilter.includes(t))
+    displayTeams = matchedTeams.length ? matchedTeams : ownerTeams
+  } else if (ownerTeams.length > 1) {
+    const studioMatch = ownerTeams.filter(t => TEAMS[t]?.studio === event.studio)
+    displayTeams = studioMatch.length ? studioMatch : ownerTeams
+  } else {
+    displayTeams = ownerTeams
+  }
   const isOwn      = event.ownerId === currentUser.id
   const isCovering = event.coveringFor && delegatedTo(event) === currentUser.id
   const urgency = dueUrgency(event)
@@ -188,6 +206,12 @@ function EventCard({ event, currentUser, teamMode, onTrace, onOpenSlideout, onDe
           <span className="wq-badge wq-badge--type" style={{ color: etype.color, borderColor: etype.color + '44' }}>
             {etype.label}
           </span>
+          {displayTeams.length > 0 && (
+            <span className="wq-badge wq-badge--team">
+              {TEAMS[displayTeams[0]]?.label || displayTeams[0]}
+              {displayTeams.length > 1 && ` +${displayTeams.length - 1}`}
+            </span>
+          )}
           {event.missionCritical && (
             <span className="wq-badge wq-badge--critical">
               <AlertTriangle size={9} /> Mission Critical
@@ -405,7 +429,7 @@ function MultiSelect({ label, options, selected, onChange }) {
 
 // ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
-  const { currentUser, commentThreads, addComment, notify, resolvedIds, escalatedIds, markEscalated } = useOutletContext()
+  const { currentUser, commentThreads, addComment, notify, resolvedIds, escalatedIds, markEscalated, questionEvents, createQuestion } = useOutletContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -422,6 +446,7 @@ export default function WQQueue() {
   // Level 1 slideout state — { event, askSignal }
   const [slideout, setSlideout] = useState(null)
   const [escalateTarget, setEscalateTarget] = useState(null)
+  const [questionTarget, setQuestionTarget] = useState(null)
   const [reassignTarget, setReassignTarget] = useState(null)
 
   // Restore scroll position when returning from the full event page
@@ -449,6 +474,7 @@ export default function WQQueue() {
   const [categoryFilter, setCategoryFilter] = useState([])
   const [ownerFilter,    setOwnerFilter]    = useState([])
   const [dueFilter,      setDueFilter]      = useState([])
+  const [teamFilter,     setTeamFilter]     = useState([])
 
   // Deep-link filters from Overview CTAs
   const initSev  = searchParams.get('severity')
@@ -474,7 +500,7 @@ export default function WQQueue() {
   // Handlers
   // Level 1 — card body click opens the fast-context slideout
   const handleOpenSlideout = (event) => {
-    setSlideout({ event, askSignal: 0 })
+    setSlideout({ event })
     setReadThreads(prev => new Set([...prev, event.id]))
   }
 
@@ -489,20 +515,26 @@ export default function WQQueue() {
     navigate(`/work-queue/event/${event.id}`, opts?.focusComments ? { state: { focusComments: true } } : undefined)
   }
 
-  // "View thread →" inside the slideout's comment indicator goes all the way
-  // to the full page's Comments column, scrolled/focused there.
+  // "View thread →" inside the slideout's comment indicator goes straight to
+  // the full page's Thread tab.
   const handleViewThread = (event) => handleOpenFullPage(event, { focusComments: true })
 
-  // Ask opens the slideout (if not already open for this event) and bumps a
-  // signal so the slideout scrolls to its comment indicator every time.
-  const handleAsk = (event) => {
-    setSlideout(prev => {
-      if (prev && prev.event.id === event.id) {
-        return { ...prev, askSignal: (prev.askSignal || 0) + 1 }
-      }
-      return { event, askSignal: 1 }
-    })
-    setReadThreads(prev => new Set([...prev, event.id]))
+  // Ask (from the card, the slideout, or the full page) opens the Question
+  // modal — it no longer opens/scrolls to comments directly.
+  const handleAsk = (event) => setQuestionTarget(event)
+
+  const handleQuestionSubmit = ({ recipient, question, why, dueDate }) => {
+    createQuestion({ originatingEvent: questionTarget, recipient, question, why, dueDate })
+    notify(`Question sent to ${recipient.name} — added to their Work Queue`)
+    setQuestionTarget(null)
+  }
+
+  // Linked-event chip on a Question's slideout — navigate straight there.
+  const handleNavigateToLinkedEvent = (eventId) => {
+    sessionStorage.setItem('htl-wq-return-url', location.pathname + location.search)
+    sessionStorage.setItem('htl-wq-return-scroll', String(document.querySelector('.wq-page')?.scrollTop || 0))
+    setSlideout(null)
+    navigate(`/work-queue/event/${eventId}`)
   }
 
   const handleEscalateCard = (event) => {
@@ -545,9 +577,10 @@ export default function WQQueue() {
   }
 
   const effectiveEvents = useMemo(() => {
-    if (!Object.keys(ownerOverrides).length) return EVENTS
-    return EVENTS.map(e => ownerOverrides[e.id] ? { ...e, ownerId: ownerOverrides[e.id] } : e)
-  }, [ownerOverrides])
+    const merged = [...EVENTS, ...questionEvents]
+    if (!Object.keys(ownerOverrides).length) return merged
+    return merged.map(e => ownerOverrides[e.id] ? { ...e, ownerId: ownerOverrides[e.id] } : e)
+  }, [ownerOverrides, questionEvents])
 
   const baseEvents = mode === 'my' ? getMyEvents(effectiveEvents, currentUser) : getTeamEvents(effectiveEvents, currentUser)
 
@@ -566,6 +599,10 @@ export default function WQQueue() {
         const matchesOrigin   = categoryFilter.includes(e.origin)
         if (!matchesCategory && !matchesOrigin) return false
       }
+      if (teamFilter.length) {
+        const owner = PEOPLE.find(p => p.id === e.ownerId)
+        if (!owner?.teams?.some(t => teamFilter.includes(t))) return false
+      }
       if (dueFilter.length) {
         const urg = dueUrgency(e)
         if (!dueFilter.includes(urg)) return false
@@ -576,7 +613,7 @@ export default function WQQueue() {
       if (sortMode === 'critical') return e.severity === 'now' || e.severity === 'red'
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, dueFilter, sortMode, mode])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, teamFilter, dueFilter, sortMode, mode])
 
   const filtered = useMemo(() => {
     if (!sevFilter.length) return preSeverityFiltered
@@ -619,11 +656,33 @@ export default function WQQueue() {
     count: baseEvents.filter(e => e.type === t.key).length,
   }))
 
+  // Team filter options — individual personas only see their own teams;
+  // manager/executive personas see every team represented in their scope.
+  const scopePeople = currentUser.scope === 'individual'
+    ? [currentUser]
+    : currentUser.scope === 'manager'
+      ? PEOPLE.filter(p => currentUser.studios.some(s => p.studios.includes(s)))
+      : PEOPLE
+
+  const teamOptionIds = new Set()
+  scopePeople.forEach(p => (p.teams || []).forEach(t => teamOptionIds.add(t)))
+  const teamOptions = Array.from(teamOptionIds).map(id => ({
+    value: id,
+    label: TEAMS[id]?.label || id,
+    count: baseEvents.filter(e => PEOPLE.find(p => p.id === e.ownerId)?.teams?.includes(id)).length,
+  }))
+
+  // Team-filtered events — Type filter counts respond to an active Team filter.
+  const teamFilteredEvents = useMemo(() => {
+    if (!teamFilter.length) return baseEvents
+    return baseEvents.filter(e => PEOPLE.find(p => p.id === e.ownerId)?.teams?.some(t => teamFilter.includes(t)))
+  }, [baseEvents, teamFilter])
+
   const categoryOptions = CATEGORY_OPTIONS.map(c => ({
     value: c.value, label: c.label,
     count: c.group === 'eventCategory'
-      ? baseEvents.filter(e => e.eventCategory === c.value).length
-      : baseEvents.filter(e => e.origin === c.value).length,
+      ? teamFilteredEvents.filter(e => e.eventCategory === c.value).length
+      : teamFilteredEvents.filter(e => e.origin === c.value).length,
   }))
 
   const ownerOptions = mode === 'team'
@@ -644,6 +703,7 @@ export default function WQQueue() {
     ...studioFilter.map(v     => ({ key: `s:${v}`,  label: STUDIOS[v]?.short,                clear: () => setStudioFilter(f => f.filter(x => x !== v)) })),
     ...combinedTypeFilter.map(v => ({ key: `t:${v}`, label: EVENT_TYPES[v]?.label,            clear: () => setActiveTypeFilter(f => f.filter(x => x !== v)) })),
     ...categoryFilter.map(v   => ({ key: `c:${v}`,  label: CATEGORY_OPTIONS.find(c => c.value === v)?.label, clear: () => setCategoryFilter(f => f.filter(x => x !== v)) })),
+    ...teamFilter.map(v       => ({ key: `tm:${v}`, label: TEAMS[v]?.label,                    clear: () => setTeamFilter(f => f.filter(x => x !== v)) })),
     ...ownerFilter.map(v      => ({ key: `o:${v}`,  label: PEOPLE.find(p => p.id === v)?.name, clear: () => setOwnerFilter(f => f.filter(x => x !== v)) })),
     ...dueFilter.map(v        => ({ key: `d:${v}`,  label: DUE_LABEL[v],                      clear: () => setDueFilter(f => f.filter(x => x !== v)) })),
   ]
@@ -652,6 +712,7 @@ export default function WQQueue() {
     setStudioFilter([])
     setActiveTypeFilter([])
     setCategoryFilter([])
+    setTeamFilter([])
     setOwnerFilter([])
     setDueFilter([])
     setSevFilter([])
@@ -713,6 +774,7 @@ export default function WQQueue() {
             </button>
           )}
         </div>
+        <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
         <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
         <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
         <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
@@ -770,6 +832,7 @@ export default function WQQueue() {
                     event={e}
                     currentUser={currentUser}
                     teamMode={mode === 'team'}
+                    teamFilter={teamFilter}
                     onTrace={setTraceEvent}
                     onOpenSlideout={handleOpenSlideout}
                     onDetails={handleOpenFullPage}
@@ -797,16 +860,22 @@ export default function WQQueue() {
         <EventSlideout
           event={slideout.event}
           thread={commentThreads?.[slideout.event.id]}
-          askSignal={slideout.askSignal}
-          currentUser={currentUser}
-          onAddComment={addComment}
-          notify={notify}
           onClose={handleCloseSlideout}
           onOpenFullPage={handleOpenFullPage}
           onAsk={handleAsk}
           onViewThread={handleViewThread}
           onEscalate={handleEscalateCard}
           onTrace={setTraceEvent}
+          onNavigateToEvent={handleNavigateToLinkedEvent}
+        />
+      )}
+
+      {/* Question modal — Ask, from anywhere */}
+      {questionTarget && (
+        <QuestionModal
+          event={questionTarget}
+          onClose={() => setQuestionTarget(null)}
+          onSubmit={handleQuestionSubmit}
         />
       )}
 

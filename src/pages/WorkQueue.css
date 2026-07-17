@@ -882,6 +882,13 @@
   border-color: rgba(245,158,11,0.3);
 }
 
+.wq-badge--team {
+  background: rgba(99,102,241,0.1);
+  color: #818cf8;
+  border-color: rgba(99,102,241,0.3);
+  font-size: 10.5px;
+}
+
 .wq-badge--owner {
   background: var(--bg-elevated);
   color: var(--text-secondary);
@@ -3999,6 +4006,276 @@ body.evm-active .drawer {
 }
 .esc-submit-btn:hover { opacity: 0.9; }
 .esc-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Question modal (qm-*) — Ask, from anywhere ────────────────────────────────── */
+.qm-header-icon {
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
+  background: rgba(59,130,246,0.15);
+  color: var(--accent-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qm-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 2px 0;
+}
+.qm-field { display: flex; flex-direction: column; gap: 8px; }
+.qm-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.qm-label-hint {
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-muted);
+  letter-spacing: 0;
+}
+.qm-required { color: var(--accent-coral); }
+
+.qm-search-wrap { position: relative; }
+.qm-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.qm-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 30px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.qm-search-input:focus { outline: none; border-color: var(--accent-blue); }
+
+.qm-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  margin-top: 6px;
+}
+.qm-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+  width: 100%;
+}
+.qm-candidate-row:hover { background: var(--bg-card); }
+.qm-candidate-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.qm-candidate-name { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+.qm-candidate-role { font-size: 11px; color: var(--text-muted); }
+.qm-candidate-tags { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.qm-candidate-tag {
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(59,130,246,0.1);
+  color: var(--accent-blue);
+}
+
+.qm-recipient-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent-blue);
+  background: rgba(59,130,246,0.08);
+}
+.qm-recipient-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.qm-recipient-info { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.qm-recipient-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.qm-recipient-role { font-size: 11px; color: var(--text-muted); }
+.qm-recipient-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.qm-recipient-remove:hover { background: var(--bg-card); color: var(--text-primary); }
+
+.qm-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 16px;
+  border-radius: 7px;
+  border: none;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.qm-submit-btn:hover { opacity: 0.9; }
+.qm-submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Question bubble in the comment thread (evc-question-*) ───────────────────── */
+.evc-question-bubble {
+  border-left: 3px solid var(--accent-amber, #f59e0b);
+  background: rgba(245,158,11,0.06);
+  border-radius: 0 8px 8px 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.evc-question-top { display: flex; align-items: center; gap: 8px; }
+.evc-question-top-info { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; flex-wrap: wrap; }
+.evc-question-badge {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(245,158,11,0.15);
+  color: var(--accent-amber, #f59e0b);
+}
+.evc-question-assignee-chip {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.evc-question-text {
+  font-size: 12.5px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.evc-question-status-row { display: flex; align-items: center; gap: 6px; }
+.evc-question-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.evc-question-status-dot--awaiting { background: var(--accent-amber, #f59e0b); }
+.evc-question-status-dot--answered { background: var(--accent-green); }
+.evc-question-status-label { font-size: 11px; color: var(--text-secondary); }
+.evc-question-mark-answered {
+  margin-left: auto;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.evc-question-mark-answered:hover { background: var(--bg-card); color: var(--text-primary); }
+.evc-question-response {
+  border-top: 1px solid rgba(245,158,11,0.2);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.evc-question-response-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.evc-question-response-text {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ── Question full page (etb-question-*, etb-linked-event-*) ──────────────────── */
+.etb-question-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+}
+.etb-linked-event-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color 0.12s;
+}
+.etb-linked-event-card:hover { border-color: var(--accent-blue); }
+.etb-linked-event-id {
+  font-size: 10.5px;
+  font-family: 'Geist Mono', monospace;
+  color: var(--text-muted);
+}
+.etb-linked-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.etb-slide-linked-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  cursor: pointer;
+  text-align: left;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.etb-slide-linked-chip:hover { border-color: var(--accent-blue); color: var(--text-primary); }
 
 /* ── WQMessages ─────────────────────────────────────────────────────────────── */
 .wqm-root {
@@ -7358,14 +7635,44 @@ body.evm-active .drawer {
   border-top: 1px solid var(--border);
 }
 
-/* Right column — attestations, comments, audit trail */
+/* Right column — Thread / Attestation / Audit Trail, tabbed */
 .wqep-side {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   align-self: stretch;
+}
+
+.wqep-tabs {
+  display: flex;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.wqep-tab {
+  padding: 8px 2px 10px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.wqep-tab:hover { color: var(--text-primary); }
+.wqep-tab--active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent-blue);
+}
+
+.wqep-tab-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .wqep-side-block {
@@ -7434,10 +7741,24 @@ body.evm-active .drawer {
 .wqep-audit-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   margin-bottom: 10px;
 }
 .wqep-audit-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.wqep-audit-row:hover { background: var(--bg-row-hover, var(--bg-elevated)); }
+.wqep-audit-row-top {
   display: flex;
   align-items: baseline;
   gap: 6px;
@@ -7458,13 +7779,32 @@ body.evm-active .drawer {
   font-size: 10.5px;
   white-space: nowrap;
 }
+.wqep-audit-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg-elevated);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.wqep-audit-detail-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: 9.5px;
+  letter-spacing: 0.04em;
+  margin-right: 4px;
+}
 
-/* Comments block sits between attestations and audit trail — give it real height */
+/* Thread tab panel — full height, no sibling sections competing for space */
 .wqep-comments {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  min-height: 420px;
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -7665,40 +8005,37 @@ body.evm-active .drawer {
   justify-content: center;
 }
 
-/* Comments area — indicator + composer, highlighted by Ask */
-.evsl-comments-area {
-  border-radius: 8px;
-  transition: background 0.3s ease, box-shadow 0.3s ease;
-}
-.evsl-comments-area--highlight {
-  background: rgba(59,130,246,0.08);
-  box-shadow: 0 0 0 1px rgba(59,130,246,0.35);
-}
-
-/* Comment indicator */
+/* Comment indicator — read-only summary, thread lives on the full page */
 .evsl-comment-indicator {
   padding-top: 12px;
   border-top: 1px solid var(--border);
-}
-.evsl-comment-preview {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  margin-bottom: 8px;
+  gap: 6px;
 }
-.evsl-comment-preview-name {
+.evsl-comment-count-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
 }
-.evsl-comment-preview-text {
+.evsl-comment-preview {
+  display: flex;
+}
+.evsl-comment-preview-line {
   font-size: 12px;
   color: var(--text-secondary);
-  line-height: 1.5;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
-.evsl-comment-preview-time {
-  font-size: 10.5px;
-  color: var(--text-muted);
+.evsl-comment-preview-name {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 .evsl-view-thread-link {
   background: none;
@@ -7708,7 +8045,9 @@ body.evm-active .drawer {
   font-weight: 500;
   color: var(--accent-blue);
   cursor: pointer;
+  align-self: flex-start;
 }
+.evsl-view-thread-link--inline { display: inline; padding: 0; font-size: inherit; }
 .evsl-no-comments {
   font-size: 12px;
   color: var(--text-muted);
@@ -7731,31 +8070,6 @@ body.evm-active .drawer {
 
 @media (max-width: 480px) {
   .evsl-drawer { width: 100vw; }
-}
-
-/* Slideout comment composer */
-.evsl-composer {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-top: 10px;
-}
-.evsl-composer-input {
-  width: 100%;
-  padding: 8px 10px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  resize: vertical;
-  box-sizing: border-box;
-}
-.evsl-composer-input:focus { outline: none; border-color: var(--accent-blue); }
-.evsl-composer-post {
-  align-self: flex-end;
-  padding: 5px 14px;
 }
 
 /* ── Base classes referenced by BodyContent that were never styled ──────────────── */

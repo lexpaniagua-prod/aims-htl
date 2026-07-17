@@ -15,7 +15,8 @@ export const EVENT_TYPES = {
   resolve:     { key: 'resolve',     label: 'Resolve',     verb: 'Resolve',     desc: 'Conflict or issue to be resolved',         color: '#f59e0b' },
   acknowledge: { key: 'acknowledge', label: 'Acknowledge', verb: 'Acknowledge', desc: 'Informational — confirm awareness',        color: '#10b981' },
   train:       { key: 'train',       label: 'Train Me',    verb: 'Decide',      desc: 'Human decision trains the model',          color: '#f43f5e' },
-  message:     { key: 'message',     label: 'Message',     verb: 'Reply',       desc: 'Agent-intercepted message requiring human review', color: '#06b6d4' },
+  'inbound-question': { key: 'inbound-question', label: 'Question', verb: 'Ask', desc: 'Agent-intercepted message requiring human review', color: '#f59e0b' },
+  question:    { key: 'question',    label: 'Question',    verb: 'Respond',     desc: 'A question routed to a specific person for their input', color: '#f59e0b' },
 }
 
 // ─── Studios ──────────────────────────────────────────────────────────────────
@@ -25,72 +26,100 @@ export const STUDIOS = {
   agentic: { key: 'agentic', name: 'Agentic Studio',          short: 'AGNT',  accentColor: '#10b981' },
 }
 
+// ─── Teams ────────────────────────────────────────────────────────────────────
+// `studio` is the team's primary studio affinity — used to pick which of an
+// owner's several teams best explains a given card (e.g. an executive who
+// belongs to both Governance Operations and Agentic Oversight shows whichever
+// one matches the event's own studio, instead of always the same one).
+export const TEAMS = {
+  'immediate-response':    { key: 'immediate-response',    label: 'Immediate Response Team', studio: null },
+  'financial-review':      { key: 'financial-review',      label: 'Financial Review Team',   studio: 'gov' },
+  'governance-operations': { key: 'governance-operations', label: 'Governance Operations',    studio: 'gov' },
+  'data-operations':       { key: 'data-operations',        label: 'Data Operations',          studio: 'data' },
+  'agentic-oversight':     { key: 'agentic-oversight',      label: 'Agentic Oversight',        studio: 'agentic' },
+}
 // ─── People (12 entries) ──────────────────────────────────────────────────────
 export const PEOPLE = [
   {
     id: 'p1',  name: 'Alexa M.',   initials: 'AM', role: 'Admin',              dept: 'Platform',
     scope: 'executive', studios: ['gov','data','agentic'], partitions: ['*'],
+    teams: ['governance-operations', 'agentic-oversight'],
   },
   {
     id: 'p2',  name: 'Marcus H.',  initials: 'MH', role: 'Governance Lead',    dept: 'Risk',
     scope: 'manager',   studios: ['gov'],            partitions: ['finance','legal','compliance'],
+    teams: ['governance-operations', 'financial-review'],
   },
   {
     id: 'p3',  name: 'Priya K.',   initials: 'PK', role: 'Data Ops Manager',   dept: 'Data',
     scope: 'manager',   studios: ['data'],           partitions: ['pii','data-ops'],
+    teams: ['data-operations'],
   },
   {
     id: 'p4',  name: 'Jordan T.',  initials: 'JT', role: 'Compliance Analyst', dept: 'Risk',
     scope: 'individual', studios: ['gov'],           partitions: ['compliance'],
+    teams: ['governance-operations'],
   },
   {
     id: 'p5',  name: 'Sam R.',     initials: 'SR', role: 'Data Engineer',      dept: 'Data',
     scope: 'individual', studios: ['data'],          partitions: ['data-ops'],
+    teams: ['data-operations'],
   },
   {
     id: 'p6',  name: 'Casey V.',   initials: 'CV', role: 'Agentic Ops',        dept: 'AI Ops',
     scope: 'individual', studios: ['agentic'],       partitions: ['agentic'],
+    teams: ['agentic-oversight'],
   },
   {
     id: 'p7',  name: 'Devon N.',   initials: 'DN', role: 'IT Security',        dept: 'IT',
     scope: 'individual', studios: ['gov','data'],    partitions: ['security','pii'],
+    teams: ['immediate-response'],
   },
   {
     id: 'p8',  name: 'Riley P.',   initials: 'RP', role: 'Finance Analyst',    dept: 'Finance',
     scope: 'individual', studios: ['gov'],           partitions: ['finance'],
+    teams: ['financial-review'],
   },
   {
     id: 'p9',  name: 'Taylor B.',  initials: 'TB', role: 'ML Engineer',        dept: 'AI Ops',
     scope: 'individual', studios: ['agentic','data'], partitions: ['agentic','data-ops'],
+    teams: ['agentic-oversight', 'data-operations'],
   },
   {
     id: 'p10', name: 'Morgan C.',  initials: 'MC', role: 'Agentic Ops Lead',   dept: 'AI Ops',
     scope: 'manager',   studios: ['agentic'],        partitions: ['agentic'],
+    teams: ['agentic-oversight'],
   },
   {
     id: 'p11', name: 'Quinn S.',   initials: 'QS', role: 'CTO',                dept: 'Executive',
     scope: 'executive', studios: ['gov','data','agentic'], partitions: ['*'],
+    teams: ['agentic-oversight'],
   },
   {
     id: 'p12', name: 'Luis F.',    initials: 'LF', role: 'KB Curator',         dept: 'Knowledge',
     scope: 'individual', studios: ['gov'],           partitions: ['knowledge'],
     ooo: { until: '2026-06-25', delegate: 'p3' },
+    teams: ['governance-operations'],
   },
   {
     id: 'p13', name: 'Priya S.',   initials: 'PS', role: 'Compliance Reviewer', dept: 'Risk',
     scope: 'individual', studios: ['gov'],           partitions: ['compliance'],
+    teams: ['governance-operations', 'financial-review'],
   },
   {
     id: 'p14', name: 'Marcus A.',  initials: 'MA', role: 'Governance Analyst', dept: 'Risk',
     scope: 'individual', studios: ['gov'],           partitions: ['compliance','legal'],
+    teams: ['governance-operations'],
   },
   {
     id: 'p15', name: 'Jamie C.',   initials: 'JC', role: 'IT Operations',      dept: 'IT',
     scope: 'individual', studios: ['gov','data'],    partitions: ['security'],
+    teams: ['immediate-response'],
   },
   {
     id: 'p16', name: 'Luis R.',    initials: 'LR', role: 'Data Analyst',       dept: 'Data',
     scope: 'individual', studios: ['data'],          partitions: ['data-ops'],
+    teams: ['data-operations'],
   },
 ]
 
@@ -103,7 +132,7 @@ export const EVENTS = [
     detail: '7 claims extracted, 2 knowledge conflicts detected. Will block FinancePolicyBot until resolved.',
     blastRadius: { workflows: 14, agents: 3, description: 'Blocks FinancePolicyBot and downstream compliance workflows' },
     dueLabel: 'Due now', dueDate: '2026-07-02', type: 'approve', origin: 'customer', dueToday: true, missionCritical: true,
-    eventCategory: 'gov-proposal',
+    eventCategory: 'gov-promotion',
     quickActions: ['Approve Intake', 'View Claims', 'Reject'],
     spec: 'DIAN-4821', kind: 'DIAN Intake',
     sourceWorkflow: {
@@ -309,7 +338,7 @@ export const EVENTS = [
     title: 'Jordan T. asking about GE-FIN-001 vs GE-FIN-007 conflict',
     detail: 'Jordan T. has a question about conflicting knowledge sources in the latest DIAN intake. Needs your context before they can proceed.',
     blastRadius: { workflows: 0, agents: 0, description: '' },
-    dueLabel: 'Awaiting reply', type: 'message', origin: 'internal', dueToday: false, missionCritical: false,
+    dueLabel: 'Awaiting reply', type: 'inbound-question', origin: 'internal', dueToday: false, missionCritical: false,
     quickActions: ['Reply', 'Forward', 'Dismiss'],
     spec: 'MSG-0441', kind: 'Team Message',
     messageData: {
@@ -329,7 +358,7 @@ export const EVENTS = [
     title: 'Morgan C. requesting attestation on SalesForecastPA migration',
     detail: 'Morgan C. is asking Casey to confirm ownership of the SalesForecastPA migration before the Truth v3.1 cutover. Two messages unread.',
     blastRadius: { workflows: 0, agents: 0, description: '' },
-    dueLabel: 'Reply needed', dueDate: '2026-07-02', type: 'message', origin: 'internal', dueToday: true, missionCritical: false,
+    dueLabel: 'Reply needed', dueDate: '2026-07-02', type: 'inbound-question', origin: 'internal', dueToday: true, missionCritical: false,
     quickActions: ['Reply', 'Forward', 'Dismiss'],
     spec: 'MSG-0512', kind: 'Attestation Request',
     messageData: {
@@ -380,8 +409,8 @@ export const EVENTS = [
     title: 'Q2 governance posture — platform-wide update',
     detail: "Platform-wide: Governance is in Watch. Let's close the KCON and promotion-rate dip this week.",
     blastRadius: { workflows: 0, agents: 0, description: '' },
-    dueLabel: 'Awaiting reply', dueDate: '2026-07-02', type: 'message', origin: 'internal', dueToday: false, missionCritical: false,
-    eventCategory: 'message',
+    dueLabel: 'Awaiting reply', dueDate: '2026-07-02', type: 'inbound-question', origin: 'internal', dueToday: false, missionCritical: false,
+    eventCategory: 'inbound-question',
     quickActions: ['Reply', 'Forward'],
     spec: 'MSG-0601', kind: 'Broadcast',
   },

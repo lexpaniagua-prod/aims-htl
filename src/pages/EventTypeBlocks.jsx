@@ -180,17 +180,36 @@ function GovChangeRequestSlide({ event, md }) {
   )
 }
 
-export function SlideoutTypeContext({ event, thread }) {
+// Question — created by Ask, so its display fields live on the event itself
+// rather than in EVENT_MODAL_DATA (which only covers static mock events).
+function QuestionSlide({ event, onNavigateToEvent }) {
+  const asker = person(event.askedById)
+  return (
+    <div className="etb-slide-block">
+      <div className="etb-slide-row"><span className="etb-slide-label">Asked by</span><span className="etb-slide-val">{asker?.name} · {asker?.role}</span></div>
+      <p className="etb-slide-line etb-slide-clamp">{event.questionText}</p>
+      {event.linkedEvent && (
+        <button type="button" className="etb-slide-linked-chip" onClick={() => onNavigateToEvent?.(event.linkedEvent.id)}>
+          {event.linkedEvent.id} · {event.linkedEvent.title}
+        </button>
+      )}
+      {event.dueLabel && <p className="etb-slide-line etb-slide-line--muted">{event.dueLabel}</p>}
+    </div>
+  )
+}
+
+export function SlideoutTypeContext({ event, thread, onNavigateToEvent }) {
   const md = EVENT_MODAL_DATA[event.id] || {}
   switch (event.eventCategory) {
     case 'htl-continuation':    return <ContinuationSlide    event={event} md={md} />
     case 'htl-handoff':         return <HandoffSlide         event={event} md={md} />
-    case 'message':             return <MessageSlide         event={event} thread={thread} />
+    case 'inbound-question':    return <MessageSlide         event={event} thread={thread} />
     case 'train-me':            return <TrainMeSlide         event={event} md={md} />
-    case 'gov-proposal':        return <GovProposalSlide     event={event} md={md} />
+    case 'gov-promotion':       return <GovProposalSlide     event={event} md={md} />
     case 'gov-review':          return <GovReviewSlide       event={event} md={md} />
     case 'gov-break-glass':     return <GovBreakGlassSlide   event={event} md={md} />
     case 'gov-change-request':  return <GovChangeRequestSlide event={event} md={md} />
+    case 'question':            return <QuestionSlide         event={event} onNavigateToEvent={onNavigateToEvent} />
     default: return null
   }
 }
@@ -891,19 +910,82 @@ function GovChangeRequestFull({ event, md, onDecide, onAsk, onEscalate }) {
   )
 }
 
+// ── Question ─────────────────────────────────────────────────────────────────────
+function QuestionFull({ event, onAsk, onEscalate, onAnswer, onNavigateToEvent }) {
+  const [responseText, setResponseText] = useState('')
+  const asker  = person(event.askedById)
+  const linked = event.linkedEvent
+
+  return (
+    <>
+      <div className="evm-section">
+        <div className="evm-section-title">ASKED BY</div>
+        <div className="etb-message-header">
+          <span className="evc-comment-avatar">{asker?.initials}</span>
+          <div>
+            <div className="etb-message-sender">{asker?.name}</div>
+            <div className="etb-message-role">{asker?.role} · {fmtDate(event.askedAt)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="evm-section">
+        <div className="evm-section-title">QUESTION</div>
+        <p className="etb-question-text">{event.questionText}</p>
+      </div>
+
+      {event.whyText && (
+        <div className="evm-section">
+          <div className="evm-section-title">CONTEXT</div>
+          <p className="evm-situation-text">{event.whyText}</p>
+        </div>
+      )}
+
+      {linked && (
+        <div className="evm-section">
+          <div className="evm-section-title">LINKED EVENT</div>
+          <button type="button" className="etb-linked-event-card" onClick={() => onNavigateToEvent?.(linked.id)}>
+            <span className="etb-linked-event-id">{linked.id}</span>
+            <span className="etb-linked-event-title">{linked.title}</span>
+          </button>
+        </div>
+      )}
+
+      <div className="evm-section">
+        <div className="evm-section-title">RESPONSE</div>
+        <textarea
+          className="evm-form-textarea"
+          rows={4}
+          placeholder="Type your response…"
+          value={responseText}
+          onChange={e => setResponseText(e.target.value)}
+        />
+        <div className="etb-action-row" style={{ marginTop: 10 }}>
+          <button className="wq-btn wq-btn--primary" disabled={!responseText.trim()} onClick={() => onAnswer(responseText.trim())}>
+            Send response
+          </button>
+        </div>
+        <SecondaryLinks onAsk={onAsk} onEscalate={onEscalate} />
+      </div>
+    </>
+  )
+}
+
 // ── Dispatcher ────────────────────────────────────────────────────────────────────
-export function DecisionSurface({ event, onDecide, onAsk, onEscalate, thread, onCloseThread, notify, status, onStatusChange, currentUser }) {
+export function DecisionSurface({ event, onDecide, onAsk, onEscalate, thread, onCloseThread, notify, status, onStatusChange, currentUser, onAnswer, onNavigateToEvent }) {
   const md = EVENT_MODAL_DATA[event.id] || {}
   switch (event.eventCategory) {
     case 'htl-continuation':
       return <ContinuationFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} />
     case 'htl-handoff':
       return <HandoffFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} status={status} onStatusChange={onStatusChange} />
-    case 'message':
+    case 'inbound-question':
       return <MessageFull event={event} thread={thread} onAsk={onAsk} onEscalate={onEscalate} onCloseThread={onCloseThread} notify={notify} />
     case 'train-me':
       return <TrainMeFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} />
-    case 'gov-proposal':
+    case 'question':
+      return <QuestionFull event={event} onAsk={onAsk} onEscalate={onEscalate} onAnswer={onAnswer} onNavigateToEvent={onNavigateToEvent} />
+    case 'gov-promotion':
       return <GovProposalFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} />
     case 'gov-review':
       return <GovReviewFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} />

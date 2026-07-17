@@ -159,6 +159,9 @@ export default function WorkQueueLayout() {
   const [escalatedIds, setEscalatedIds] = useState(new Set())
   const markResolved  = (id) => setResolvedIds(prev => new Set([...prev, id]))
   const markEscalated = (id) => setEscalatedIds(prev => new Set([...prev, id]))
+  // Questions created via Ask — dynamic events layered on top of the static
+  // mock data, so both the recipient's queue and the originating thread see them.
+  const [questionEvents, setQuestionEvents] = useState([])
   const [toast, setToast] = useState(null)
   const location = useLocation()
   const navigate = useNavigate()
@@ -223,6 +226,85 @@ export default function WorkQueueLayout() {
   const reopenThread = (eventId) => {
     setCommentThreads(prev => prev[eventId] ? { ...prev, [eventId]: { ...prev[eventId], status: 'open' } } : prev)
     notify('Thread reopened')
+  }
+
+  // Ask creates a Question event owned by the recipient, and drops a distinct
+  // question entry into the originating event's thread linking the two.
+  const createQuestion = ({ originatingEvent, recipient, question, why, dueDate }) => {
+    const words = question.trim().split(/\s+/)
+    const preview = words.slice(0, 8).join(' ')
+    const questionId = `EVT-Q-${Date.now()}`
+    const askedAt = new Date().toISOString()
+
+    const newEvent = {
+      id: questionId,
+      severity: 'yellow',
+      studio: originatingEvent.studio,
+      ownerId: recipient.id,
+      title: `Question from ${currentUser.name}: ${preview}${words.length > 8 ? '...' : ''}`,
+      detail: question,
+      type: 'question',
+      origin: 'internal',
+      dueToday: false,
+      missionCritical: false,
+      eventCategory: 'question',
+      quickActions: ['Respond'],
+      spec: `Q-${questionId.slice(-6)}`,
+      kind: 'Question',
+      dueLabel: dueDate ? new Date(dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'No due date',
+      dueDate: dueDate || null,
+      blastRadius: { workflows: 0, agents: 0, description: '' },
+      questionText: question,
+      whyText: why,
+      askedById: currentUser.id,
+      askedAt,
+      linkedEventId: originatingEvent.id,
+      linkedEvent: { id: originatingEvent.id, title: originatingEvent.title },
+    }
+
+    setQuestionEvents(prev => [...prev, newEvent])
+
+    const questionComment = {
+      id: `CMT-Q-${Date.now()}`,
+      type: 'question',
+      authorId: currentUser.id,
+      timestamp: askedAt,
+      questionText: question,
+      assignedToId: recipient.id,
+      status: 'awaiting',
+      responseText: null,
+      responseTimestamp: null,
+      linkedQuestionEventId: questionId,
+    }
+    setCommentThreads(prev => {
+      const existing = prev[originatingEvent.id]
+      if (existing) {
+        const participants = [...new Set([...existing.participants, currentUser.id, recipient.id])]
+        return { ...prev, [originatingEvent.id]: { ...existing, participants, comments: [...existing.comments, questionComment] } }
+      }
+      const participants = [...new Set([currentUser.id, recipient.id])]
+      return { ...prev, [originatingEvent.id]: { status: 'open', initiatorId: currentUser.id, participants, comments: [questionComment] } }
+    })
+
+    return newEvent
+  }
+
+  // Marks a question answered wherever it's triggered from — the demo "Mark
+  // answered" button on the thread bubble, or the Question event's own full
+  // page response composer. `eventId` is the originating event whose thread
+  // holds the question entry; `questionEventId` is the Question event's id.
+  const markQuestionAnswered = ({ eventId, questionEventId, responseText }) => {
+    setCommentThreads(prev => {
+      const existing = prev[eventId]
+      if (!existing) return prev
+      const comments = existing.comments.map(c =>
+        c.type === 'question' && c.linkedQuestionEventId === questionEventId
+          ? { ...c, status: 'answered', responseText, responseTimestamp: new Date().toISOString() }
+          : c
+      )
+      return { ...prev, [eventId]: { ...existing, comments } }
+    })
+    markResolved(questionEventId)
   }
 
   const openModal  = () => setWhatsnewOpen(true)
@@ -292,6 +374,7 @@ export default function WorkQueueLayout() {
           <Outlet context={{
             currentUser, personaId, commentThreads, addComment, closeThread, reopenThread, notify,
             resolvedIds, markResolved, escalatedIds, markEscalated,
+            questionEvents, createQuestion, markQuestionAnswered,
           }} />
         </div>
       </div>

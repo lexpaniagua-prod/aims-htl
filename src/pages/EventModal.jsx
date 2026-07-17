@@ -55,7 +55,7 @@ export function getInitialView(type, action) {
     resolve:     { 'Review Conflict': 'detail', Resolve: 'resolve' },
     acknowledge: { View: 'detail' },
     train:       { 'Review and Edit': 'detail', Promote: 'confirm-promote', Reject: 'confirm-reject' },
-    message:     { 'View Message': 'detail', Reply: 'detail' },
+    'inbound-question': { 'View Message': 'detail', Reply: 'detail' },
   }
   return MAP[type]?.[action] ?? 'detail'
 }
@@ -1350,7 +1350,7 @@ export function FooterActions({ view, event, reason, changeRequest, setView, set
     </>
   )
 
-  if (type === 'message') return (
+  if (type === 'inbound-question') return (
     <>
       <div style={{ flex: 1 }} />
       <button className="wq-btn wq-btn--ghost evm-escalate-btn" onClick={onEscalate}>Escalate</button>
@@ -1381,7 +1381,7 @@ export function BodyContent({ view, event, note, setNote, reason, setReason, cho
       case 'resolve':     return <ResolveDetail     event={event} choice={choice} setChoice={setChoice} />
       case 'acknowledge': return <AcknowledgeDetail event={event} />
       case 'train':       return <TrainDetail       event={event} editVal={editVal} setEditVal={setEditVal} />
-      case 'message':     return <MessageDetail     event={event} onDecide={onDecide} />
+      case 'inbound-question': return <MessageDetail event={event} onDecide={onDecide} />
       default:            return <div className="evm-section"><p className="evm-situation-text">{event.detail}</p></div>
     }
   }
