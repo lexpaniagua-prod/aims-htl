@@ -7,7 +7,7 @@ import {
   List, CheckCircle, AlertTriangle, RefreshCw,
   LayoutDashboard, Clock, Route as RouteIcon, Activity, GraduationCap,
   FileText, CalendarOff, Zap, Shield,
-  Bell, Search, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, User, Users
+  Bell, Search, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, User, Users, Sparkles
 } from 'lucide-react'
 
 import './shell.css'
@@ -173,157 +173,172 @@ export default function App() {
 
   return (
     <div className="shell">
-      {/* ── Sidebar ─────────────────────────────────────────────────────── */}
-      <aside className={`sidebar${sidebarCollapsed ? ' sidebar--collapsed' : ''}`}>
-
-        {/* Header */}
-        <div className="sidebar-header">
-          <div className="sidebar-logo-row">
-            <div className="logo-mark" />
-            <span className="logo-name">HTL</span>
-            <button
-              className="sidebar-toggle"
-              onClick={toggleSidebar}
-              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {sidebarCollapsed
-                ? <ChevronRight size={13} />
-                : <ChevronLeft  size={13} />}
-            </button>
+      {/* ── Topbar — spans full width above sidebar + content ───────────── */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <div className="workspace-pill">
+            <div className="workspace-avatar" />
+            <span className="workspace-name">HTL</span>
+            <ChevronDown size={11} strokeWidth={1.75} className="workspace-chevron" />
           </div>
-          {!sidebarCollapsed && (
-            <div className="studio-switcher">
-              <span>Human Touch Layer</span>
-              <ChevronDown size={10} />
-            </div>
-          )}
+          <span className="breadcrumb">
+            {crumbs.map((c, i) => (
+              <span key={i} className="crumb-piece">
+                {i > 0 && <span className="crumb-sep">›</span>}
+                <span className={i === crumbs.length - 1 ? 'crumb-active' : 'crumb-muted'}>{c}</span>
+              </span>
+            ))}
+          </span>
         </div>
 
-        {/* Nav */}
-        <nav className="sidebar-nav">
-          {NAV.map(({ section, icon: SectionIcon, items }) => {
-            // In collapsed mode, rely on CSS :hover flyout — don't apply click-open class
-            const isOpen   = section ? (!sidebarCollapsed && expandedSection === section) : true
-            const isAlways = !section
-            return (
-              <div
-                key={section ?? '__top__'}
-                className={`nav-section${isOpen && !isAlways ? ' nav-section--open' : ''}`}
+        <div className="topbar-center">
+          <div className="search-wrap">
+            <Search size={13} strokeWidth={1.75} className="search-icon" />
+            <input className="search-input" placeholder="Search packs, agents, signals…" />
+          </div>
+        </div>
+
+        <div className="topbar-right">
+          <button className="icon-btn icon-btn--main" title="AI">
+            <Sparkles size={15} strokeWidth={1.75} />
+          </button>
+          <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
+            {theme === 'dark' ? <Sun size={15} strokeWidth={1.75} /> : <Moon size={15} strokeWidth={1.75} />}
+          </button>
+          <button className="icon-btn notif-btn" title="Notifications">
+            <Bell size={15} strokeWidth={1.75} />
+            <span className="notif-dot" />
+          </button>
+          <button className="icon-btn" title="Settings">
+            <Settings size={15} strokeWidth={1.75} />
+          </button>
+          <div className="topbar-divider" />
+          <div className="user-pill">
+            <div className="user-avatar-sm" />
+            <span>Northfield Partners</span>
+          </div>
+        </div>
+      </header>
+
+      {/* ── Live item toast ──────────────────────────────────────────────── */}
+      {liveToast && (
+        <div className="shell-live-toast" onClick={() => setLiveToast(null)}>
+          <span className="shell-live-toast-dot" />
+          <div className="shell-live-toast-body">
+            <div className="shell-live-toast-title">New {liveToast.type} — {liveToast.customer}</div>
+            <div className="shell-live-toast-pack">{liveToast.pack}</div>
+          </div>
+          <Inbox size={13} className="shell-live-toast-icon" />
+        </div>
+      )}
+
+      <div className="shell-body">
+        {/* ── Sidebar ───────────────────────────────────────────────────── */}
+        <aside className={`sidebar${sidebarCollapsed ? ' sidebar--collapsed' : ''}`}>
+          <div className="sidebar-rail">
+
+            {/* Toggle row — always at top, matches DS SidebarToggleRow */}
+            <div className="sidebar-toggle-row">
+              <button
+                className="nav-icon-box sidebar-toggle"
+                onClick={toggleSidebar}
+                title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
-                {section && (
-                  <div
-                    className="nav-section-label"
-                    data-tooltip={section}
-                    onClick={() => toggleSection(section)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <SectionIcon size={12} />
-                    <span className="nav-section-text">{section}</span>
-                    <ChevronDown
-                      size={10}
-                      style={{
-                        marginLeft: 'auto',
-                        transition: 'transform 0.2s ease',
-                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                        color: 'var(--text-tertiary)',
-                        flexShrink: 0,
-                      }}
-                    />
-                  </div>
-                )}
-                <div className={isAlways ? 'nav-submenu nav-submenu--always' : `nav-submenu${isOpen ? ' nav-submenu--open' : ''}`}>
-                  {items.map(({ label, path, icon: Icon, badge }) => (
-                    <NavLink
-                      key={path}
-                      to={path}
-                      data-tooltip={label}
-                      className={({ isActive }) =>
-                        `nav-item${isActive ? ' nav-item--active' : ''}`
-                      }
-                    >
-                      <Icon size={14} />
-                      <span className="nav-item-label">{label}</span>
-                      {badge != null && (
-                        <span className={`nav-badge${path === '/work-queue/overview' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
-                          {path === '/work-queue/overview' ? queueCount : badge}
-                        </span>
-                      )}
-                    </NavLink>
-                  ))}
-                </div>
+                {sidebarCollapsed
+                  ? <ChevronRight size={16} strokeWidth={1.75} />
+                  : <ChevronLeft  size={16} strokeWidth={1.75} />}
+              </button>
+            </div>
+
+            {!sidebarCollapsed && (
+              <div className="studio-switcher">
+                <span>Human Touch Layer</span>
+                <ChevronDown size={10} />
               </div>
-            )
-          })}
-        </nav>
+            )}
 
-        {/* Footer */}
-        <div className="sidebar-footer" data-tooltip="Alexa M. — Admin">
-          <div className="user-avatar-sm">
-            <User size={12} />
-          </div>
-          <div className="user-info">
-            <span className="user-name">Alexa M.</span>
-            <span className="user-role">Admin</span>
-          </div>
-          <Settings size={13} className="footer-settings" />
-        </div>
-      </aside>
+            {/* Nav */}
+            <nav className="sidebar-nav">
+              {NAV.map(({ section, icon: SectionIcon, items }) => {
+                // In collapsed mode, rely on CSS :hover flyout — don't apply click-open class
+                const isOpen   = section ? (!sidebarCollapsed && expandedSection === section) : true
+                const isAlways = !section
+                return (
+                  <div
+                    key={section ?? '__top__'}
+                    className={`nav-section${isOpen && !isAlways ? ' nav-section--open' : ''}`}
+                  >
+                    {section && (
+                      <div
+                        className="nav-section-label"
+                        data-tooltip={section}
+                        onClick={() => toggleSection(section)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <span className="nav-icon-box nav-icon-box--label"><SectionIcon size={14} strokeWidth={1.75} /></span>
+                        <span className="nav-section-text">{section}</span>
+                        <ChevronDown
+                          size={10}
+                          style={{
+                            marginLeft: 'auto',
+                            transition: 'transform 0.2s ease',
+                            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                            color: 'var(--text-tertiary)',
+                            flexShrink: 0,
+                          }}
+                        />
+                      </div>
+                    )}
+                    <div className={isAlways ? 'nav-submenu nav-submenu--always' : `nav-submenu${isOpen ? ' nav-submenu--open' : ''}`}>
+                      {items.map(({ label, path, icon: Icon, badge }) => (
+                        <NavLink
+                          key={path}
+                          to={path}
+                          data-tooltip={label}
+                          className={({ isActive }) =>
+                            `nav-item${isActive ? ' nav-item--active' : ''}`
+                          }
+                        >
+                          {({ isActive }) => (
+                            <>
+                              <span className={`nav-icon-box${isActive ? ' nav-icon-box--active' : ''}`}>
+                                <Icon size={16} strokeWidth={1.75} />
+                              </span>
+                              <span className="nav-item-label">{label}</span>
+                              {badge != null && (
+                                <span className={`nav-badge${path === '/work-queue/overview' && queueCount > 12 ? ' nav-badge--live' : ''}`}>
+                                  {path === '/work-queue/overview' ? queueCount : badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </nav>
 
-      {/* ── Main area ────────────────────────────────────────────────────── */}
-      <div className="main-area">
-        {/* Topbar */}
-        <header className="topbar">
-          <div className="topbar-left">
-            <span className="breadcrumb">
-              {crumbs.map((c, i) => (
-                <span key={i} className="crumb-piece">
-                  {i > 0 && <span className="crumb-sep">›</span>}
-                  <span className={i === crumbs.length - 1 ? 'crumb-active' : 'crumb-muted'}>{c}</span>
-                </span>
-              ))}
-            </span>
-          </div>
-
-          <div className="topbar-center">
-            <div className="search-wrap">
-              <Search size={13} className="search-icon" />
-              <input className="search-input" placeholder="Search packs, agents, signals…" />
+            {/* Footer */}
+            <div className="sidebar-footer" data-tooltip="Alexa M. — Admin">
+              <div className="user-avatar-sm">
+                <User size={12} />
+              </div>
+              <div className="user-info">
+                <span className="user-name">Alexa M.</span>
+                <span className="user-role">Admin</span>
+              </div>
+              <Settings size={13} className="footer-settings" />
             </div>
           </div>
+        </aside>
 
-          <div className="topbar-right">
-            <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
-              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
-            </button>
-            <button className="icon-btn notif-btn" title="Notifications">
-              <Bell size={15} />
-              <span className="notif-dot" />
-            </button>
-            <button className="icon-btn" title="Settings">
-              <Settings size={15} />
-            </button>
-            <div className="user-pill">
-              <div className="user-avatar-sm" />
-              <span>Northfield Partners</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Live item toast */}
-        {liveToast && (
-          <div className="shell-live-toast" onClick={() => setLiveToast(null)}>
-            <span className="shell-live-toast-dot" />
-            <div className="shell-live-toast-body">
-              <div className="shell-live-toast-title">New {liveToast.type} — {liveToast.customer}</div>
-              <div className="shell-live-toast-pack">{liveToast.pack}</div>
-            </div>
-            <Inbox size={13} className="shell-live-toast-icon" />
-          </div>
-        )}
-
-        {/* Page content */}
-        <main className="page-content">
-          <Routes>
+        {/* ── Main area ──────────────────────────────────────────────────── */}
+        <div className="main-area">
+          {/* Page content */}
+          <main className="page-content">
+            <Routes>
             <Route path="/" element={<Navigate to="/work-queue/overview" replace />} />
             <Route path="/demo" element={<Demo />} />
             <Route path="/configure/packs" element={<PackLibrary />} />
@@ -371,6 +386,7 @@ export default function App() {
             <Route path="/settings/audit" element={<Audit />} />
           </Routes>
         </main>
+        </div>
       </div>
     </div>
   )

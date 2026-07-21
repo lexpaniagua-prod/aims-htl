@@ -2,12 +2,12 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: var(--modal-scrim);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(10px);
   animation: fadeIn 0.15s ease;
 }
 
@@ -17,8 +17,8 @@
 
 .modal {
   background: var(--bg-card-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border: 1px solid var(--modal-border);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-modal);
   display: flex;
   flex-direction: column;
@@ -45,7 +45,7 @@
 .modal-header-icon {
   width: 36px;
   height: 36px;
-  border-radius: 9px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,7 +55,7 @@
 .modal-title {
   font-family: 'Inter', sans-serif;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5px;
+  border-radius: var(--radius-sm);
   color: var(--text-tertiary);
   transition: background 0.12s, color 0.12s;
   flex-shrink: 0;
@@ -98,31 +98,77 @@
 .drawer-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: var(--drawer-overlay);
   z-index: 900;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s;
-  backdrop-filter: blur(1px);
+  backdrop-filter: blur(6px);
 }
 .drawer-overlay--open { opacity: 1; pointer-events: all; }
 
+/* DS SlideOut — size S: 420px, Radius-L 16px, frosted glass */
 .drawer {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-  width: 440px;
-  background: var(--bg-card-elevated);
-  border-left: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-modal);
+  width: 420px;
+  background: var(--slide-out-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  box-shadow: -24px -24px 60px 0px rgba(0,0,0,0.08);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
   display: flex;
   flex-direction: column;
   z-index: 910;
   transform: translateX(100%);
-  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s ease-out;
 }
 .drawer--open { transform: translateX(0); }
+
+/* Drag-to-expand resize handle — DS SlideOut anatomy */
+.drawer-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  cursor: ew-resize;
+  z-index: 5;
+}
+.drawer-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  background: transparent;
+  transition: background 0.15s;
+}
+.drawer-resize-handle:hover::before,
+.drawer-resize-handle:active::before {
+  background: var(--accent-blue);
+}
+.drawer-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 6px;
+  height: 24px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+  background-image: radial-gradient(circle, var(--accent-blue) 1.5px, transparent 1.5px);
+  background-size: 6px 6px;
+  background-repeat: repeat-y;
+}
+.drawer-resize-handle:hover::after,
+.drawer-resize-handle:active::after {
+  opacity: 1;
+}
 
 .drawer-body {
   flex: 1;

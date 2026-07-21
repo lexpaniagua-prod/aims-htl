@@ -1,0 +1,1395 @@
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * AIMS OS — CSS Variable overrides
+ * Source: Figma v6rmYKA2zmyXWOahlxLOeI — "Semantic Color Tokens"
+ *
+ * Every hardcoded color in components must trace back to a token here.
+ * Dark-mode values live in :root/.dark; light-mode overrides in .light.
+ */
+
+@layer base {
+  /* ── Dark mode (default) ─────────────────────────────────────────────── */
+  :root,
+  .dark {
+    /* Canvas / surface */
+    --canvas:              #0A0E1A;
+
+    /* ── App Background — node 12655:211429 ─────────────────────────────── */
+    --app-bg:            linear-gradient(144deg, #020618 0%, #0F172B 50%, #020618 100%);
+    /* Contextual variants — always light, not overridden in .light block    */
+    --app-bg-green:      radial-gradient(circle at 50% 0%, #E5FDF8 0%, #FFFFFF 80%);
+    --app-bg-red:        radial-gradient(circle at 50% 0%, #FDECED 0%, #FFFFFF 80%);
+    --app-bg-orange:     radial-gradient(circle at 50% 0%, #FFF4E5 0%, #FFFFFF 80%);
+    --app-bg-yellow:     radial-gradient(circle at 50% 0%, #FFFAF0 0%, #FFFFFF 80%);
+    --app-bg-purple:     radial-gradient(circle at 50% 0%, #F3E9FD 0%, #FFFFFF 80%);
+    --app-bg-light-blue: radial-gradient(circle at 50% 0%, #E5F8FF 0%, #FFFFFF 80%);
+    --app-bg-lime:       radial-gradient(circle at 50% 0%, #F9FEE5 0%, #FFFFFF 80%);
+
+    --surface:             #0D1120;
+    --surface-raised:      #131C2E;
+
+    /* shadcn tokens */
+    --background:          #0A0E1A;
+    --card:                #0D1120;
+    --card-foreground:     #ffffff99;
+    --popover:             #141b2ad9;
+    --popover-foreground:  #ffffffcc;
+    --foreground:          #ffffffcc;
+    --primary:             #2b7fff;
+    --primary-foreground:  #ffffff;
+    --secondary:           #ffffff14;
+    --secondary-foreground:#ffffffcc;
+    --muted:               #ffffff0d;
+    --muted-foreground:    #ffffff99;
+    --accent:              #2b7fff14;
+    --accent-foreground:   #2b7fff;
+    --destructive:         #e05252;
+    --destructive-foreground: #ffffff;
+    --border:              #ffffff1a;
+    --input:               #ffffff1a;
+    --ring:                #2b7fff;
+    --radius:              0.5rem;
+    --sidebar:             #0D1120;
+    --sidebar-foreground:  #ffffffcc;
+    --sidebar-primary:     #2b7fff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent:      #2b7fff14;
+    --sidebar-accent-foreground:  #2b7fff;
+    --sidebar-border:      #ffffff1a;
+    --sidebar-ring:        #2b7fff;
+
+    /* ── Field (Input / Textarea) — neutral states ──── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI Semantic Color Tokens — Dark mode */
+    --field-bg:              rgba(255,255,255,0.1);   /* Surface/Neutral/White dark  = White/10  */
+    --field-border:          rgba(255,255,255,0.1);   /* Border/Neutral/Default dark = White/10  */
+    --ctrl-inactive-bg:      rgba(255,255,255,0.10);  /* CtrlGroup pill inactive — dark          */
+    --row-alt-bg:            rgba(255,255,255,0.02);  /* Table/list alternating row  — dark      */
+    --code-bg:               rgba(255,255,255,0.12);  /* Inline code + icon preview boxes — dark */
+    --field-border-hover:    rgba(255,255,255,0.2);   /* Border/Neutral/Darker dark  = White/20  */
+    --field-border-focus:    #2b7fff;                 /* Border/Primary/Default dark             */
+    --field-text:            rgba(255,255,255,0.6);   /* Text/Subtitle dark          = White/60  */
+    --field-placeholder:     rgba(255,255,255,0.3);   /* Text/Disabled dark          = White/30  */
+    --field-label:           rgba(255,255,255,0.6);   /* Text/Subtitle dark          = White/60  */
+    --field-supporting:      rgba(255,255,255,0.6);   /* Text/Body dark              = White/60  */
+    --field-icon:            rgba(255,255,255,0.3);   /* Text/Disabled dark          = White/30  */
+
+    /* ── Field — scrollbar ───────────────────────────── */
+    --field-scrollbar-track: rgba(255,255,255,0.08);  /* Surface/Neutral/Default dark = White/8  */
+    --field-scrollbar-thumb: rgba(255,255,255,0.2);   /* Surface/Neutral/Emphasis dark= White/20 */
+    --scrollbar-thumb-hover: rgba(255,255,255,0.32);  /* ScrollArea thumb hover dark  = White/32 */
+
+    /* ── Field — validation state borders ───────────── */
+    /* Border/Error/Lighter dark  */ --field-border-error:    #fb2c36;
+    /* Border/Success/Default dark*/ --field-border-success:  rgba(0,201,80,0.3);
+    /* Border/Alert/Default dark  */ --field-border-alert:    #fbbf24;
+
+    /* ── Field — validation state text + icon colors ── */
+    /* Text/Error dark            */ --field-text-error:      #ff6467;
+    /* Text/Success dark          */ --field-text-success:    #6ee7b7;
+    /* Text/Alert dark            */ --field-text-alert:      #fcd34d;
+
+    /* ── Button tokens — dark ───────────────────────── */
+    /* Primary  : Border/Primary/Default dark = #2b7fff — Text/Negative (#ffffff) hardcoded in component */
+    --btn-primary-bg:          #2b7fff;
+    --btn-primary-hover-bg:    #002f80;  /* DS Hover fill — dark navy */
+    --btn-primary-active-bg:   #001a5c;
+    --btn-primary-ring:        #2b7fff;
+
+    /* Secondary: Surface/Neutral/White dark + Border/Neutral/Default dark */
+    --btn-secondary-bg:          rgba(255,255,255,0.1);    /* Surface/Neutral/White dark  = White/10  */
+    --btn-secondary-fg:          rgba(255,255,255,0.6);    /* Text/Label dark             = White/60  */
+    --btn-secondary-border:      rgba(255,255,255,0.1);    /* Border/Neutral/Default dark = White/10  */
+    --btn-secondary-hover-bg:    rgba(255,255,255,0.08);   /* Surface/Neutral/Default dark = White/8  */
+    --btn-secondary-hover-bd:    rgba(255,255,255,0.2);    /* Surface/Neutral/Emphasis dark = White/20 */
+    --btn-secondary-focus-bd:    rgba(255,255,255,0.15);   /* Border/Neutral/Lighter dark = White/15  */
+    --btn-secondary-disabled-bg: rgba(255,255,255,0.05);   /* Surface/Neutral/Subtle dark = White/5   */
+    --btn-secondary-disabled-bd: rgba(255,255,255,0.15);   /* Border/Neutral/Lighter dark = White/15  */
+    --btn-secondary-disabled-fg: rgba(255,255,255,0.3);    /* Text/Disabled dark          = White/30  */
+    --btn-secondary-active-bg:   rgba(255,255,255,0.2);
+    --btn-secondary-ring:        rgba(255,255,255,0.25);
+
+    /* Tertiary : text-only, no border */
+    --btn-tertiary-fg:           rgba(255,255,255,0.6);    /* Text/Label dark = White/60  */
+    --btn-tertiary-hover-bg:     rgba(255,255,255,0.05);   /* Surface/Neutral/Subtle dark = White/5   */
+    --btn-tertiary-focus-bg:     rgba(255,255,255,0.08);   /* Surface/Neutral/Default dark = White/8  */
+    --btn-tertiary-active-bg:    rgba(255,255,255,0.149);
+
+    /* Warning  : destructive red dark — Text/Negative (#ffffff) hardcoded in component */
+    --btn-warning-bg:          #e05252;
+    --btn-warning-hover-bg:    #ff6467;
+    --btn-warning-active-bg:   #c03030;
+    --btn-warning-ring:        #e05252;
+
+    /* Positive : success green — Text/Negative (#ffffff) hardcoded in component */
+    --btn-positive-bg:         #00a07e;
+    --btn-positive-hover-bg:   #003328;
+    --btn-positive-active-bg:  #001f18;
+    --btn-positive-ring:       #00a07e;
+    --btn-main-ring:           #09e2ab;   /* Main Action focus ring dark — teal end of gradient */
+
+    /* Main Action: gradient stays hardcoded — CSS vars can't be
+       interpolated inside Tailwind arbitrary gradient strings */
+
+    /* ── Card Container tokens — dark ───────────────────── */
+    /* Default / White Opacity — Surface/Neutral/White dark + Border/Neutral/Lighter dark */
+    --card-default-bg:              rgba(255,255,255,0.1);   /* Surface/Neutral/White dark      = White/10  */
+    --card-default-border:          rgba(255,255,255,0.15);  /* Border/Neutral/Lighter dark     = White/15  */
+    --card-default-hover-bd:        rgba(255,255,255,0.1);   /* Border/Neutral/Default dark     = White/10  */
+    --card-default-selected-bd:     #2b7fff;                 /* Border/Primary/Default dark                 */
+
+    /* Primary — Surface/Primary/More Subtle dark + Border/Primary/Lighter dark */
+    --card-primary-bg:              rgba(43,127,255,0.08);   /* Surface/Primary/More Subtle dark            */
+    --card-primary-border:          rgba(43,127,255,0.1);    /* Border/Primary/Lighter dark                 */
+    --card-primary-hover-bd:        #2b7fff;                 /* Border/Primary/Default dark                 */
+    --card-primary-selected-bd:     #2b7fff;                 /* Border/Primary/Default dark                 */
+
+    /* Green — Surface/Success/More Subtle dark + Border/Success/Default dark */
+    --card-green-bg:                #0a1f1a;                 /* Surface/Success/More Subtle dark            */
+    --card-green-border:            rgba(0,201,80,0.3);      /* Border/Success/Default dark                 */
+    --card-green-hover-bd:          #34d399;                 /* Border/Success/Lighter dark                 */
+    --card-green-selected-bd:       #34d399;                 /* Border/Success/Lighter dark                 */
+
+    /* Reed — Surface/Card/Reed BG dark + Border/Error/Lighter dark */
+    --card-reed-bg:                 rgba(251,44,54,0.1);     /* Surface/Card/Reed BG Stop0 dark             */
+    --card-reed-border:             #fb2c36;                 /* Border/Error/Lighter dark                   */
+    --card-reed-hover-bd:           #fb2c36;                 /* Border/Error/Lighter dark                   */
+    --card-reed-selected-bd:        #fb2c36;                 /* Border/Error/Lighter dark (DS: same as default, width 1px) */
+
+    /* Orange — Surface/Alert/More Subtle dark + Border/Alert/Subtle dark */
+    --card-orange-bg:               #281e00;                 /* Surface/Alert/More Subtle dark              */
+    --card-orange-border:           #2d1a08;                 /* Border/Alert/Subtle dark                    */
+    --card-orange-hover-bd:         #f59e0b;                 /* Border/Alert/Lighter dark                   */
+    --card-orange-selected-bd:      #fbbf24;                 /* Border/Alert/Default dark                   */
+
+    /* Yellow — Surface/Yellow/More Subtle dark + Border/Yellow/Lighter dark */
+    --card-yellow-bg:               #281e00;                 /* Surface/Yellow/More Subtle dark             */
+    --card-yellow-border:           #f59e0b;                 /* Border/Yellow/Lighter dark                  */
+    --card-yellow-hover-bd:         #fbbf24;                 /* Border/Yellow/Default dark                  */
+    --card-yellow-selected-bd:      #fcd34d;                 /* Border/Yellow/Darker dark                   */
+
+    /* Purple — Surface/Purple/More Subtle dark + Border/Purple/Lighter dark */
+    --card-purple-bg:               #120520;                 /* Surface/Purple/More Subtle dark             */
+    --card-purple-border:           rgba(173,70,255,0.2);    /* Border/Purple/Lighter dark                  */
+    --card-purple-hover-bd:         #a855f7;                 /* Border/Purple/Default dark                  */
+    --card-purple-selected-bd:      #d8b4fe;                 /* Border/Purple/Darker dark                   */
+
+    /* Light Blue — Surface/Light Blue/More Subtle dark + Border/Light Blue/Lighter dark */
+    --card-lightblue-bg:            #071828;                 /* Surface/Light Blue/More Subtle dark         */
+    --card-lightblue-border:        rgba(81,162,255,0.2);    /* Border/Light Blue/Lighter dark              */
+    --card-lightblue-hover-bd:      #38bdf8;                 /* Border/Light Blue/Default dark              */
+    --card-lightblue-selected-bd:   #7dd3fc;                 /* Border/Light Blue/Darker dark               */
+
+    /* Lime Green — Surface/Lime Green/More Subtle dark + Border/LimeGreen/Lighter dark */
+    --card-limegreen-bg:            #111a04;                 /* Surface/Lime Green/More Subtle dark         */
+    --card-limegreen-border:        rgba(189,238,73,0.2);    /* Border/LimeGreen/Lighter dark               */
+    --card-limegreen-hover-bd:      #84cc16;                 /* Border/LimeGreen/Default dark               */
+    --card-limegreen-selected-bd:   #bdee49;                 /* Border/LimeGreen/Darker dark                */
+
+    /* ── Card Container — hover shadows (dark mode only) ─── */
+    /* DS effect: ambient shadow (8,8,16,0) + tight glow (0,0,4,1) + soft glow (0,0,14,0) */
+    /* Opacities dialed back from raw DS values (0.9/0.4) to match the subtle appearance */
+    /* shown in the DS visual state examples (tight: 0.4, soft: 0.15). */
+    --card-default-hover-shadow:      8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(255,255,255,0.4), 0 0 14px 0px rgba(255,255,255,0.15);
+    --card-whiteopacity-hover-shadow: 8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(255,255,255,0.4), 0 0 14px 0px rgba(255,255,255,0.15);
+    --card-primary-hover-shadow:      8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(33,115,255,0.4),  0 0 14px 0px rgba(33,115,255,0.15);
+    --card-green-hover-shadow:        8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(0,201,79,0.4),    0 0 14px 0px rgba(0,201,79,0.15);
+    --card-reed-hover-shadow:         8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(250,43,54,0.4),   0 0 14px 0px rgba(250,43,54,0.15);
+    --card-orange-hover-shadow:       8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(237,107,3,0.4),   0 0 14px 0px rgba(237,107,3,0.15);
+    --card-yellow-hover-shadow:       8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(252,199,0,0.4),   0 0 14px 0px rgba(252,199,0,0.15);
+    --card-purple-hover-shadow:       8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(173,69,255,0.4),  0 0 14px 0px rgba(173,69,255,0.15);
+    --card-lightblue-hover-shadow:    8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(82,163,255,0.4),  0 0 14px 0px rgba(82,163,255,0.15);
+    --card-limegreen-hover-shadow:    8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(189,237,74,0.4),  0 0 14px 0px rgba(189,237,74,0.15);
+    --card-dashed-hover-shadow:       8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(33,115,255,0.4),  0 0 14px 0px rgba(33,115,255,0.15);
+
+    /* ── Tag Component — dark ───────────────────────────────────────────── */
+    --tag-success-bg:     #0a1f1a;                 /* Dark/Success/15     */
+    --tag-success-bd:     #34d399;                 /* Dark/Success/20     */
+    --tag-success-fg:     #6ee7b7;                 /* Dark/Success-Light/100 */
+
+    --tag-secondary-bg:   rgba(255,255,255,0.10);  /* White/10            */
+    --tag-secondary-bd:   rgba(255,255,255,0.10);  /* White/10            */
+    --tag-secondary-fg:   rgba(255,255,255,0.60);  /* White/60            */
+
+    --tag-primary-bg:     #155dfc;                 /* Dark/Primary-Deep/100 */
+    --tag-primary-fg:     #ffffff;                 /* White/100           */
+
+    --tag-informative-bg: rgba(21,93,252,0.15);    /* Dark/Primary-Deep/15 */
+    --tag-informative-bd: #2b7fff;                 /* Dark/Primary/100    */
+    --tag-informative-fg: rgba(255,255,255,0.80);  /* White/80            */
+
+    --tag-error-bg:       #2d1515;                 /* Dark/Error/5        */
+    --tag-error-bd:       #e05252;                 /* Dark/Error/20       */
+    --tag-error-fg:       #ff6467;                 /* Dark/Error-Light/100 */
+
+    --tag-alert-bg:       #281e00;                 /* Dark/Alert/5        */
+    --tag-alert-bd:       #f59e0b;                 /* Dark/Alert/20       */
+    --tag-alert-fg:       #fcd34d;                 /* Dark/Alert/100      */
+
+    --tag-limegreen-bg:   #111a04;                 /* Dark/Lime/5         */
+    --tag-limegreen-bd:   #84cc16;                 /* Dark/Lime/30        */
+    --tag-limegreen-fg:   #bdef49;                 /* Lime Green/400      */
+
+    --tag-yellow-bg:      #281e00;                 /* Dark/Alert/5        */
+    --tag-yellow-bd:      #fbbf24;                 /* Dark/Alert/30       */
+    --tag-yellow-fg:      #fcd34d;                 /* Dark/Alert/100      */
+
+    --tag-purple-bg:      #120520;                 /* Dark/Purple/5       */
+    --tag-purple-bd:      #a855f7;                 /* Dark/Purple/30      */
+    --tag-purple-fg:      #d8b4fe;                 /* Dark/Purple/100     */
+
+    --tag-lightblue-bg:   #071828;                 /* Dark/LightBlue/5    */
+    --tag-lightblue-bd:   #38bdf8;                 /* Dark/LightBlue/30   */
+    --tag-lightblue-fg:   #7dd3fc;                 /* Dark/LightBlue/100  */
+
+    --tag-neutral-bg:     rgba(255,255,255,0.08);  /* White/8             */
+    --tag-neutral-bd:     rgba(255,255,255,0.10);  /* White/10            */
+    --tag-neutral-fg:     rgba(255,255,255,0.60);  /* White/60            */
+
+    /* ── Menu / Dropdown tokens — dark ──────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 4762:7152                */
+    /* Variables resolved: Surface/Floating/Default dark = rgba(20,27,42,0.85) */
+    --menu-bg:           var(--surface-floating-default);  /* Surface/Floating/Default dark  VariableID:13469:2 mode 12277:1  */
+    --menu-item-hover:   rgba(32,42,62,0.90);    /* Surface/Floating/Hover dark    VariableID:13469:3 mode 12277:1  */
+    --menu-item-text:    rgba(255,255,255,0.60); /* Text/Subtitle dark   = White/60                                 */
+    --menu-item-subtext: rgba(255,255,255,0.60); /* Text/Body dark       = White/60                                 */
+    --menu-item-disabled:rgba(255,255,255,0.30); /* Text/Disabled dark   = White/30                                 */
+    --menu-item-icon:    rgba(255,255,255,0.50); /* Icon/Neutral/Dark dark = White/50                               */
+    --menu-divider:      rgba(255,255,255,0.08); /* Surface/Neutral/Default dark                                    */
+    --menu-section-text: rgba(255,255,255,0.40); /* Text/Caption dark                                               */
+
+    /* ── Highlight Icon — dark mode ── */
+    --hi-informative-bg:       rgba(33, 115, 255, 0.14);
+    --hi-success-bg:           rgba(0, 169, 127, 0.14);
+    --hi-alert-bg:             rgba(217, 119, 6, 0.14);
+    --hi-error-bg:             rgba(220, 38, 38, 0.14);
+    --hi-neutral-bg:           rgba(255, 255, 255, 0.08);
+    --hi-yellow-bg:            rgba(202, 138, 4, 0.14);
+    --hi-lime-bg:              rgba(101, 163, 13, 0.14);
+    --hi-purple-bg:            rgba(124, 58, 237, 0.14);
+    --hi-lightblue-bg:         rgba(2, 132, 199, 0.14);
+    /* Icon / Dark variant */
+    --hi-informative-icon:     #A8C8FF;
+    --hi-success-icon:         #70EDD8;
+    --hi-alert-icon:           #FFC070;
+    --hi-error-icon:           #FF9898;
+    --hi-neutral-icon:         rgba(255, 255, 255, 0.70);
+    --hi-yellow-icon:          #FFE070;
+    --hi-lime-icon:            #C4F060;
+    --hi-purple-icon:          #D4A0FF;
+    --hi-lightblue-icon:       #80DCFF;
+    /* Icon / Default (softer) variant */
+    --hi-informative-icon-soft: rgba(168, 200, 255, 0.60);
+    --hi-success-icon-soft:     rgba(112, 237, 216, 0.60);
+    --hi-alert-icon-soft:       rgba(255, 192, 112, 0.60);
+    --hi-error-icon-soft:       rgba(255, 152, 152, 0.60);
+    --hi-neutral-icon-soft:     rgba(255, 255, 255, 0.40);
+    --hi-yellow-icon-soft:      rgba(255, 224, 112, 0.60);
+    --hi-lime-icon-soft:        rgba(196, 240, 96, 0.60);
+    --hi-purple-icon-soft:      rgba(212, 160, 255, 0.60);
+    --hi-lightblue-icon-soft:   rgba(128, 220, 255, 0.60);
+
+    /* ── Checkbox — dark ─────────────────────────────── */
+    --checkbox-ripple:           rgba(255,255,255,0.06);  /* hover bg unchecked  */
+    --checkbox-ripple-checked:   rgba(43,127,255,0.14);   /* hover bg checked    */
+    --checkbox-checked-dim:      rgba(43,127,255,0.50);   /* checked + disabled  */
+
+    /* ── Toggle — dark ───────────────────────────────── */
+    --toggle-track-off:          rgba(255,255,255,0.08);  /* Surface/Neutral/Default dark  */
+    --toggle-border-off:         rgba(255,255,255,0.30);  /* Border/Neutral/Lighter dark   */
+    --toggle-thumb-off:          rgba(255,255,255,0.60);  /* Text/Subtitle dark            */
+    --toggle-track-on:           #2b7fff;                 /* Border/Primary/Default dark   */
+    --toggle-thumb-on:           #ffffff;
+    --toggle-track-off-disabled: rgba(255,255,255,0.05);
+    --toggle-border-off-disabled: rgba(255,255,255,0.15);
+    --toggle-track-on-disabled:  rgba(43,127,255,0.40);
+    --toggle-thumb-disabled:     rgba(255,255,255,0.20);
+
+    /* ── Table — dark ────────────────────────────────── */
+    /* Source: 👩‍💻 Developer Reference — Table (node 13859:2959) + Dark Mode Preview (node 13859:2932) */
+    /*   Surface/Neutral/White dark     = rgba(255,255,255,0.10) → row bg (header + body, same token)  */
+    /*   Surface/Neutral/Default dark   = rgba(255,255,255,0.08) → checkbox / row hover bg             */
+    /*   Surface/Primary/More Subtle dk = rgba(43,127,255,0.08)  → selected row bg                     */
+    /*   Text/Subtitle dark             = rgba(255,255,255,0.60) → header column text                  */
+    /*   Text/Body dark                 = rgba(255,255,255,0.60) → row cell text                       */
+    --table-bg:               rgba(255,255,255,0.10);   /* Surface/Neutral/White dark = White/10        */
+    --table-header-bg:        rgba(255,255,255,0.10);   /* Surface/Neutral/White dark (same as body)    */
+    --table-border:           rgba(255,255,255,0.08);   /* Border/Neutral/Lighter dark                  */
+    --table-header-text:      rgba(255,255,255,0.60);   /* Text/Subtitle dark                           */
+    --table-cell-text:        rgba(255,255,255,0.60);   /* Text/Body dark                               */
+    --table-row-hover-bg:     rgba(255,255,255,0.08);   /* Surface/Neutral/Default dark                 */
+    --table-row-selected-bg:  rgba(43,127,255,0.08);    /* Surface/Primary/More Subtle dark             */
+
+    /* ── Topbar — dark ─────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · Dev Reference 12706:849 + Dark Mode frame 12684:252150 */
+    --topbar-text:             rgba(255,255,255,0.60);   /* Text/Subtitle dark            = White/60    */
+    --topbar-text-secondary:   rgba(255,255,255,0.50);   /* Text/Body dark                = White/50    */
+    --topbar-icon:             rgba(255,255,255,0.70);   /* Icon/Neutral/Dark dark        = White/70    */
+    --topbar-workspace-border: rgba(43,127,255,0.20);    /* Border/Primary/Subtle dark                  */
+    --topbar-divider:          rgba(255,255,255,0.08);   /* Border/Neutral/Subtle dark    = White/8     */
+    --topbar-btn-hover-bg:     rgba(255,255,255,0.08);   /* Surface/Neutral/Hover dark    = White/8     */
+    --topbar-btn-focus-bg:     rgba(255,255,255,0.12);   /* Surface/Neutral/Default dark  = White/12    */
+    --topbar-search-bg:        rgba(255,255,255,0.10);   /* Surface/Neutral/White dark    = White/10    */
+    --topbar-search-border:    rgba(255,255,255,0.10);   /* Border/Neutral/Default dark   = White/10    */
+    --topbar-badge-bg:         rgba(255,100,103,1.00);   /* Error/Notification dark                     */
+    --topbar-avatar-ring:      rgba(43,127,255,0.30);    /* Border/Primary/Lighter dark                 */
+
+    /* ── Avatar — color variants — dark ─────────────────────────── */
+    --av-col-blue-bg:      #2173ff;   /* brand primary   */
+    --av-col-green-bg:     #059669;   /* emerald 600     */
+    --av-col-red-bg:       #dc2626;   /* red 600         */
+    --av-col-orange-bg:    #c2410c;   /* orange 700      */
+    --av-col-purple-bg:    #7c3aed;   /* violet 600      */
+    --av-col-limegreen-bg: #4d7c0f;   /* lime 700        */
+    --av-col-lightblue-bg: #0284c7;   /* sky 600         */
+    --av-col-pink-bg:      #be185d;   /* pink 700        */
+    --av-col-teal-bg:      #0d9488;   /* teal 600        */
+    --av-col-amber-bg:     #d97706;   /* amber 600       */
+
+    --topbar-zone-hover-bg:    rgba(255,255,255,0.04);   /* Zone frame hover bg dark                    */
+    --topbar-zone-hover-bd:    rgba(43,127,255,0.45);    /* Zone frame hover border dark                */
+    --topbar-menu-bg:          rgba(22,22,22,1.00);      /* Dropdown bg dark = Surface/Neutral/Elevated */
+    --topbar-menu-border:      rgba(255,255,255,0.10);   /* Dropdown border dark                        */
+    --topbar-menu-item-hover:  rgba(255,255,255,0.06);   /* Menu item hover dark                        */
+    --topbar-menu-item-sel:    rgba(33,115,255,0.15);    /* Menu item selected dark                     */
+    --topbar-menu-text:        rgba(255,255,255,0.80);   /* Menu item label dark                        */
+    --topbar-menu-text-dim:    rgba(255,255,255,0.45);   /* Menu secondary text dark                    */
+    --topbar-menu-tag-act-bg:  rgba(33,115,255,0.20);    /* "Active" workspace tag bg dark              */
+    --topbar-menu-tag-act-fg:  rgba(43,127,255,1.00);    /* "Active" workspace tag text dark            */
+    --topbar-menu-tag-bg:      rgba(255,255,255,0.08);   /* Default workspace tag bg dark               */
+    --topbar-menu-tag-fg:      rgba(255,255,255,0.45);   /* Default workspace tag text dark             */
+
+    /* ── Entity List — dark ──────────────────────────────────────────────── */
+    --el-bullet:      rgba(255,255,255,0.18);
+    --el-row-hover:   rgba(255,255,255,0.03);
+
+    /* ── Modal Dialog — dark ─────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI node 13753-29038 — Developer Reference */
+    --modal-surface:      rgba(12,14,34,0.82);   /* Surface/Modal/Default dark                */
+    --modal-surface-blur: blur(10px);             /* DS backdrop-filter on modal card          */
+    --modal-border:       rgba(255,255,255,0.15); /* Border rim — white/15 (Figma VariableID:4465:4449 dark = 0.15) */
+    --modal-scrim:        rgba(0,0,0,0.65);       /* Overlay/Scrim dark = 65% opacity + blur   */
+    --el-avatar-ring:     rgba(128,175,255,0.50); /* Entity list avatar ring dark               */
+    --signout-hover-bg:   rgba(239,68,68,0.07);   /* Sign out row hover bg dark                 */
+    --signout-icon:       rgba(239,68,68,0.65);   /* Sign out icon color dark                   */
+    --signout-text:       rgba(239,68,68,0.85);   /* Sign out text color dark                   */
+    --fc-trigger-active-bg: rgba(33,115,255,0.10); /* FiltersCard trigger btn active bg dark    */
+    --priority-critical:  #f87171;   /* Priority dot Critical dark — red-400    */
+    --priority-high:      #fb923c;   /* Priority dot High dark    — orange-400  */
+    --priority-medium:    #fbbf24;   /* Priority dot Medium dark  — amber-400   */
+    --priority-low:       #4ade80;   /* Priority dot Low dark     — green-400   */
+    --gs-scrim:           rgba(0,0,0,0.45); /* Global Search backdrop scrim dark */
+    --modal-icon-bg:      rgba(43,127,255,0.12);  /* Icon circle bg — primary/12 dark          */
+    --modal-icon-color:   #80afff;                /* Icon color — Primary/Lighter dark         */
+    --modal-slot-bg:      rgba(255,255,255,0.04); /* Slot content zone bg                      */
+    --tabs-hover-bg:      rgba(255,255,255,0.06); /* Tab hover · Surface/Neutral/Subtle dark    */
+    --modal-info-bg:      rgba(43,127,255,0.10);  /* Informative card bg — primary/10 dark     */
+    --modal-info-icon:    #80afff;                /* Info icon color                           */
+    --modal-info-text:    rgba(128,175,255,0.90); /* Info text color                           */
+    --modal-close-icon:   rgba(255,255,255,0.35); /* Close button default color                */
+    --modal-close-hover:  rgba(255,255,255,0.80); /* Close button hover color                  */
+
+    /* ── Informational Card — dark ──────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 8057:1259 */
+    --ic-informative-bg:   rgba(33,115,255,0.12);   --ic-informative-icon: #A8C8FF;  --ic-informative-text: #A8C8FF;
+    --ic-alert-bg:         rgba(237,108,2,0.12);    --ic-alert-icon:       #FFC070;  --ic-alert-text:       #fcd34d;
+    --ic-error-bg:         rgba(220,38,38,0.12);    --ic-error-icon:       #FF9898;  --ic-error-text:       #ff6467;
+    --ic-success-bg:       rgba(0,169,127,0.12);    --ic-success-icon:     #70EDD8;  --ic-success-text:     #70EDD8;
+    --ic-neutral-bg:       rgba(255,255,255,0.08);  --ic-neutral-icon:     rgba(255,255,255,0.70); --ic-neutral-text: rgba(255,255,255,0.70);
+
+    /* ── Alert Banner — dark ────────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 13892:34 (Dark Mode Preview) */
+    /* Backgrounds are SOLID dark colors — not rgba overlays */
+    --ab-error-bg:      #2d1515;                  /* Surface/Error/More Subtle dark    */
+    --ab-error-bd:      transparent;              /* solid bg is sufficient            */
+    --ab-error-icon:    #ff6467;                  /* Text/Error dark = tag-error-fg    */
+    --ab-error-text:    #ff6467;                  /* Text/Error dark                   */
+
+    --ab-success-bg:    #0a1f1a;                  /* Surface/Success/More Subtle dark  */
+    --ab-success-bd:    transparent;
+    --ab-success-icon:  #6ee7b7;                  /* Text/Success dark = tag-success-fg */
+    --ab-success-text:  #6ee7b7;
+
+    --ab-alert-bg:      #2d1a08;                  /* Surface/Alert/Subtle dark         */
+    --ab-alert-bd:      transparent;
+    --ab-alert-icon:    #fcd34d;                  /* Text/Alert dark = tag-alert-fg    */
+    --ab-alert-text:    #fcd34d;
+
+    --ab-cta-text:      rgba(255,255,255,0.60);   /* Text/Label dark — CTA + close btn */
+
+    /* ── Sidebar — dark ──────────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · Sidebar page · variable bindings resolved */
+    --sb-bg:               rgba(15,23,43,1);          /* Surface/Neutral/Black dark   → #0F172B       */
+    --sb-icon-default:     rgba(128,175,255,0.90);    /* Icon/Primary/Lighter dark    → #80AFFF 90%   */
+    --sb-icon-active:      rgba(255,255,255,0.70);    /* Icon/Neutral/Light dark      → White/70      */
+    --sb-text:             rgba(255,255,255,1);       /* Text/Negative dark           → White/100     */
+    --sb-row-hover:        rgba(255,255,255,0.20);    /* Surface/Neutral/Darker dark  → White/20      */
+    --sb-icon-hover-bg:    rgba(15,23,43,1);          /* Surface/Neutral/Black dark   (icon hover bg) */
+    --sb-separator:        rgba(255,255,255,0.15);    /* Border/Neutral/Lighter dark  → White/15      */
+    --sb-chevron-active:   rgba(233,241,255,1);       /* Icon/Primary/Subtle          → Primary/300   */
+
+    /* ── Global Search overlay — dark mode ──────────────────────────────── */
+    /* Surface/Floating dark = rgba(16,22,40) + BACKGROUND_BLUR radius:16  */
+    --gs-bg:               rgba(16, 22, 40, 0.94);   /* Surface/Floating dark — #10162A + blur        */
+    --gs-border:           rgba(255,255,255,0.08);   /* Border/Neutral/Subtle dark  = White/8          */
+    --gs-input-bg:         rgba(255,255,255,0.06);   /* Surface/Neutral/Default dark = White/6         */
+    --gs-input-border:     rgba(255,255,255,0.12);   /* Border/Neutral/Default dark  = White/12        */
+    --gs-divider:          rgba(255,255,255,0.06);   /* Border/Neutral/Subtle dark   = White/6         */
+    --gs-text:             rgba(255,255,255,0.90);   /* Text/Primary dark            = White/90        */
+    --gs-text-dim:         rgba(255,255,255,0.55);   /* Text/Secondary dark          = White/55        */
+    --gs-text-meta:        rgba(255,255,255,0.35);   /* Text/Meta dark               = White/35        */
+    --gs-section-label:    rgba(255,255,255,0.40);   /* Section label dark           = White/40        */
+    --gs-row-hover:        rgba(255,255,255,0.05);   /* Row hover dark               = White/5         */
+    --gs-chip-inactive-bg: rgba(255,255,255,0.08);   /* Chip inactive bg dark        = White/8         */
+    --gs-chip-inactive-fg: rgba(255,255,255,0.70);   /* Chip inactive text dark      = White/70        */
+    --gs-action-icon-bg:   rgba(33,115,255,0.12);    /* Suggested action icon bg dark — primary/12    */
+    --gs-kbd-bg:           rgba(255,255,255,0.08);   /* Keyboard shortcut pill dark  = White/8         */
+    --gs-kbd-fg:           rgba(255,255,255,0.40);   /* Keyboard shortcut text dark  = White/40        */
+    --gs-filters-col-bg:   rgba(255,255,255,0.02);   /* FiltersCard left column bg — subtle separation */
+    --gs-chip-border:      rgba(255,255,255,0.20);   /* Pill chip outline border dark = White/20       */
+
+    /* ── FiltersCard floating panel (Global Search) ─────────────────── */
+    --fc-bg:               rgba(20, 26, 46, 0.98);   /* Dark surface — slightly lighter than GS panel  */
+    --fc-border:           rgba(255,255,255,0.10);   /* Border/Neutral/Default dark                    */
+    --fc-divider:          rgba(255,255,255,0.07);   /* Section divider dark                           */
+    --fc-label:            rgba(255,255,255,0.45);   /* Section header label dark                      */
+    --fc-chip-bg:          transparent;              /* Inactive chip background dark                  */
+    --fc-chip-bd:          rgba(255,255,255,0.18);   /* Inactive chip border dark                      */
+    --fc-chip-fg:          rgba(255,255,255,0.75);   /* Inactive chip text dark                        */
+    --fc-cta-clear:        rgba(255,255,255,0.50);   /* "Clear all" text dark                          */
+
+    /* ── Filters Bar — dark ─────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 7996:4655                */
+    /* Inactive chip: Surface/Neutral/Subtle + Border/Neutral/Lighter       */
+    /* Active chip:   Surface/Primary/Subtle + Border/Primary/Default       */
+    --fi-chip-bg:            rgba(255,255,255,0.05);   /* Surface/Neutral/Subtle dark    = White/5   */
+    --fi-chip-border:        rgba(255,255,255,0.15);   /* Border/Neutral/Lighter dark    = White/15  */
+    --fi-chip-text:          rgba(255,255,255,0.70);   /* Text/Subtitle dark             = White/70  */
+    --fi-chip-icon:          rgba(255,255,255,0.40);   /* Icon/Neutral dark              = White/40  */
+    --fi-chip-hover-bg:      rgba(255,255,255,0.08);   /* Surface/Neutral/Default dark   = White/8   */
+    --fi-chip-active-bg:     rgba(43,127,255,0.08);    /* Surface/Primary/Subtle dark                */
+    --fi-chip-active-border: #2b7fff;                  /* Border/Primary/Default dark                */
+    --fi-chip-active-text:   #A8C8FF;                  /* Text/Info dark                             */
+    --fi-chip-active-icon:   rgba(168,200,255,0.80);   /* Icon/Primary dark                          */
+    --fi-clear-text:         rgba(255,255,255,0.45);   /* Text/Caption dark              = White/45  */
+    --fi-clear-hover:        rgba(255,255,255,0.80);   /* Text/Subtitle dark on hover    = White/80  */
+    --fi-badge-bg:           #2b7fff;                  /* Border/Primary/Default dark                */
+    --fi-badge-text:         #ffffff;
+    --fi-view-active-bg:     #2b7fff;                  /* Active view icon fill                      */
+    --fi-view-active-icon:   #ffffff;
+    --fi-view-icon:          rgba(255,255,255,0.40);   /* Inactive view icon             = White/40  */
+    --fi-sort-icon:          rgba(255,255,255,0.40);   /* Sort direction icon            = White/40  */
+    --fi-sort-text:          rgba(255,255,255,0.65);   /* Sort label text                = White/65  */
+
+    /* ── Tooltip — Surface/Neutral/Darker + Text/Negative ────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 4614:5319                  */
+    /* "Naturally dark-on-light — inverted style" per DS spec — same hex both modes */
+    --color-surface-neutral-darker: #111827;   /* Surface/Neutral/Darker — tooltip bg   */
+    --color-text-negative:          #ffffff;   /* Text/Negative          — tooltip text  */
+    --tooltip-bg:   var(--color-surface-neutral-darker);
+    --tooltip-text: var(--color-text-negative);
+    /* ── Canonical color tokens (shared across components) ──────────────── */
+    --color-surface-neutral-white:      #FFFFFF;                  /* Surface/Neutral/White            */
+    --color-border-neutral-lighter:     rgba(255,255,255,0.08);   /* Border/Neutral/Lighter           */
+    --color-text-title:                 rgba(255,255,255,0.80);   /* Text/Title                       */
+    --color-text-subtitle:              rgba(255,255,255,0.60);   /* Text/Subtitle                    */
+    --color-text-success:               #6ee7b7;                  /* Text/Success                     */
+    --color-text-error:                 #ff6467;                  /* Text/Error                       */
+    --color-icon-primary-default:       #2B7FFF;                  /* Icon/Primary/Default             */
+    --color-icon-primary-darker:        #155dfc;                  /* Icon/Primary/Darker              */
+    --color-border-primary-default:     #2b7fff;                  /* Border/Primary/Default           */
+    --color-border-success-default:     #00a07e;                  /* Border/Success/Default           */
+    --color-border-alert-default:       #ed6c02;                  /* Border/Alert/Default             */
+    --color-border-yellow-default:      #ed6c02;                  /* Border/Yellow/Default            */
+    --color-border-purple-default:      #7b27ed;                  /* Border/Purple/Default            */
+    --color-border-light-blue-default:  #00b5d9;                  /* Border/Light Blue/Default        */
+    --color-border-lime-green-default:  #a0da1d;                  /* Border/LimeGreen/Default         */
+    --color-border-error-default:       #992222;                  /* Border/Error/Default             */
+    --color-surface-primary-subtle:     rgba(33,115,255,0.15);    /* Surface/Primary/Subtle           */
+    --color-surface-success-subtle:     rgba(0,169,127,0.15);     /* Surface/Success/Subtle           */
+    --color-surface-alert-subtle:       rgba(217,119,6,0.15);     /* Surface/Alert/Subtle             */
+    --color-surface-yellow-subtle:      rgba(202,138,4,0.14);     /* Surface/Yellow/Subtle            */
+    --color-surface-purple-subtle:      rgba(124,58,237,0.14);    /* Surface/Purple/Subtle            */
+    --color-surface-light-blue-subtle:  rgba(2,132,199,0.14);     /* Surface/LightBlue/Subtle         */
+    --color-surface-lime-subtle:        rgba(101,163,13,0.14);    /* Surface/Lime/Subtle              */
+    --color-surface-error-subtle:       rgba(220,38,38,0.14);     /* Surface/Error/Subtle             */
+    /* ── Highlight Card — component tokens ──────────────────────────────────
+       Dark bg: DS flags Surface/Neutral/White (#FFF) as ⚠ in dark mode.
+       Visual preview shows dark surface cards — use surface-raised instead. */
+    /* ── Widget Father ──────────────────────────────────────────────────────── */
+    --widget-bg:               var(--surface-raised);                 /* Card bg — raised above canvas  */
+    --widget-border:           rgba(255,255,255,0.12);                /* Neutral/Lighter dark — visible  */
+    --widget-border-hover:     rgba(255,255,255,0.24);                /* Hover: stronger contrast        */
+    --widget-title:            var(--color-text-title);               /* Header title — uppercase label */
+    --widget-subtitle:         var(--color-text-subtitle);            /* Optional description           */
+    --widget-icon:             var(--color-icon-neutral-dark);        /* Header action icons            */
+    --widget-action-hover-bg:  var(--color-surface-neutral-default);  /* Action button hover fill       */
+
+    --hc-bg:            var(--surface-raised);           /* dark surface card — visual intent */
+    --hc-text-label:    var(--color-text-subtitle);      /* rgba(255,255,255,0.40) on dark bg */
+    --hc-text-value:    var(--color-text-title);         /* rgba(255,255,255,0.80) on dark bg */
+    --hc-text-feedback: var(--color-text-subtitle);
+    --hc-text-unit:     var(--color-text-subtitle);
+    --hc-icon-fill:     var(--color-icon-primary-default);
+    --hc-icon-bg:       var(--color-surface-primary-subtle);
+    /* ── Slide Out — canonical tokens (DS node 5066:9783) ───────────────────
+       Panel bg: Surface/Floating/Default = frosted glass rgba(16,22,40,0.92)
+       + backdrop-blur(30px) + shadow -24px -24px 60px rgba(0,0,0,0.08)
+       Radius: Radius-XL 24px (M) | Radius-L 16px (S) — left corners only   */
+    --surface-floating-default:           rgba(16,22,40,0.92);     /* Surface/Floating/Default dark  */
+    --color-border-neutral-default:       rgba(255,255,255,0.10);  /* Border/Neutral/Default dark    */
+    --color-border-primary-lighter:       #80afff;                 /* Border/Primary/Lighter (static)*/
+    --color-text-label:                   rgba(255,255,255,0.80);  /* Text/Label dark                */
+    --color-text-disabled:                rgba(255,255,255,0.30);  /* Text/Disabled dark             */
+    --color-text-negative:                #ffffff;                 /* Text/Negative (static)         */
+    --color-surface-success-more-subtle:  rgba(110,231,183,0.10);  /* Surface/Success/More Subtle dk */
+    --color-border-success-lighter:       #009978;                 /* Border/Success/Lighter (static)*/
+    --color-surface-purple-more-subtle:   rgba(139,92,246,0.12);   /* Surface/Purple/More Subtle dk  */
+    --color-surface-success-default:      #00a07e;                 /* Surface/Success/Default dark   */
+    --color-surface-alert-default:        #ed6c02;                 /* Surface/Alert/Default dark     */
+    --color-surface-error-default:        #e05252;                 /* Surface/Error/Default dark     */
+    --color-surface-yellow-default:       #f59e0b;                 /* Surface/Yellow/Default dark    */
+    --color-surface-alert-more-subtle:    rgba(217,119,6,0.08);    /* Surface/Alert/More Subtle dk   */
+    --color-surface-error-more-subtle:    rgba(220,38,38,0.08);    /* Surface/Error/More Subtle dk   */
+    --color-surface-yellow-more-subtle:   rgba(202,138,4,0.08);    /* Surface/Yellow/More Subtle dk  */
+    --pb-radius:                          2px;                     /* Progress Bar / Radius-XS       */
+    --color-surface-neutral-default:      rgba(255,255,255,0.06);  /* Surface/Neutral/Default dark   */
+    --color-surface-neutral-emphasis:     rgba(255,255,255,0.12);  /* Surface/Neutral/Emphasis dark  */
+    --slide-out-shadow:                   -24px -24px 60px 0px rgba(0,0,0,0.08);
+    --slide-out-btn-secondary-bg:         rgba(255,255,255,0.08);  /* secondary CTA bg dark          */
+    --slide-out-btn-secondary-text:       rgba(255,255,255,0.80);  /* secondary CTA text dark        */
+    --color-border-neutral-subtle:        rgba(255,255,255,0.10);  /* Border/Neutral/Subtle dark     */
+    --color-text-body:                    #94A3B8;                 /* Text/Body dark                 */
+    --color-icon-neutral-default:         #D1D5DB;                 /* Icon/Neutral/Default dark      */
+    --color-surface-overlay:              rgba(0,0,0,0.30);        /* Overlay/Scrim/Default          */
+    --color-surface-neutral-black:        #0f172b;                 /* Surface/Neutral/Black          */
+    /* ── Slide Out — component tokens ──────────────────────────────────── */
+    --slide-out-bg:      var(--surface-floating-default);
+    --slide-out-title:   var(--color-text-title);
+    --slide-out-body:    var(--color-text-body);
+    --slide-out-border:  var(--color-border-neutral-subtle);
+    --slide-out-icon:    var(--color-icon-neutral-default);
+    --slide-out-overlay: var(--color-surface-overlay);
+    /* ── Side Panel — canonical tokens (DS node 14423-32215) ───────────────
+       Inline layout panel: no overlay, shifts main content when open.
+       bg = Surface/Floating/Default dark (same glass surface as Slide Out)
+       blur = 5px  ·  corners = tl+bl (right) or tr+br (left), radius-xl 24px  */
+    --side-panel-bg:            var(--surface-floating-default);    /* rgba(16,22,40,0.92)           */
+    --side-panel-border:        var(--color-border-neutral-subtle); /* rgba(255,255,255,0.10)         */
+    --side-panel-title:         var(--color-text-label);            /* rgba(255,255,255,0.80)         */
+    --side-panel-description:   var(--color-text-body);             /* #94A3B8                       */
+    --side-panel-icon:          var(--color-icon-neutral-default);  /* #D1D5DB                       */
+    --side-panel-icon-hover-bg: rgba(255,255,255,0.08);             /* Surface/Neutral/Default dark   */
+    --side-panel-search-bg:     rgba(255,255,255,0.10);             /* Surface/Neutral/White dark     */
+    --side-panel-search-bd:     var(--color-border-neutral-default);/* rgba(255,255,255,0.10)         */
+    /* ── Chip — canonical tokens (DS node 5051:62341) ───────────────────── */
+    --color-surface-neutral-subtle:       rgba(255,255,255,0.05);   /* Surface/Neutral/Subtle dark    */
+    --color-surface-primary-default:      var(--primary);            /* Surface/Primary/Default dark   */
+    --color-surface-primary-darker:       #002f80;                   /* Surface/Primary/Darker dark    */
+    --color-surface-primary-lighter:      rgba(43,127,255,0.40);    /* Surface/Primary/Lighter dark   */
+    --color-button-primary-text-default:  #ffffff;                   /* Button/Primary/Text/Default    */
+    --color-button-primary-text-disabled: rgba(255,255,255,0.30);   /* Button/Primary/Text/Disabled   */
+    --color-icon-neutral-light:           #ffffff;                   /* Icon/Neutral/Light             */
+    --color-icon-neutral-dark:            rgba(255,255,255,0.70);    /* Icon/Neutral/Dark dark         */
+    --color-icon-neutral-black:           #2a2a2a;                   /* Icon/Neutral/Black             */
+    /* ── Header component tokens ──────────────────────────────────── */
+    --header-title:      var(--color-text-title);                    /* Page title                     */
+    --header-desc:       var(--color-text-body);                     /* Description subtitle           */
+    --header-back-icon:  var(--color-icon-neutral-dark);             /* Back arrow button              */
+    --color-surface-purple-default:       #7b27ed;                   /* Surface/Purple/Default         */
+    --color-surface-purple-darker:        #2c075c;                   /* Surface/Purple/Darker dark     */
+    --color-surface-purple-lighter:       rgba(123,39,237,0.40);    /* Surface/Purple/Lighter dark    */
+    --color-text-purple:                  #d8b4fe;                   /* Text/Purple dark               */
+    --color-border-purple-lighter:        rgba(123,39,237,0.30);    /* Border/Purple/Lighter dark     */
+    --color-surface-light-blue-default:   #00b5d9;                   /* Surface/LightBlue/Default      */
+    --color-surface-light-blue-darker:    #02445a;                   /* Surface/LightBlue/Darker dark  */
+    --color-surface-light-blue-lighter:   rgba(0,181,217,0.40);     /* Surface/LightBlue/Lighter dark */
+    /* Secondary chip: semi-transparent surface on dark bg (mirrors secondary button) */
+    --chip-secondary-bg:                  rgba(255,255,255,0.10);   /* Surface/Neutral/White dark     */
+    --chip-secondary-text:                rgba(255,255,255,0.60);   /* Text/Label dark                */
+    --chip-secondary-text-disabled:       rgba(255,255,255,0.30);   /* Text/Disabled dark             */
+    --chip-secondary-bg-hover:            rgba(255,255,255,0.15);   /* Surface/Neutral/Lighter dark   */
+    --chip-secondary-bg-disabled:         rgba(255,255,255,0.05);   /* Surface/Neutral/Subtle dark    */
+    /* ── Switch Tab — canonical tokens (DS node 4591:349) ──────────────────── */
+    --color-surface-primary-more-subtle:  #f6f9ff;                  /* Surface/Primary/More Subtle    */
+    --st-bg:            var(--surface-raised);                        /* Dark elevated surface #131C2E  */
+    --st-shadow:        8px 8px 24px 0px rgba(0, 0, 0, 0.32);       /* Stronger shadow on dark bg     */
+    --st-active-bg:     rgba(43, 127, 255, 0.15);                    /* Blue tint on dark surface      */
+    --st-active-text:   var(--primary);                              /* Text/Link = #2b7fff            */
+    --st-text:          var(--foreground);                           /* rgba(255,255,255,0.80)         */
+    --st-item-radius:   4px;                                         /* Radius/Radius-S item           */
+    /* ── Skeleton — component tokens (DS node 5992:6760) ───────────────── */
+    --skeleton-base:    var(--color-surface-neutral-default);        /* rgba(255,255,255,0.06) dark    */
+    --skeleton-shimmer: var(--color-surface-neutral-emphasis);       /* rgba(255,255,255,0.12) dark    */
+    /* ── Spinner — component tokens (DS node 7185:3933) ────────────────── */
+    --spinner-primary-fill:      var(--primary);                           /* Surface/Primary/Default dark   */
+    --spinner-primary-track:     var(--color-surface-primary-subtle);      /* rgba(33,115,255,0.15) dark     */
+    --spinner-success-fill:      var(--color-surface-success-default);     /* #00a07e dark                   */
+    --spinner-success-track:     var(--color-surface-success-more-subtle); /* rgba(110,231,183,0.10) dark    */
+    --spinner-alert-fill:        var(--color-surface-alert-default);       /* #ed6c02 dark                   */
+    --spinner-alert-track:       var(--color-surface-alert-more-subtle);   /* rgba(217,119,6,0.08) dark      */
+    --spinner-error-fill:        var(--color-surface-error-default);       /* #e05252 dark                   */
+    --spinner-error-track:       var(--color-surface-error-more-subtle);   /* rgba(220,38,38,0.08) dark      */
+    --spinner-informative-fill:  var(--color-surface-light-blue-default);  /* #00b5d9 dark                   */
+    --spinner-informative-track: var(--color-surface-light-blue-subtle);   /* rgba(2,132,199,0.14) dark      */
+    --spinner-bw-fill:           rgba(255,255,255,0.80);                   /* white on dark                  */
+    --spinner-bw-track:          rgba(255,255,255,0.10);                   /* subtle white track on dark     */
+    /* ── Stepper — component tokens (DS node 8210:40358) ───────────────── */
+    --stepper-dot-active-bg:  var(--color-surface-primary-subtle);         /* Active/Completed dot fill      */
+    --stepper-dot-default-bg: var(--color-surface-neutral-default);        /* Default/Locked/View-only dot   */
+    --stepper-icon-active:    var(--color-icon-primary-darker);            /* Icon/Primary/Darker — #155dfc  */
+    --stepper-icon-default:   rgba(255,255,255,0.50);                      /* Icon/Neutral/Dark — White/50   */
+    --stepper-icon-locked:    var(--color-text-disabled);                  /* Icon/Neutral/Disabled (dimmed) */
+    --stepper-label-active:   var(--color-text-subtitle);                  /* Text/Subtitle — Subtitle/S     */
+    --stepper-label-default:  var(--color-text-body);                      /* Text/Body — Body/M             */
+    --stepper-connector:      var(--color-text-disabled);                  /* Icon/Neutral/Disabled          */
+    /* ── Elevation / Shadow scale (dark mode — stronger for depth on dark bg) */
+    --shadow-elevation-1: 0 1px 4px rgba(0,0,0,0.16);
+    --shadow-elevation-2: 0 2px 8px rgba(0,0,0,0.24);
+    --shadow-elevation-3: 0 4px 24px rgba(0,0,0,0.32), 0 1px 4px rgba(0,0,0,0.16);
+    --shadow-elevation-4: 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.24);
+    --shadow-elevation-5: 8px 8px 24px rgba(0,0,0,0.32);
+  }
+
+  /* ── Light mode ──────────────────────────────────────────────────────── */
+  .light {
+    --canvas:              #E4ECF7;   /* richer blue-gray base for visible gradient */
+    --app-bg:            radial-gradient(circle at 50% 0%, #F6F9FF 0%, #FFFFFF 80%);
+
+    --surface:             #F2F7FF;   /* subtle brand-blue tint instead of flat white */
+    --surface-raised:      #EBF2FF;   /* elevated with blue tint for depth */
+
+    --background:          #E4ECF7;
+    --card:                #F8FBFF;   /* very slight blue-tinted card surface */
+    --card-foreground:     #5c5c5c;
+    --popover:             #FFFFFF;
+    --popover-foreground:  #1a1a1a;
+    --foreground:          #1a1a1a;
+    --primary:             #2173ff;
+    --primary-foreground:  #ffffff;
+    --secondary:           #00000008;
+    --secondary-foreground:#2a2a2a;
+    --muted:               #0000000a;
+    --muted-foreground:    #5c5c5c;
+    --accent:              #2173ff14;
+    --accent-foreground:   #2173ff;
+    --destructive:         #d32f2f;
+    --destructive-foreground: #ffffff;
+    --border:              rgba(33,115,255,0.13);  /* subtle brand-blue border */
+    --input:               rgba(0,0,0,0.10);
+    --ring:                #2173ff;
+    --radius:              0.5rem;
+    --sidebar:             #F2F7FF;
+    --sidebar-foreground:  #1a1a1a;
+    --sidebar-primary:     #2173ff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent:      #2173ff14;
+    --sidebar-accent-foreground:  #2173ff;
+    --sidebar-border:      rgba(33,115,255,0.12);
+    --sidebar-ring:        #2173ff;
+
+    /* ── Field — neutral states ─────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI Semantic Color Tokens — Primary mode */
+    --field-bg:              #ffffff;                 /* Surface/Neutral/White light  */
+    --field-border:          #5c5c5c;                 /* Border/Neutral/Default light */
+    --ctrl-inactive-bg:      rgba(0,0,0,0.07);        /* CtrlGroup pill inactive — light          */
+    --row-alt-bg:            rgba(0,0,0,0.03);         /* Table/list alternating row  — light     */
+    --code-bg:               rgba(0,0,0,0.08);        /* Inline code + icon preview boxes — light */
+    --field-border-hover:    #2a2a2a;                 /* Border/Neutral/Darker light  */
+    --field-border-focus:    #2173ff;                 /* Border/Primary/Default light */
+    --field-text:            #2a2a2a;                 /* Text/Subtitle light          */
+    --field-placeholder:     #bababa;                 /* Text/Disabled light          */
+    --field-label:           #2a2a2a;                 /* Text/Subtitle light          */
+    --field-supporting:      #5c5c5c;                 /* Text/Body light              */
+    --field-icon:            #bababa;                 /* Text/Disabled light          */
+
+    /* ── Field — scrollbar ───────────────────────────── */
+    --field-scrollbar-track: #f2f2f2;                 /* Surface/Neutral/Default light */
+    --field-scrollbar-thumb: #d9d9d9;                 /* Surface/Neutral/Emphasis light */
+    --scrollbar-thumb-hover: #bababa;                 /* ScrollArea thumb hover light · Surface/Neutral/Focus */
+
+    /* ── Field — validation state borders ───────────── */
+    /* Border/Error/Lighter light  */ --field-border-error:    #d32f2f;
+    /* Border/Success/Default light*/ --field-border-success:  #00a07e;
+    /* Border/Alert/Default light  */ --field-border-alert:    #ed6c02;
+
+    /* ── Field — validation state text + icon colors ── */
+    /* Text/Error light            */ --field-text-error:      #5f2120;
+    /* Text/Success light          */ --field-text-success:    #003328;
+    /* Text/Alert light            */ --field-text-alert:      #663c00;
+
+    /* ── Button tokens — light ──────────────────────── */
+    /* Primary  : Border/Primary/Default light = #2173ff — Text/Negative (#ffffff) hardcoded in component */
+    --btn-primary-bg:          #2173ff;
+    --btn-primary-hover-bg:    #002f80;  /* DS Hover fill — same dark navy */
+    --btn-primary-active-bg:   #001a5c;
+    --btn-primary-ring:        #2173ff;
+
+    /* Secondary */
+    --btn-secondary-bg:          #ffffff;    /* Surface/Neutral/White light  = Gray/100  */
+    --btn-secondary-fg:          #2a2a2a;    /* Text/Label light             = Gray/700  */
+    --btn-secondary-border:      #5c5c5c;    /* Border/Neutral/Default light = Gray/600  */
+    --btn-secondary-hover-bg:    #f2f2f2;    /* Surface/Neutral/Default light = Gray/300 */
+    --btn-secondary-hover-bd:    #d9d9d9;    /* Surface/Neutral/Emphasis light = Gray/400 */
+    --btn-secondary-focus-bd:    #bababa;    /* Border/Neutral/Lighter light = Gray/500  */
+    --btn-secondary-disabled-bg: #fafafa;    /* Surface/Neutral/Subtle light = Gray/200  */
+    --btn-secondary-disabled-bd: #bababa;    /* Border/Neutral/Lighter light = Gray/500  */
+    --btn-secondary-disabled-fg: #bababa;    /* Text/Disabled light          = Gray/500  */
+    --btn-secondary-active-bg:   rgba(0,0,0,0.078);
+    --btn-secondary-ring:        rgba(0,0,0,0.15);
+
+    /* Tertiary */
+    --btn-tertiary-fg:           #2a2a2a;    /* Text/Label light = Gray/700   */
+    --btn-tertiary-hover-bg:     #fafafa;    /* Surface/Neutral/Subtle light = Gray/200  */
+    --btn-tertiary-focus-bg:     #f2f2f2;    /* Surface/Neutral/Default light = Gray/300 */
+    --btn-tertiary-active-bg:    #ebebeb;    /* no DS ref — step below Gray/300 */
+
+    /* Warning  : destructive red light — Text/Negative (#ffffff) hardcoded in component */
+    --btn-warning-bg:          #d32f2f;
+    --btn-warning-hover-bg:    #b91c1c;
+    --btn-warning-active-bg:   #991b1b;
+    --btn-warning-ring:        #d32f2f;
+
+    /* Positive — Text/Negative (#ffffff) hardcoded in component */
+    --btn-positive-bg:         #00a07e;
+    --btn-positive-hover-bg:   #003328;
+    --btn-positive-active-bg:  #001f18;
+    --btn-positive-ring:       #00a07e;
+    --btn-main-ring:           #cbfff4;   /* Main Action focus ring light — DS Border/Success/Subtle */
+
+    /* ── Card Container tokens — light ──────────────────── */
+    /* Default / White Opacity — Surface/Neutral/White light + Border/Neutral/Lighter light */
+    --card-default-bg:              #ffffff;                 /* Surface/Neutral/White light     = Gray/100  */
+    --card-default-border:          #bababa;                 /* Border/Neutral/Lighter light    = Gray/500  */
+    --card-default-hover-bd:        #5c5c5c;                 /* Border/Neutral/Default light    = Gray/600  */
+    --card-default-selected-bd:     #2173ff;                 /* Border/Primary/Default light                */
+
+    /* Primary — Surface/Primary/More Subtle light + Border/Primary/Lighter light */
+    --card-primary-bg:              #f6f9ff;                 /* Surface/Primary/More Subtle light           */
+    --card-primary-border:          #80afff;                 /* Border/Primary/Lighter light                */
+    --card-primary-hover-bd:        #2173ff;                 /* Border/Primary/Default light                */
+    --card-primary-selected-bd:     #2173ff;                 /* Border/Primary/Default light                */
+
+    /* Green — Surface/Success/More Subtle light + Border/Success/Default light */
+    --card-green-bg:                #e5fdf8;                 /* Surface/Success/More Subtle light           */
+    --card-green-border:            #00a07e;                 /* Border/Success/Default light                */
+    --card-green-hover-bd:          #009978;                 /* Border/Success/Lighter light                */
+    --card-green-selected-bd:       #009978;                 /* Border/Success/Lighter light                */
+
+    /* Reed — Surface/Card/Reed BG light + Border/Error/Lighter light */
+    --card-reed-bg:                 #fdeded;                 /* Surface/Card/Reed BG Stop0 light            */
+    --card-reed-border:             #d32f2f;                 /* Border/Error/Lighter light                  */
+    --card-reed-hover-bd:           #d32f2f;                 /* Border/Error/Lighter light                  */
+    --card-reed-selected-bd:        #d32f2f;                 /* Border/Error/Lighter light (DS: same as default, width 1px) */
+
+    /* Orange — Surface/Alert/More Subtle light + Border/Alert/Subtle light */
+    --card-orange-bg:               #fff4e5;                 /* Surface/Alert/More Subtle light             */
+    --card-orange-border:           #edc6a6;                 /* Border/Alert/Subtle light                   */
+    --card-orange-hover-bd:         #b25102;                 /* Border/Alert/Lighter light                  */
+    --card-orange-selected-bd:      #ed6c02;                 /* Border/Alert/Default light                  */
+
+    /* Yellow — Surface/Yellow/More Subtle light + Border/Yellow/Lighter light */
+    --card-yellow-bg:               #fffaf0;                 /* Surface/Yellow/More Subtle light            */
+    --card-yellow-border:           #edc6a6;                 /* Border/Yellow/Lighter light                 */
+    --card-yellow-hover-bd:         #ed6c02;                 /* Border/Yellow/Default light                 */
+    --card-yellow-selected-bd:      #663c00;                 /* Border/Yellow/Darker light                  */
+
+    /* Purple — Surface/Purple/More Subtle light + Border/Purple/Lighter light */
+    --card-purple-bg:               #f3e9fd;                 /* Surface/Purple/More Subtle light            */
+    --card-purple-border:           #cfa7f9;                 /* Border/Purple/Lighter light                 */
+    --card-purple-hover-bd:         #7b27ed;                 /* Border/Purple/Default light                 */
+    --card-purple-selected-bd:      #2c075c;                 /* Border/Purple/Darker light                  */
+
+    /* Light Blue — Surface/Light Blue/More Subtle light + Border/Light Blue/Lighter light */
+    --card-lightblue-bg:            #e5f8ff;                 /* Surface/Light Blue/More Subtle light        */
+    --card-lightblue-border:        #99e5f9;                 /* Border/Light Blue/Lighter light             */
+    --card-lightblue-hover-bd:      #00b5d9;                 /* Border/Light Blue/Default light             */
+    --card-lightblue-selected-bd:   #02445a;                 /* Border/Light Blue/Darker light              */
+
+    /* Lime Green — Surface/Lime Green/More Subtle light + Border/LimeGreen/Lighter light */
+    --card-limegreen-bg:            #f9fee5;                 /* Surface/Lime Green/More Subtle light        */
+    --card-limegreen-border:        #d4f381;                 /* Border/LimeGreen/Lighter light              */
+    --card-limegreen-hover-bd:      #a0da1d;                 /* Border/LimeGreen/Default light              */
+    --card-limegreen-selected-bd:   #3e5c0a;                 /* Border/LimeGreen/Darker light               */
+
+    /* Card hover shadows — light mode glass elevation with brand-colored glows */
+    --card-default-hover-shadow:      0 8px 24px rgba(33,115,255,0.12), 0 2px 6px rgba(0,0,0,0.06);
+    --card-whiteopacity-hover-shadow: 0 8px 24px rgba(33,115,255,0.12), 0 2px 6px rgba(0,0,0,0.06);
+    --card-primary-hover-shadow:      0 8px 24px rgba(33,115,255,0.20), 0 0 12px rgba(33,115,255,0.12);
+    --card-green-hover-shadow:        0 8px 24px rgba(0,160,126,0.16), 0 2px 6px rgba(0,0,0,0.05);
+    --card-reed-hover-shadow:         0 8px 24px rgba(211,47,47,0.16), 0 2px 6px rgba(0,0,0,0.05);
+    --card-orange-hover-shadow:       0 8px 24px rgba(237,108,2,0.16), 0 2px 6px rgba(0,0,0,0.05);
+    --card-yellow-hover-shadow:       0 8px 24px rgba(237,108,2,0.12), 0 2px 6px rgba(0,0,0,0.04);
+    --card-purple-hover-shadow:       0 8px 24px rgba(123,39,237,0.16), 0 2px 6px rgba(0,0,0,0.05);
+    --card-lightblue-hover-shadow:    0 8px 24px rgba(0,181,217,0.16), 0 2px 6px rgba(0,0,0,0.05);
+    --card-limegreen-hover-shadow:    0 8px 24px rgba(160,218,29,0.14), 0 2px 6px rgba(0,0,0,0.04);
+    --card-dashed-hover-shadow:       0 8px 24px rgba(33,115,255,0.10), 0 2px 6px rgba(0,0,0,0.04);
+
+    /* ── Tag Component — light ──────────────────────────────────────────── */
+    --tag-success-bg:     #e5fdf8;                 /* Green/100           */
+    --tag-success-bd:     #009978;                 /* Green/600           */
+    --tag-success-fg:     #003328;                 /* Text/Success light  */
+
+    --tag-secondary-bg:   #ffffff;                 /* Gray/100            */
+    --tag-secondary-bd:   #5c5c5c;                 /* Gray/600            */
+    --tag-secondary-fg:   #2a2a2a;                 /* Text/Subtitle light */
+
+    --tag-primary-bg:     #2173ff;                 /* Primary/500         */
+    --tag-primary-fg:     #ffffff;                 /* Text/Negative       */
+
+    --tag-informative-bg: #e9f1ff;                 /* Primary/200         */
+    --tag-informative-bd: #2173ff;                 /* Primary/500         */
+    --tag-informative-fg: #001740;                 /* Text/Info light     */
+
+    --tag-error-bg:       #fdeded;                 /* Red/100             */
+    --tag-error-bd:       #992222;                 /* Red/500             */
+    --tag-error-fg:       #5f2120;                 /* Text/Error light    */
+
+    --tag-alert-bg:       #ffeedb;                 /* Orange/200          */
+    --tag-alert-bd:       #b25102;                 /* Orange/600          */
+    --tag-alert-fg:       #663c00;                 /* Text/Alert light    */
+
+    --tag-limegreen-bg:   #f9fee5;                 /* Lime Green/100      */
+    --tag-limegreen-bd:   #a0da1d;                 /* Lime Green/500      */
+    --tag-limegreen-fg:   #3e5c0a;                 /* Text/LimeGreen light */
+
+    --tag-yellow-bg:      #fffaf0;                 /* Yellow/100          */
+    --tag-yellow-bd:      #ed6c02;                 /* Orange/500          */
+    --tag-yellow-fg:      #663c00;                 /* Text/Yellow light   */
+
+    --tag-purple-bg:      #f3e9fd;                 /* Purple/100          */
+    --tag-purple-bd:      #7b27ed;                 /* Purple/500          */
+    --tag-purple-fg:      #4a1282;                 /* Text/Purple light   */
+
+    --tag-lightblue-bg:   #e5f8ff;                 /* Light Blue/100      */
+    --tag-lightblue-bd:   #00b5d9;                 /* Light Blue/500      */
+    --tag-lightblue-fg:   #0c4a6e;                 /* Text/Light Blue light */
+
+    --tag-neutral-bg:     #f2f2f2;                 /* Gray/300            */
+    --tag-neutral-bd:     #5c5c5c;                 /* Gray/600            */
+    --tag-neutral-fg:     #2a2a2a;                 /* Text/Subtitle light */
+
+    /* ── Menu / Dropdown tokens — light ─────────────────────────────────── */
+    /* Variables resolved from Figma Primitives (light mode = collection 4461:3) */
+    --menu-bg:           rgba(255,255,255,0.92); /* Surface/Floating/Default light  VariableID:13469:2  */
+    --menu-item-hover:   rgba(242,242,242,0.95); /* Surface/Floating/Hover light    VariableID:13469:3  */
+    --menu-item-text:    #2A2A2A;                /* Text/Subtitle light = Gray/700  VariableID:4465:4468 */
+    --menu-item-subtext: #5C5C5C;                /* Text/Body light     = Gray/600  VariableID:4465:4469 */
+    --menu-item-disabled:#BABABA;                /* Text/Disabled light = Gray/500  VariableID:4465:4472 */
+    --menu-item-icon:    #5C5C5C;                /* Icon/Neutral/Dark   = Gray/600  VariableID:4465:4510 */
+    --menu-divider:      #f2f2f2;                /* Surface/Neutral/Default light                        */
+    --menu-section-text: #9ca3af;                /* Text/Caption light                                   */
+
+    /* ── Highlight Icon — light mode (exact DS values from Figma) ── */
+    --hi-informative-bg:       #E9F1FF;  /* Primary/100 · VariableID:4461:2592   */
+    --hi-success-bg:           #CBFFF4;  /* Success/50  · VariableID:8541:11928  */
+    --hi-alert-bg:             #FFEEDB;  /* Alert/50    · VariableID:4465:2666   */
+    --hi-error-bg:             #FDEDED;  /* Error/50    · VariableID:4465:2662   */
+    --hi-neutral-bg:           #F2F2F2;  /* Gray/100                              */
+    --hi-yellow-bg:            #FFEEDB;  /* Yellow/50   · same hex as alert       */
+    --hi-lime-bg:              #E7F9B5;  /* Lime/50                               */
+    --hi-purple-bg:            #E4CEFC;  /* Purple/100                            */
+    --hi-lightblue-bg:         #CCF1FF;  /* LightBlue/100                         */
+    /* Icon / Dark variant (exact DS colors · VariableIDs in comments) */
+    --hi-informative-icon:     #001740;  /* VariableID:4465:4514  */
+    --hi-success-icon:         #003328;  /* VariableID:4567:4619  */
+    --hi-alert-icon:           #663C00;  /* VariableID:4567:4618  */
+    --hi-error-icon:           #5F2120;  /* VariableID:4567:4620  */
+    --hi-neutral-icon:         #2A2A2A;  /* VariableID:4465:4589  */
+    --hi-yellow-icon:          #5C3500;  /* VariableID:8539:40814 */
+    --hi-lime-icon:            #3E5C0A;  /* VariableID:8539:40885 */
+    --hi-purple-icon:          #2C075C;  /* VariableID:8539:40955 */
+    --hi-lightblue-icon:       #02445A;  /* VariableID:8540:41021 */
+    /* Icon / Default (softer) variant */
+    --hi-informative-icon-soft: #2173FF;
+    --hi-success-icon-soft:     #059669;
+    --hi-alert-icon-soft:       #D97706;
+    --hi-error-icon-soft:       #DC2626;
+    --hi-neutral-icon-soft:     #6B7280;
+    --hi-yellow-icon-soft:      #CA8A04;
+    --hi-lime-icon-soft:        #65A30D;
+    --hi-purple-icon-soft:      #7C3AED;
+    --hi-lightblue-icon-soft:   #0284C7;
+
+    /* ── Checkbox — light ────────────────────────────── */
+    --checkbox-ripple:           rgba(242,242,242,0.80);  /* hover bg unchecked  */
+    --checkbox-ripple-checked:   rgba(233,241,255,1.00);  /* hover bg checked    */
+    --checkbox-checked-dim:      #80afff;                 /* checked + disabled  */
+
+    /* ── Toggle — light ──────────────────────────────── */
+    --toggle-track-off:          rgba(242,242,242,1.00);  /* Surface/Neutral/Subtle light  */
+    --toggle-border-off:         rgba(92,92,92,1.00);     /* Border/Neutral/Default light  */
+    --toggle-thumb-off:          rgba(42,42,42,1.00);     /* Text/Subtitle light           */
+    --toggle-track-on:           #2173ff;                 /* Border/Primary/Default light  */
+    --toggle-thumb-on:           #ffffff;
+    --toggle-track-off-disabled: rgba(242,242,242,1.00);
+    --toggle-border-off-disabled: rgba(186,186,186,1.00);
+    --toggle-track-on-disabled:  #80afff;
+    --toggle-thumb-disabled:     rgba(186,186,186,1.00);
+
+    /* ── Table — light ───────────────────────────────── */
+    /* Source: 👩‍💻 Developer Reference — Table (node 13859:2959) + component fillVars inspection       */
+    /*   Surface/Neutral/White light    = #ffffff         → row bg (header + body use same token)     */
+    /*   Surface/Neutral/Default light  = #f2f2f2         → checkbox / row hover bg                   */
+    /*   Surface/Primary/More Subtle lt = #f6f9ff         → selected row bg (rgba(246,249,255,1))     */
+    /*   Text/Subtitle light            = #2a2a2a         → header column text (darker, hierarchy)    */
+    /*   Text/Body light                = #5c5c5c         → row cell text                             */
+    --table-bg:               #F8FBFF;                  /* Blue-tinted surface for glass feel         */
+    --table-header-bg:        #EEF5FF;                  /* Slightly deeper tint for header contrast   */
+    --table-border:           rgba(33,115,255,0.10);    /* Brand-blue subtle border                   */
+    --table-header-text:      #2a2a2a;                  /* Text/Subtitle light = Gray/700             */
+    --table-cell-text:        #5c5c5c;                  /* Text/Body light = Gray/600                 */
+    --table-row-hover-bg:     #f2f2f2;                  /* Surface/Neutral/Default light              */
+    --table-row-selected-bg:  rgba(246,249,255,1.00);   /* Surface/Primary/More Subtle light = #f6f9ff */
+
+    /* ── Topbar — light ────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · Dev Reference 12706:849 + Light Mode frame 12684:252030 */
+    --topbar-text:             rgba(42,42,42,1.00);      /* Text/Subtitle light           = Gray/700   */
+    --topbar-text-secondary:   rgba(92,92,92,1.00);      /* Text/Body light               = Gray/600   */
+    --topbar-icon:             rgba(92,92,92,1.00);      /* Icon/Neutral/Dark light       = Gray/600   */
+    --topbar-workspace-border: rgba(233,241,255,1.00);   /* Border/Primary/Subtle light   = #e9f1ff    */
+    --topbar-divider:          rgba(242,242,242,1.00);   /* Border/Neutral/Subtle light   = #f2f2f2    */
+    --topbar-btn-hover-bg:     rgba(250,250,250,1.00);   /* Surface/Neutral/Hover light   = #fafafa    */
+    --topbar-btn-focus-bg:     rgba(242,242,242,1.00);   /* Surface/Neutral/Default light = #f2f2f2    */
+    --topbar-search-bg:        rgba(255,255,255,1.00);   /* Surface/Neutral/White light   = #ffffff    */
+    --topbar-search-border:    rgba(186,186,186,1.00);   /* Border/Neutral/Lighter light  = Gray/500   */
+    --topbar-badge-bg:         rgba(211,47,47,1.00);     /* Error/Notification light      = #d32f2f    */
+    --topbar-avatar-ring:      rgba(128,175,255,1.00);   /* Border/Primary/Lighter light  = #80afff    */
+
+    /* ── Avatar — color variants — light ─────────────────────────── */
+    --av-col-blue-bg:      #1a5fd4;   /* primary darker   */
+    --av-col-green-bg:     #047857;   /* emerald 700      */
+    --av-col-red-bg:       #b91c1c;   /* red 700          */
+    --av-col-orange-bg:    #9a3412;   /* orange 800       */
+    --av-col-purple-bg:    #6d28d9;   /* violet 700       */
+    --av-col-limegreen-bg: #3f6212;   /* lime 800         */
+    --av-col-lightblue-bg: #0369a1;   /* sky 700          */
+    --av-col-pink-bg:      #9d174d;   /* pink 800         */
+    --av-col-teal-bg:      #0f766e;   /* teal 700         */
+    --av-col-amber-bg:     #92400e;   /* amber 800        */
+
+    --topbar-zone-hover-bg:    rgba(0,0,0,0.03);         /* Zone frame hover bg light                   */
+    --topbar-zone-hover-bd:    rgba(43,127,255,0.45);    /* Zone frame hover border light               */
+    --topbar-menu-bg:          rgba(255,255,255,1.00);   /* Dropdown bg light                           */
+    --topbar-menu-border:      rgba(0,0,0,0.10);         /* Dropdown border light                       */
+    --topbar-menu-item-hover:  rgba(0,0,0,0.04);         /* Menu item hover light                       */
+    --topbar-menu-item-sel:    rgba(233,241,255,1.00);   /* Menu item selected light                    */
+    --topbar-menu-text:        rgba(42,42,42,1.00);      /* Menu item label light                       */
+    --topbar-menu-text-dim:    rgba(92,92,92,1.00);      /* Menu secondary text light                   */
+    --topbar-menu-tag-act-bg:  rgba(233,241,255,1.00);   /* "Active" workspace tag bg light             */
+    --topbar-menu-tag-act-fg:  rgba(43,127,255,1.00);    /* "Active" workspace tag text light           */
+    --topbar-menu-tag-bg:      rgba(0,0,0,0.06);         /* Default workspace tag bg light              */
+    --topbar-menu-tag-fg:      rgba(92,92,92,1.00);      /* Default workspace tag text light            */
+
+    /* ── Entity List — light ─────────────────────────────────────────────── */
+    --el-bullet:      #d9d9d9;
+    --el-row-hover:   rgba(0,0,0,0.025);
+
+    /* ── Modal Dialog — light ────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI node 13753-29038 — Developer Reference */
+    --modal-surface:      #FFFFFF;               /* Surface/Modal/Default light = White        */
+    --modal-surface-blur: none;                  /* No blur on light mode modal surface        */
+    --modal-border:       #BABABA;               /* Border — VariableID:4465:4449 light = rgb(186,186,186) */
+    --modal-scrim:        rgba(0,0,0,0.50);      /* Overlay/Scrim light = 50% opacity + blur   */
+    --el-avatar-ring:     rgba(128,175,255,0.80); /* Entity list avatar ring light              */
+    --signout-hover-bg:   rgba(239,68,68,0.07);   /* Sign out row hover bg light                */
+    --signout-icon:       rgba(210,47,47,0.65);   /* Sign out icon color light                  */
+    --signout-text:       rgba(210,47,47,0.85);   /* Sign out text color light                  */
+    --fc-trigger-active-bg: rgba(33,115,255,0.08); /* FiltersCard trigger btn active bg light   */
+    --priority-critical:  #ef4444;   /* Priority dot Critical light — red-500   */
+    --priority-high:      #f97316;   /* Priority dot High light    — orange-500 */
+    --priority-medium:    #f59e0b;   /* Priority dot Medium light  — amber-400  */
+    --priority-low:       #22c55e;   /* Priority dot Low light     — green-500  */
+    --gs-scrim:           rgba(0,0,0,0.25); /* Global Search backdrop scrim light */
+    --modal-icon-bg:      #E9F1FF;               /* Icon circle bg — Primary/100 light         */
+    --modal-icon-color:   #2173ff;               /* Icon color — Primary/Default light         */
+    --modal-slot-bg:      #F5F6FA;               /* Slot content zone bg — surface raised      */
+    --tabs-hover-bg:      #fafafa;               /* Tab hover · Surface/Neutral/Subtle light   */
+    --modal-info-bg:      #E9F1FF;               /* Informative card bg — Primary/100          */
+    --modal-info-icon:    #2173ff;               /* Info icon color                            */
+    --modal-info-text:    #001740;               /* Info text — Text/Info dark navy            */
+    --modal-close-icon:   rgba(0,0,0,0.35);      /* Close button default color                 */
+    --modal-close-hover:  rgba(0,0,0,0.80);      /* Close button hover color                   */
+
+    /* ── Informational Card — light ─────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 8057:1259 — resolved variable values */
+    --ic-informative-bg:   #E9F1FF;   --ic-informative-icon: #2173FF;  --ic-informative-text: #001740;
+    --ic-alert-bg:         #FFF4E5;   --ic-alert-icon:       #ED6C02;  --ic-alert-text:       #663C00;
+    --ic-error-bg:         #FDEDED;   --ic-error-icon:       #992222;  --ic-error-text:       #5F2120;
+    --ic-success-bg:       #E5FDF8;   --ic-success-icon:     #00A07E;  --ic-success-text:     #003328;
+    --ic-neutral-bg:       #F2F2F2;   --ic-neutral-icon:     #2A2A2A;  --ic-neutral-text:     #2A2A2A;
+
+    /* ── Alert Banner — light ───────────────────────────────────────────────── */
+    /* Light mode uses subtle tint backgrounds — borders needed to define edges */
+    --ab-error-bg:      #fdeded;                  /* Surface/Error/More Subtle light = tag-error-bg  */
+    --ab-error-bd:      rgba(153,34,34,0.25);     /* Border/Error tint                               */
+    --ab-error-icon:    #992222;                  /* Icon/Error/Default light = tag-error-bd         */
+    --ab-error-text:    #5f2120;                  /* Text/Error light = tag-error-fg                 */
+
+    --ab-success-bg:    #e5fdf8;                  /* Surface/Success/More Subtle light = tag-success-bg */
+    --ab-success-bd:    rgba(0,153,120,0.25);     /* Border/Success tint                             */
+    --ab-success-icon:  #009978;                  /* Icon/Success/Default light = tag-success-bd     */
+    --ab-success-text:  #003328;                  /* Text/Success light = tag-success-fg             */
+
+    --ab-alert-bg:      #ffeedb;                  /* Surface/Alert/More Subtle light = tag-alert-bg  */
+    --ab-alert-bd:      rgba(180,83,9,0.25);      /* Border/Alert tint                               */
+    --ab-alert-icon:    #b45309;                  /* Icon/Alert/Default light                        */
+    --ab-alert-text:    #663c00;                  /* Text/Alert light = tag-alert-fg dark             */
+
+    --ab-cta-text:      rgba(0,0,0,0.55);         /* Text/Label light — CTA + close btn              */
+
+    /* ── Sidebar — light ─────────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · Sidebar page · variable bindings resolved */
+    --sb-bg:               rgba(0,0,0,1);             /* Surface/Neutral/Black light  → #000000       */
+    --sb-icon-default:     rgba(128,175,255,1);       /* Icon/Primary/Lighter light   → #80AFFF       */
+    --sb-icon-active:      rgba(255,255,255,1);       /* Icon/Neutral/Light light     → White/100     */
+    --sb-text:             rgba(255,255,255,1);       /* Text/Negative light          → White/100     */
+    --sb-row-hover:        rgba(42,42,42,1);          /* Surface/Neutral/Darker light → #2A2A2A       */
+    --sb-icon-hover-bg:    rgba(0,0,0,1);             /* Surface/Neutral/Black light  (icon hover bg) */
+    --sb-separator:        rgba(186,186,186,1);       /* Border/Neutral/Lighter light → Gray/500      */
+    --sb-chevron-active:   rgba(233,241,255,1);       /* Icon/Primary/Subtle          → Primary/300   */
+
+    /* ── Global Search overlay — light ──────────────────────────────────── */
+    --gs-bg:               rgba(255,255,255,0.97);    /* Surface/Neutral/White light                  */
+    --gs-border:           rgba(0,0,0,0.10);          /* Border/Neutral/Default light                 */
+    --gs-input-bg:         rgba(248,249,250,1);       /* Surface/Neutral/Subtle light                 */
+    --gs-input-border:     rgba(186,186,186,1);       /* Border/Neutral/Lighter light → Gray/500      */
+    --gs-divider:          rgba(0,0,0,0.07);          /* Border/Neutral/Subtle light                  */
+    --gs-text:             rgba(42,42,42,1);           /* Text/Primary light           → Gray/700      */
+    --gs-text-dim:         rgba(92,92,92,1);           /* Text/Secondary light         → Gray/600      */
+    --gs-text-meta:        rgba(140,140,140,1);        /* Text/Tertiary light          → Gray/500      */
+    --gs-section-label:    rgba(92,92,92,1);           /* Section header label light                   */
+    --gs-row-hover:        rgba(0,0,0,0.04);           /* Row hover light                              */
+    --gs-chip-inactive-bg: rgba(242,242,242,1);        /* Chip inactive bg light       → Gray/200      */
+    --gs-chip-inactive-fg: rgba(42,42,42,1);           /* Chip inactive text light     → Gray/700      */
+    --gs-action-icon-bg:   rgba(246,249,255,1);        /* Suggested action icon bg light               */
+    --gs-kbd-bg:           rgba(242,242,242,1);        /* Keyboard shortcut pill light                 */
+    --gs-kbd-fg:           rgba(92,92,92,1);           /* Keyboard shortcut text light                 */
+    --gs-filters-col-bg:   rgba(0,0,0,0.02);           /* FiltersCard left column bg light             */
+    --gs-chip-border:      rgba(0,0,0,0.15);           /* Pill chip outline border light               */
+
+    /* ── FiltersCard floating panel (Global Search) ─────────────────── */
+    --fc-bg:               rgba(255,255,255,0.97);    /* Light surface                                  */
+    --fc-border:           rgba(0,0,0,0.10);          /* Border/Neutral/Default light                   */
+    --fc-divider:          rgba(0,0,0,0.08);          /* Section divider light                          */
+    --fc-label:            rgba(92,92,92,1);          /* Section header label light                     */
+    --fc-chip-bg:          transparent;               /* Inactive chip bg light                         */
+    --fc-chip-bd:          rgba(0,0,0,0.18);          /* Inactive chip border light                     */
+    --fc-chip-fg:          rgba(42,42,42,1);          /* Inactive chip text light                       */
+    --fc-cta-clear:        rgba(92,92,92,1);          /* "Clear all" text light                         */
+
+    /* ── Filters Bar — light ────────────────────────────────────────────── */
+    /* Source: Figma v6rmYKA2zmyXWOahlxLOeI · node 7996:4655                */
+    --fi-chip-bg:            rgba(250,250,250,1);       /* Surface/Neutral/Subtle light                   */
+    --fi-chip-border:        rgba(186,186,186,1);       /* Border/Neutral/Lighter light                   */
+    --fi-chip-text:          #2a2a2a;                   /* Text/Subtitle light                            */
+    --fi-chip-icon:          rgba(0,0,0,0.40);          /* Icon/Neutral light                             */
+    --fi-chip-hover-bg:      #f2f2f2;                   /* Surface/Neutral/Default light                  */
+    --fi-chip-active-bg:     rgba(33,115,255,0.06);     /* Surface/Primary/Subtle light                   */
+    --fi-chip-active-border: #2173ff;                   /* Border/Primary/Default light                   */
+    --fi-chip-active-text:   #2173ff;                   /* Text/Info light                                */
+    --fi-chip-active-icon:   #2173ff;                   /* Icon/Primary light                             */
+    --fi-clear-text:         rgba(0,0,0,0.45);          /* Text/Caption light                             */
+    --fi-clear-hover:        rgba(0,0,0,0.80);          /* Text/Subtitle light on hover                   */
+    --fi-badge-bg:           #2173ff;
+    --fi-badge-text:         #ffffff;
+    --fi-view-active-bg:     #2173ff;
+    --fi-view-active-icon:   #ffffff;
+    --fi-view-icon:          rgba(0,0,0,0.40);
+    --fi-sort-icon:          rgba(0,0,0,0.40);
+    --fi-sort-text:          rgba(0,0,0,0.65);
+
+    /* ── Tooltip — light (inverted style — tooltip always dark) ─────────── */
+    --color-surface-neutral-darker: #111827;   /* Surface/Neutral/Darker light — always dark */
+    --color-text-negative:          #ffffff;   /* Text/Negative light          — always white */
+    --tooltip-bg:   var(--color-surface-neutral-darker);
+    --tooltip-text: var(--color-text-negative);
+    /* ── Canonical color tokens — light overrides ───────────────────────── */
+    --color-surface-neutral-white:      #FFFFFF;                  /* Surface/Neutral/White            */
+    --color-border-neutral-lighter:     #E8E8E8;                  /* Border/Neutral/Lighter           */
+    --color-text-title:                 #1A1A1A;                  /* Text/Title                       */
+    --color-text-subtitle:              #2a2a2a;                  /* Text/Subtitle                    */
+    --color-text-success:               #003328;                  /* Text/Success                     */
+    --color-text-error:                 #5f2120;                  /* Text/Error                       */
+    --color-icon-primary-default:       #001740;                  /* Icon/Primary/Default             */
+    --color-icon-primary-darker:        #001740;                  /* Icon/Primary/Darker — same as Default on light */
+    --color-border-primary-default:     #2173ff;                  /* Border/Primary/Default           */
+    --color-border-success-default:     #00a07e;                  /* Border/Success/Default           */
+    --color-border-alert-default:       #ed6c02;                  /* Border/Alert/Default             */
+    --color-border-yellow-default:      #ed6c02;                  /* Border/Yellow/Default            */
+    --color-border-purple-default:      #7b27ed;                  /* Border/Purple/Default            */
+    --color-border-light-blue-default:  #00b5d9;                  /* Border/Light Blue/Default        */
+    --color-border-lime-green-default:  #a0da1d;                  /* Border/LimeGreen/Default         */
+    --color-border-error-default:       #992222;                  /* Border/Error/Default             */
+    --color-surface-primary-subtle:     #E9F1FF;                  /* Surface/Primary/Subtle           */
+    --color-surface-success-subtle:     #E5FDF8;                  /* Surface/Success/Subtle           */
+    --color-surface-alert-subtle:       #FFF4E5;                  /* Surface/Alert/Subtle             */
+    --color-surface-yellow-subtle:      #FFFAF0;                  /* Surface/Yellow/Subtle            */
+    --color-surface-purple-subtle:      #F3E9FD;                  /* Surface/Purple/Subtle            */
+    --color-surface-light-blue-subtle:  #E5F8FF;                  /* Surface/LightBlue/Subtle         */
+    --color-surface-lime-subtle:        #F9FEE5;                  /* Surface/Lime/Subtle              */
+    --color-surface-error-subtle:       #FDECED;                  /* Surface/Error/Subtle             */
+    /* ── Highlight Card — component tokens (alias → canonical) ──────────── */
+    /* ── Widget Father — light overrides ──────────────────────────────────── */
+    --widget-bg:               var(--surface);
+    --widget-border:           rgba(0,0,0,0.12);                      /* Neutral/Lighter light ≈ #bababa */
+    --widget-border-hover:     rgba(0,0,0,0.28);                      /* Hover: stronger contrast        */
+    --widget-title:            var(--color-text-title);
+    --widget-subtitle:         var(--color-text-subtitle);
+    --widget-icon:             var(--color-icon-neutral-dark);
+    --widget-action-hover-bg:  var(--color-surface-neutral-default);
+
+    --hc-bg:            var(--color-surface-neutral-white);
+    --hc-text-label:    var(--color-text-subtitle);
+    --hc-text-value:    var(--color-text-title);
+    --hc-text-feedback: var(--color-text-subtitle);
+    --hc-text-unit:     var(--color-text-subtitle);
+    --hc-icon-fill:     var(--color-icon-primary-default);
+    --hc-icon-bg:       var(--color-surface-primary-subtle);
+    /* ── Slide Out — light overrides (DS node 5066:9783) ────────────────────
+       Panel bg: Surface/Floating/Default = rgba(255,255,255,0.92) + blur(30px) */
+    --surface-floating-default:           rgba(255,255,255,0.92);  /* Surface/Floating/Default lt    */
+    --color-border-neutral-default:       #5c5c5c;                 /* Border/Neutral/Default light   */
+    --color-border-primary-lighter:       #80afff;                 /* Border/Primary/Lighter (static)*/
+    --color-text-label:                   #2a2a2a;                 /* Text/Label light               */
+    --color-text-disabled:                #bababa;                 /* Text/Disabled light            */
+    --color-text-negative:                #ffffff;                 /* Text/Negative (static)         */
+    --color-surface-success-more-subtle:  #e5fdf8;                 /* Surface/Success/More Subtle lt */
+    --color-border-success-lighter:       #009978;                 /* Border/Success/Lighter (static)*/
+    --color-surface-purple-more-subtle:   #f3e9fd;                 /* Surface/Purple/More Subtle lt  */
+    --color-surface-success-default:      #00a07e;                 /* Surface/Success/Default        */
+    --color-surface-alert-default:        #ed6c02;                 /* Surface/Alert/Default          */
+    --color-surface-error-default:        #e05252;                 /* Surface/Error/Default          */
+    --color-surface-yellow-default:       #f59e0b;                 /* Surface/Yellow/Default         */
+    --color-surface-alert-more-subtle:    #FFF4E5;                 /* Surface/Alert/More Subtle lt   */
+    --color-surface-error-more-subtle:    #FEF5F5;                 /* Surface/Error/More Subtle lt   */
+    --color-surface-yellow-more-subtle:   #FFFAF0;                 /* Surface/Yellow/More Subtle lt  */
+    --pb-radius:                          2px;                     /* Progress Bar / Radius-XS       */
+    --color-surface-neutral-default:      #f2f2f2;                 /* Surface/Neutral/Default light  */
+    --color-surface-neutral-emphasis:     #d9d9d9;                 /* Surface/Neutral/Emphasis light */
+    --slide-out-shadow:                   -24px -24px 60px 0px rgba(0,0,0,0.08);
+    --slide-out-btn-secondary-bg:         #ffffff;                 /* secondary CTA bg light         */
+    --slide-out-btn-secondary-text:       #2a2a2a;                 /* secondary CTA text light       */
+    --color-border-neutral-subtle:        #E4E4E7;                 /* Border/Neutral/Subtle light    */
+    --color-text-body:                    #5C5C5C;                 /* Text/Body light                */
+    --color-icon-neutral-default:         #52525B;                 /* Icon/Neutral/Default light     */
+    --color-surface-overlay:              rgba(0,0,0,0.30);        /* Overlay/Scrim/Default (same)   */
+    --color-surface-neutral-black:        #0f172b;                 /* Surface/Neutral/Black (static) */
+    /* ── Slide Out — component tokens (light) ───────────────────────────── */
+    --slide-out-bg:      var(--surface-floating-default);
+    --slide-out-title:   var(--color-text-title);
+    --slide-out-body:    var(--color-text-body);
+    --slide-out-border:  var(--color-border-neutral-subtle);
+    --slide-out-icon:    var(--color-icon-neutral-default);
+    --slide-out-overlay: var(--color-surface-overlay);
+    /* ── Side Panel — canonical tokens (DS node 14423-32215) light ──────── */
+    --side-panel-bg:            var(--surface-floating-default);    /* rgba(255,255,255,0.92)        */
+    --side-panel-border:        var(--color-border-neutral-subtle); /* #E4E4E7                      */
+    --side-panel-title:         var(--color-text-label);            /* #2a2a2a                      */
+    --side-panel-description:   var(--color-text-body);             /* #5C5C5C                      */
+    --side-panel-icon:          var(--color-icon-neutral-default);  /* #52525B                      */
+    --side-panel-icon-hover-bg: rgba(0,0,0,0.05);                   /* Surface/Neutral/Subtle light  */
+    --side-panel-search-bg:     var(--color-surface-neutral-white); /* #FFFFFF                      */
+    --side-panel-search-bd:     var(--color-border-neutral-default);/* #5c5c5c                      */
+    /* ── Chip — canonical tokens (DS node 5051:62341) ───────────────────── */
+    --color-surface-neutral-subtle:       #fafafa;   /* Surface/Neutral/Subtle light  */
+    --color-surface-primary-default:      var(--primary);  /* Surface/Primary/Default */
+    --color-surface-primary-darker:       #001740;   /* Surface/Primary/Darker light  */
+    --color-surface-primary-lighter:      #80afff;   /* Surface/Primary/Lighter       */
+    --color-button-primary-text-default:  #ffffff;   /* Button/Primary/Text/Default   */
+    --color-button-primary-text-disabled: #f2f2f2;   /* Button/Primary/Text/Disabled  */
+    --color-icon-neutral-light:           #ffffff;   /* Icon/Neutral/Light            */
+    --color-icon-neutral-dark:            rgba(92,92,92,1.00);   /* Icon/Neutral/Dark light */
+    --color-icon-neutral-black:           #2a2a2a;   /* Icon/Neutral/Black            */
+    /* ── Header component tokens ──────────────────────────────────── */
+    --header-title:      var(--color-text-title);   /* Page title                     */
+    --header-desc:       var(--color-text-body);    /* Description subtitle           */
+    --header-back-icon:  var(--color-icon-neutral-dark);  /* Back arrow button         */
+    --color-surface-purple-default:       #7b27ed;   /* Surface/Purple/Default        */
+    --color-surface-purple-darker:        #2c075c;   /* Surface/Purple/Darker light   */
+    --color-surface-purple-lighter:       #cfa7f9;   /* Surface/Purple/Lighter        */
+    --color-text-purple:                  #2c075c;   /* Text/Purple light             */
+    --color-border-purple-lighter:        #cfa7f9;   /* Border/Purple/Lighter         */
+    --color-surface-light-blue-default:   #00b5d9;   /* Surface/LightBlue/Default     */
+    --color-surface-light-blue-darker:    #02445a;   /* Surface/LightBlue/Darker      */
+    --color-surface-light-blue-lighter:   #99e5f9;   /* Surface/LightBlue/Lighter     */
+    --chip-secondary-bg:                  #FFFFFF;
+    --chip-secondary-text:                var(--color-text-subtitle);
+    --chip-secondary-text-disabled:       #bababa;
+    --chip-secondary-bg-hover:            #f2f2f2;
+    --chip-secondary-bg-disabled:         #fafafa;
+    /* ── Switch Tab — canonical tokens (DS node 4591:349) ──────────────────── */
+    --color-surface-primary-more-subtle:  #f6f9ff;                  /* Surface/Primary/More Subtle    */
+    --st-bg:            var(--color-surface-neutral-white);          /* Container BG — white on light  */
+    --st-shadow:        8px 8px 16px 0px rgba(0, 0, 0, 0.08);       /* Elevation-5                    */
+    --st-active-bg:     var(--color-surface-primary-more-subtle);    /* #f6f9ff — blue tint on white   */
+    --st-active-text:   var(--primary);                              /* Text/Link = #2173ff            */
+    --st-text:          var(--foreground);                           /* #1a1a1a dark text on white     */
+    --st-item-radius:   4px;                                         /* Radius/Radius-S item           */
+    /* ── Skeleton — component tokens (DS node 5992:6760) ───────────────── */
+    --skeleton-base:    var(--color-surface-neutral-default);        /* #f2f2f2 light                  */
+    --skeleton-shimmer: rgba(217, 217, 217, 0.8);                    /* Surface/Neutral/Emphasis light */
+    /* ── Spinner — component tokens (DS node 7185:3933) ────────────────── */
+    --spinner-primary-fill:      var(--primary);                           /* Surface/Primary/Default light  */
+    --spinner-primary-track:     var(--color-surface-primary-subtle);      /* #E9F1FF light                  */
+    --spinner-success-fill:      var(--color-surface-success-default);     /* #00a07e light                  */
+    --spinner-success-track:     var(--color-surface-success-more-subtle); /* #e5fdf8 light                  */
+    --spinner-alert-fill:        var(--color-surface-alert-default);       /* #ed6c02 light                  */
+    --spinner-alert-track:       var(--color-surface-alert-more-subtle);   /* #FFF4E5 light                  */
+    --spinner-error-fill:        var(--color-surface-error-default);       /* #e05252 light                  */
+    --spinner-error-track:       var(--color-surface-error-more-subtle);   /* #FEF5F5 light                  */
+    --spinner-informative-fill:  var(--color-surface-light-blue-default);  /* #00b5d9 light                  */
+    --spinner-informative-track: var(--color-surface-light-blue-subtle);   /* #E5F8FF light                  */
+    --spinner-bw-fill:           var(--color-icon-neutral-black);          /* #2a2a2a on light               */
+    --spinner-bw-track:          rgba(0,0,0,0.08);                         /* subtle dark track on light     */
+    --stepper-icon-default:      #3F3F46;                                  /* Icon/Neutral/Dark light        */
+    --stepper-label-active:      #2a2a2a;                                  /* Text/Subtitle light            */
+    --stepper-connector:         #bababa;                                  /* Icon/Neutral/Disabled light    */
+    /* ── Elevation / Shadow scale ──────────────────────────────────────── */
+    /* Each level maps to a specific UI role — never skip levels */
+    --shadow-elevation-1: 0 1px 4px rgba(0,0,0,0.06);                                              /* Micro — toggles, focused chips        */
+    --shadow-elevation-2: 0 2px 8px rgba(0,0,0,0.10);                                              /* Low — card rest, subtle panels        */
+    --shadow-elevation-3: 0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);                /* Mid — dropdowns, menus, select        */
+    --shadow-elevation-4: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10);                /* High — modals, large panels, topbar   */
+    --shadow-elevation-5: 8px 8px 16px rgba(0,0,0,0.08);                                           /* Float — diagonal (SwitchTab)          */
+  }
+
+  @keyframes skeleton-shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position:  200% 0; }
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--skeleton-base) 0%,
+      var(--skeleton-shimmer) 50%,
+      var(--skeleton-base) 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.2s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+      animation: none;
+      background: var(--skeleton-base);
+    }
+  }
+
+  @keyframes spinner-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .spinner-base {
+    border-radius: 50%;
+    border-style: solid;
+    display: inline-block;
+    flex-shrink: 0;
+    animation: spinner-spin 0.7s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .spinner-base { animation: none; opacity: 0.6; }
+  }
+
+  html {
+    font-family: "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    @apply font-sans;
+  }
+}
+
+/*
+ * Button text-color override — outside @layer + !important.
+ * Primary, Warning, Positive, and Main Action always use Text/Negative (#ffffff)
+ * in both Primary and Dark DS modes. These variants use !text-white in the component
+ * (Tailwind !important modifier). This rule is a belt-and-suspenders backup.
+ */
+.\!text-white[data-slot="button"] {
+  color: #ffffff !important;
+}
+
+/*
+ * Card Container — Dashed variant
+ * CSS border-dashed uses browser-determined dash lengths (~3× border-width).
+ * To match the DS exactly (dashPattern [8, 8] at 0.5px weight), we use
+ * repeating-linear-gradient per side. CSS variables are supported here.
+ * Note: gradients don't curve with border-radius — corners fill in slightly,
+ * which is visually identical to how CSS border-dashed handles corners.
+ */
+.card-dashed-border {
+  border: none !important;
+  background-image:
+    repeating-linear-gradient(to right, var(--card-default-border) 0px, var(--card-default-border) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to right, var(--card-default-border) 0px, var(--card-default-border) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-border) 0px, var(--card-default-border) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-border) 0px, var(--card-default-border) 8px, transparent 8px, transparent 16px);
+  background-size: 100% 0.5px, 100% 0.5px, 0.5px 100%, 0.5px 100%;
+  background-position: 0 0, 0 100%, 100% 0, 0 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+}
+
+.card-dashed-border:hover {
+  background-image:
+    repeating-linear-gradient(to right, var(--card-default-hover-bd) 0px, var(--card-default-hover-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to right, var(--card-default-hover-bd) 0px, var(--card-default-hover-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-hover-bd) 0px, var(--card-default-hover-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-hover-bd) 0px, var(--card-default-hover-bd) 8px, transparent 8px, transparent 16px);
+  background-size: 100% 1px, 100% 1px, 1px 100%, 1px 100%;
+}
+
+.card-dashed-border[data-selected="true"] {
+  background-image:
+    repeating-linear-gradient(to right, var(--card-default-selected-bd) 0px, var(--card-default-selected-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to right, var(--card-default-selected-bd) 0px, var(--card-default-selected-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-selected-bd) 0px, var(--card-default-selected-bd) 8px, transparent 8px, transparent 16px),
+    repeating-linear-gradient(to bottom, var(--card-default-selected-bd) 0px, var(--card-default-selected-bd) 8px, transparent 8px, transparent 16px);
+  background-size: 100% 1px, 100% 1px, 1px 100%, 1px 100%;
+}
+
+@layer base {
+
+  body {
+    background-color: var(--canvas);
+    color: var(--foreground);
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  /* DS-styled scrollbar for textarea — colors from Surface/Neutral/Default|Emphasis */
+  textarea::-webkit-scrollbar        { width: 4px; }
+  textarea::-webkit-scrollbar-track  { background: var(--field-scrollbar-track); border-radius: 100px; }
+  textarea::-webkit-scrollbar-thumb  { background: var(--field-scrollbar-thumb); border-radius: 100px; }
+  textarea::-webkit-scrollbar-thumb:hover { background: var(--field-border-hover); }
+
+  /* ScrollArea — DS custom scrollbar · node 4838:8343 · Size S 4px · hidden until hover */
+  .aims-scroll::-webkit-scrollbar               { width: 4px; height: 4px; }
+  .aims-scroll::-webkit-scrollbar-track         { background: transparent; }
+  .aims-scroll::-webkit-scrollbar-thumb         { background: transparent; border-radius: 100px; }
+  .aims-scroll:hover::-webkit-scrollbar-thumb   { background: var(--field-scrollbar-thumb); }
+  .aims-scroll::-webkit-scrollbar-thumb:hover   { background: var(--scrollbar-thumb-hover); }
+  /* Firefox */
+  .aims-scroll         { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .aims-scroll:hover   { scrollbar-color: var(--field-scrollbar-thumb) transparent; }
+}
+
+/* Tabs — active indicator fade-in on mount */
+@keyframes tab-indicator-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Tooltip — appear on mount */
+@keyframes tooltip-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}

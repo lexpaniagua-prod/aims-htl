@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, Flame, Zap, MoreVertical, Check, MessageSquare
+  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, Flame, Zap, MoreVertical, Check, MessageSquare, SkipForward
 } from 'lucide-react'
 import { Drawer, Modal } from '../components/Modal'
 import {
@@ -196,48 +196,9 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
       className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}
       onClick={handleCardClick}
     >
-      {/* Header row */}
+      {/* Header row — trace/skip/meta (left) + primary actions (top right) */}
       <div className="wq-card-header">
-        <div className="wq-card-badges">
-          <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
-          <span className="wq-badge wq-badge--studio" style={{ color: studio.accentColor, borderColor: studio.accentColor + '44' }}>
-            {studio.short}
-          </span>
-          <span className="wq-badge wq-badge--type" style={{ color: etype.color, borderColor: etype.color + '44' }}>
-            {etype.label}
-          </span>
-          {displayTeams.length > 0 && (
-            <span className="wq-badge wq-badge--team">
-              {TEAMS[displayTeams[0]]?.label || displayTeams[0]}
-              {displayTeams.length > 1 && ` +${displayTeams.length - 1}`}
-            </span>
-          )}
-          {event.missionCritical && (
-            <span className="wq-badge wq-badge--critical">
-              <AlertTriangle size={9} /> Mission Critical
-            </span>
-          )}
-          {isCovering && (
-            <span className="wq-badge wq-badge--covering">
-              Covering for {personName(event.coveringFor)}
-            </span>
-          )}
-          {teamMode && owner && (
-            <span className="wq-badge wq-badge--owner">
-              <span className="wq-owner-initials">{owner.initials}</span>
-              {owner.name}
-              {isOwn && <span className="wq-badge-mine">Mine</span>}
-            </span>
-          )}
-          {isSkipped && (
-            <span className="wq-badge wq-skipped-chip">Skipped · comes back in 2h</span>
-          )}
-          {isEscalated && (
-            <span className="wq-badge wq-badge--escalated">Escalated</span>
-          )}
-        </div>
-        {/* Trace + overflow menu + Skip + meta */}
-        <div className="wq-card-right">
+        <div className="wq-card-meta-row">
           <button className="wq-trace-btn" onClick={() => onTrace(event)}>
             <GitBranch size={10} /> Trace
           </button>
@@ -254,7 +215,7 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
               title="Skip — resurfaces in 2h"
               onClick={() => onSkip(event)}
             >
-              <ChevronDown size={13} />
+              <SkipForward size={13} />
             </button>
           )}
           <span className="wq-card-id">{event.id}</span>
@@ -272,9 +233,17 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
             <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
           )}
         </div>
+
+        {!isSkipped && (
+          <div className="wq-card-action-row">
+            <button className="wq-btn wq-btn--primary" onClick={() => onDetails(event)}>Details</button>
+            <button className="wq-btn wq-btn--ghost" onClick={() => onAskTeammate(event)}>Ask</button>
+            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
+          </div>
+        )}
       </div>
 
-      {/* Body: content (left) + actions row (right, fills the empty space) */}
+      {/* Body content */}
       <div className="wq-card-body">
         <div className="wq-card-content">
           <div className="wq-card-title">{event.title}</div>
@@ -286,13 +255,45 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
             </div>
           )}
         </div>
+      </div>
 
-        {!isSkipped && (
-          <div className="wq-card-action-row">
-            <button className="wq-btn wq-btn--primary" onClick={() => onDetails(event)}>Details</button>
-            <button className="wq-btn wq-btn--ghost" onClick={() => onAskTeammate(event)}>Ask</button>
-            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
-          </div>
+      {/* Tags row — severity/studio/type/team/critical/etc., aligned right */}
+      <div className="wq-card-tags-row">
+        <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
+        <span className="wq-badge wq-badge--studio" style={{ color: studio.accentColor, borderColor: studio.accentColor + '44' }}>
+          {studio.short}
+        </span>
+        <span className="wq-badge wq-badge--type" style={{ color: etype.color, borderColor: etype.color + '44' }}>
+          {etype.label}
+        </span>
+        {displayTeams.length > 0 && (
+          <span className="wq-badge wq-badge--team">
+            {TEAMS[displayTeams[0]]?.label || displayTeams[0]}
+            {displayTeams.length > 1 && ` +${displayTeams.length - 1}`}
+          </span>
+        )}
+        {event.missionCritical && (
+          <span className="wq-badge wq-badge--critical">
+            <AlertTriangle size={9} /> Mission Critical
+          </span>
+        )}
+        {isCovering && (
+          <span className="wq-badge wq-badge--covering">
+            Covering for {personName(event.coveringFor)}
+          </span>
+        )}
+        {teamMode && owner && (
+          <span className="wq-badge wq-badge--owner">
+            <span className="wq-owner-initials">{owner.initials}</span>
+            {owner.name}
+            {isOwn && <span className="wq-badge-mine">Mine</span>}
+          </span>
+        )}
+        {isSkipped && (
+          <span className="wq-badge wq-skipped-chip">Skipped · comes back in 2h</span>
+        )}
+        {isEscalated && (
+          <span className="wq-badge wq-badge--escalated">Escalated</span>
         )}
       </div>
     </div>

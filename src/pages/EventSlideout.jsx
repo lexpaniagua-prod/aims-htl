@@ -2,6 +2,9 @@ import { useRef, useEffect } from 'react'
 import { X, AlertTriangle, GitBranch, ExternalLink, MessageSquare } from 'lucide-react'
 import { SEVERITY, EVENT_TYPES, STUDIOS, PEOPLE, AUDIT_LOG } from '../data/workQueueData'
 import { SlideoutTypeContext } from './EventTypeBlocks'
+import { useSlideoutResize } from '../components/useSlideoutResize'
+
+const SLIDEOUT_DEFAULT_WIDTH = 420
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +49,7 @@ function fmtDate(iso) {
 // ── Event slideout — Level 1 fast-context drawer ────────────────────────────────
 export default function EventSlideout({ event, thread, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace, onNavigateToEvent }) {
   const drawerRef = useRef(null)
+  const { width, onPointerDown } = useSlideoutResize(SLIDEOUT_DEFAULT_WIDTH)
 
   useEffect(() => {
     document.body.classList.add('evsl-active')
@@ -77,7 +81,8 @@ export default function EventSlideout({ event, thread, onClose, onOpenFullPage, 
   return (
     <>
       <div className="evsl-overlay" onClick={onClose} />
-      <div className="evsl-drawer" role="dialog" aria-modal="true" ref={drawerRef}>
+      <div className="evsl-drawer" role="dialog" aria-modal="true" ref={drawerRef} style={{ width }}>
+        <div className="evsl-resize-handle" onPointerDown={onPointerDown} />
         <div className="evsl-sev-strip" style={{ background: sev.color }} />
 
         <div className="evsl-content">

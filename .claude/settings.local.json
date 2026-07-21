@@ -29,7 +29,9 @@
       "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css'\\).Count\")",
       "Bash(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css\")",
       "PowerShell(\\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css\" | Measure-Object -Line\\).Lines)",
-      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\EventModal.jsx'\\).Count\")"
+      "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\EventModal.jsx'\\).Count\")",
+      "Bash(git -C \"aims-os-design-system-main\" log --oneline -5)",
+      "Bash(git -C \"aims-os-design-system-main\" status)"
     ]
   }
 }

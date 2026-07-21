@@ -27,7 +27,7 @@
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   padding-right: 12px;
   user-select: none;
   overflow: hidden;

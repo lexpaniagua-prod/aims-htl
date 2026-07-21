@@ -62,7 +62,8 @@
 }
 
 .data-row-ts {
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
   font-size: 11px;
   color: var(--text-tertiary);
 }

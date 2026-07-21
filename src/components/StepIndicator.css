@@ -33,7 +33,7 @@
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  font-family: 'DM Mono', monospace;
+  font-family: 'Inter', sans-serif;
   border: 2px solid var(--border-strong);
   background: var(--bg-card);
   color: var(--text-tertiary);
@@ -49,9 +49,9 @@
 }
 
 .step--done .step-node {
-  border-color: var(--accent-teal);
-  background: var(--accent-teal-dim);
-  color: var(--accent-teal);
+  border-color: var(--tag-success-bd);
+  background: var(--tag-success-bg);
+  color: var(--tag-success-fg);
 }
 
 .step-label {

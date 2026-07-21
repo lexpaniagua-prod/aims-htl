@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useSlideoutResize } from './useSlideoutResize'
 import './Modal.css'
+
+const DRAWER_DEFAULT_WIDTH = 420
 
 export function Modal({ open, onClose, icon, title, subtitle, children, footer, size = 'md' }) {
   useEffect(() => {
@@ -32,6 +35,8 @@ export function Modal({ open, onClose, icon, title, subtitle, children, footer, 
 }
 
 export function Drawer({ open, onClose, title, subtitle, children, footer }) {
+  const { width, onPointerDown } = useSlideoutResize(DRAWER_DEFAULT_WIDTH)
+
   useEffect(() => {
     if (!open) return
     const handler = e => { if (e.key === 'Escape') onClose?.() }
@@ -43,7 +48,8 @@ export function Drawer({ open, onClose, title, subtitle, children, footer }) {
     <>
       <div className={`drawer-overlay${open ? ' drawer-overlay--open' : ''}`}
         onClick={onClose} />
-      <div className={`drawer${open ? ' drawer--open' : ''}`}>
+      <div className={`drawer${open ? ' drawer--open' : ''}`} style={{ width }}>
+        <div className="drawer-resize-handle" onPointerDown={onPointerDown} />
         <div className="modal-header">
           <div>
             <div className="modal-title">{title}</div>

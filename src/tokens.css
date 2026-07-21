@@ -1,128 +1,291 @@
 /* ─── AIMS OS Design System — HTL Tokens ─────────────────────────────────── */
+/* Values synced from aims-os-design-system-main (Figma v6rmYKA2zmyXWOahlxLOeI) */
+
+:root {
+  /* ── Scale — theme-independent (Space and Radios Tokens) ─────────────── */
+  --radius-xs:  2px;
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  16px;
+  --radius-xl:  24px;
+  --radius-2xl: 32px;
+  --radius-full: 100px;
+
+  /* ── Sidebar — DS spec: always dark, regardless of app theme.
+     Homologated to the app's own navy-black palette (matches --bg-app /
+     --bg-card-elevated) instead of a mismatched neutral black/gray. ──── */
+  --sb-rail-bg:             #0A0E1A;  /* = --bg-app dark: same tone as the main canvas */
+  --sb-icon-default:        rgba(128,175,255,1);  /* Icon/Primary/Lighter */
+  --sb-icon-hover:          rgba(255,255,255,0.7); /* Icon/Neutral/Light */
+  --sb-icon-active:         #ffffff;
+  --sb-label:               rgba(255,255,255,0.7); /* Text/Primary */
+  --sb-label-hover:         rgba(255,255,255,0.9);
+  --sb-label-active:        #ffffff;
+  --sb-section-label:       rgba(255,255,255,0.4);
+  --sb-section-label-hover: rgba(255,255,255,0.6);
+  --sb-row-hover-bg:        rgba(255,255,255,0.06);
+  --sb-toggle-icon:         rgba(255,255,255,0.5);
+  --sb-toggle-icon-hover:   rgba(255,255,255,0.85);
+  --sb-border:              rgba(255,255,255,0.1);
+  --sb-flyout-bg:           #131C2E;  /* = --bg-card-elevated dark: same elevation tone as content cards */
+  --sb-badge-bg:            rgba(43,127,255,0.18);
+  --sb-badge-fg:            #a8c8ff;
+  --sb-badge-border:        rgba(43,127,255,0.35);
+  --sb-tooltip-bg:          #111827;
+  --sb-tooltip-text:        #ffffff;
+}
 
 :root,
 [data-theme="dark"] {
   /* Backgrounds */
-  --bg-app:            #111318;
-  --bg-sidebar:        #0d0f14;
-  --bg-card:           #181c24;
-  --bg-card-elevated:  #1e2230;
-  --bg-row:            #191d28;
-  --bg-row-hover:      #222636;
-  --bg-input:          #1a1f2e;
+  --bg-app:            #0A0E1A;   /* DS canvas */
+  --app-bg:            linear-gradient(144deg, #020618 0%, #0F172B 50%, #020618 100%); /* DS AppBackground */
+  --bg-sidebar:        #0F172B;   /* DS --sb-bg dark */
+  --bg-card:           #0D1120;   /* DS --surface */
+  --bg-card-elevated:  #131C2E;   /* DS --surface-raised */
+  --bg-row:            #0D1120;
+  --bg-row-hover:      rgba(255,255,255,0.05);
+  --bg-input:          rgba(255,255,255,0.1); /* DS --field-bg */
 
   /* Borders */
-  --border:            rgba(255,255,255,0.07);
-  --border-strong:     rgba(255,255,255,0.12);
-  --border-focus:      rgba(79,156,240,0.4);
+  --border:            rgba(255,255,255,0.1);  /* DS --field-border / border.neutral.default */
+  --border-strong:     rgba(255,255,255,0.2);  /* DS --field-border-hover */
+  --border-focus:      rgba(43,127,255,0.4);
 
   /* Text */
-  --text-primary:      #e4e6f0;
-  --text-secondary:    #8b90a7;
-  --text-muted:        #5c6278;
-  --text-tertiary:     #4e5368;
+  --text-primary:      rgba(255,255,255,0.8);  /* DS --color-text-title */
+  --text-secondary:    rgba(255,255,255,0.6);  /* DS --color-text-subtitle / body */
+  --text-muted:        rgba(255,255,255,0.4);
+  --text-tertiary:     rgba(255,255,255,0.3);  /* DS --color-text-disabled */
 
-  /* Blue */
-  --accent-blue:        #4f9cf0;
-  --accent-blue-dim:    rgba(79,156,240,0.12);
-  --accent-blue-border: rgba(79,156,240,0.25);
+  /* Blue — DS primary/informative */
+  --accent-blue:        #2b7fff;
+  --accent-blue-dim:    rgba(43,127,255,0.15);
+  --accent-blue-border: rgba(43,127,255,0.3);
 
-  /* Purple */
-  --accent-purple:        #a78bfa;
-  --accent-purple-dim:    rgba(167,139,250,0.12);
-  --accent-purple-border: rgba(167,139,250,0.25);
+  /* Purple — DS tag-purple */
+  --accent-purple:        #d8b4fe;
+  --accent-purple-dim:    rgba(168,85,247,0.12);
+  --accent-purple-border: rgba(168,85,247,0.3);
 
-  /* Teal */
-  --accent-teal:        #34d399;
-  --accent-teal-dim:    rgba(52,211,153,0.10);
-  --accent-teal-border: rgba(52,211,153,0.25);
+  /* Teal — DS tag-success (positive/good) */
+  --accent-teal:        #6ee7b7;
+  --accent-teal-dim:    rgba(52,211,153,0.12);
+  --accent-teal-border: rgba(52,211,153,0.3);
 
-  /* Amber */
-  --accent-amber:        #fbbf24;
-  --accent-amber-dim:    rgba(251,191,36,0.10);
-  --accent-amber-border: rgba(251,191,36,0.25);
+  /* Amber — DS tag-alert */
+  --accent-amber:        #fcd34d;
+  --accent-amber-dim:    rgba(245,158,11,0.12);
+  --accent-amber-border: rgba(245,158,11,0.3);
 
-  /* Coral */
-  --accent-coral:        #fb7185;
-  --accent-coral-dim:    rgba(251,113,133,0.10);
-  --accent-coral-border: rgba(251,113,133,0.25);
+  /* Coral — DS tag-error */
+  --accent-coral:        #ff6467;
+  --accent-coral-dim:    rgba(224,82,82,0.12);
+  --accent-coral-border: rgba(224,82,82,0.3);
 
-  /* Green */
-  --accent-green:        #86efac;
-  --accent-green-dim:    rgba(134,239,172,0.10);
-  --accent-green-border: rgba(134,239,172,0.25);
+  /* Green — DS tag-limeGreen (distinct 4th color, e.g. "heads-up" severity) */
+  --accent-green:        #bdee49;
+  --accent-green-dim:    rgba(132,204,22,0.12);
+  --accent-green-border: rgba(132,204,22,0.3);
 
-  /* Gray (neutral badge) */
-  --accent-gray:        #8b90a7;
-  --accent-gray-dim:    rgba(139,144,167,0.12);
-  --accent-gray-border: rgba(139,144,167,0.20);
+  /* Gray (neutral badge) — DS tag-neutral */
+  --accent-gray:        rgba(255,255,255,0.6);
+  --accent-gray-dim:    rgba(255,255,255,0.08);
+  --accent-gray-border: rgba(255,255,255,0.1);
 
-  /* KPI tints */
-  --kpi-purple-bg: #1a1535;
-  --kpi-blue-bg:   #0d1a2d;
-  --kpi-amber-bg:  #1a1408;
-  --kpi-green-bg:  #0d1f14;
-  --kpi-coral-bg:  #1f0d14;
+  /* KPI tints — DS surface "more-subtle" per color */
+  --kpi-purple-bg: #120520;
+  --kpi-blue-bg:   rgba(43,127,255,0.08);
+  --kpi-amber-bg:  #281e00;
+  --kpi-green-bg:  #0a1f1a;
+  --kpi-coral-bg:  #2d1515;
 
-  /* Shadows */
-  --shadow-card:   0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
-  --shadow-modal:  0 24px 64px rgba(0,0,0,0.6);
-  --shadow-drop:   0 8px 24px rgba(0,0,0,0.4);
+  /* Shadows — DS elevation scale */
+  --shadow-card:   0 2px 8px rgba(0,0,0,0.24);                                /* elevation-2 */
+  --shadow-modal:  0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.24);   /* elevation-4 */
+  --shadow-drop:   0 4px 24px rgba(0,0,0,0.32), 0 1px 4px rgba(0,0,0,0.16);  /* elevation-3 */
+
+  /* ── DS component tokens — Button ───────────────────────────────────── */
+  --btn-primary-bg:        #2b7fff;
+  --btn-primary-hover-bg:  #002f80;
+  --btn-primary-active-bg: #001a5c;
+  --btn-primary-ring:      #2b7fff;
+
+  --btn-secondary-bg:          rgba(255,255,255,0.1);
+  --btn-secondary-fg:          rgba(255,255,255,0.6);
+  --btn-secondary-border:      rgba(255,255,255,0.1);
+  --btn-secondary-hover-bg:    rgba(255,255,255,0.08);
+  --btn-secondary-hover-bd:    rgba(255,255,255,0.2);
+  --btn-secondary-disabled-bg: rgba(255,255,255,0.05);
+  --btn-secondary-disabled-bd: rgba(255,255,255,0.15);
+  --btn-secondary-disabled-fg: rgba(255,255,255,0.3);
+
+  --btn-tertiary-fg:        rgba(255,255,255,0.6);
+  --btn-tertiary-hover-bg:  rgba(255,255,255,0.05);
+
+  --btn-warning-bg:        #e05252;
+  --btn-warning-hover-bg:  #ff6467;
+  --btn-warning-active-bg: #c03030;
+  --btn-warning-ring:      #e05252;
+
+  --btn-positive-bg:        #00a07e;
+  --btn-positive-hover-bg:  #003328;
+  --btn-positive-active-bg: #001f18;
+  --btn-positive-ring:      #00a07e;
+  --btn-main-ring:          #cbfff4;
+
+  /* ── DS component tokens — Tag (bg / border / fg per variant) ───────── */
+  --tag-success-bg: #0a1f1a; --tag-success-bd: #34d399; --tag-success-fg: #6ee7b7;
+  --tag-error-bg:   #2d1515; --tag-error-bd:   #e05252;  --tag-error-fg:   #ff6467;
+  --tag-alert-bg:   #281e00; --tag-alert-bd:   #f59e0b;  --tag-alert-fg:   #fcd34d;
+  --tag-purple-bg:  #120520; --tag-purple-bd:  #a855f7;  --tag-purple-fg:  #d8b4fe;
+  --tag-lightblue-bg: #071828; --tag-lightblue-bd: #38bdf8; --tag-lightblue-fg: #7dd3fc;
+  --tag-limegreen-bg: #111a04; --tag-limegreen-bd: #84cc16; --tag-limegreen-fg: #bdef49;
+  --tag-informative-bg: rgba(21,93,252,0.15); --tag-informative-bd: #2b7fff; --tag-informative-fg: rgba(255,255,255,0.8);
+  --tag-neutral-bg: rgba(255,255,255,0.08); --tag-neutral-bd: rgba(255,255,255,0.1); --tag-neutral-fg: rgba(255,255,255,0.6);
+
+  /* ── DS component tokens — Modal / Drawer (SlideOut) ────────────────── */
+  --modal-scrim:   rgba(0,0,0,0.65);
+  --modal-border:  rgba(255,255,255,0.15);
+  --drawer-overlay: rgba(0,0,0,0.3);
+
+  /* ── DS CardContainer hover glow (default/neutral variant) ──────────── */
+  --card-hover-shadow: 8px 8px 16px 0px rgba(0,0,0,0.08), 0 0 4px 1px rgba(255,255,255,0.4), 0 0 14px 0px rgba(255,255,255,0.15);
+
+  /* ── DS SlideOut — frosted-glass panel (Surface/Floating/Default) ──── */
+  --slide-out-bg:       rgba(16,22,40,0.92);
+  --slide-out-title:    rgba(255,255,255,0.8);
+  --slide-out-body:     #94A3B8;
+  --slide-out-border:   rgba(255,255,255,0.1);
+  --slide-out-icon:     rgba(255,255,255,0.5);
+  --slide-out-icon-hover: rgba(255,255,255,0.85);
+  --slide-out-overlay:  rgba(0,0,0,0.3);
+
+  /* ── DS EntityList — high-density row card ──────────────────────────── */
+  --el-bg:       rgba(255,255,255,0.04);
+  --el-border:   rgba(255,255,255,0.08);
+  --el-hover-bg: rgba(255,255,255,0.07);
+  --el-ai-bg:    rgba(103,76,186,0.12);
+  --el-ai-icon:  #A78BFA;
 }
 
 [data-theme="light"] {
-  --bg-app:            #f4f5f8;
-  --bg-sidebar:        #ffffff;
-  --bg-card:           #ffffff;
-  --bg-card-elevated:  #f9fafb;
-  --bg-row:            #ffffff;
-  --bg-row-hover:      #f4f5f8;
-  --bg-input:          #ffffff;
+  --bg-app:            #E4ECF7;   /* DS canvas light */
+  --app-bg:            radial-gradient(circle at 50% 0%, #F6F9FF 0%, #FFFFFF 80%); /* DS AppBackground */
+  --bg-sidebar:        #F2F7FF;   /* DS --surface light (kept light, not DS's black sidebar, to preserve existing sidebar text contrast) */
+  --bg-card:           #F8FBFF;   /* DS --card */
+  --bg-card-elevated:  #EBF2FF;   /* DS --surface-raised */
+  --bg-row:            #F8FBFF;
+  --bg-row-hover:      rgba(0,0,0,0.03);
+  --bg-input:          #ffffff;   /* DS --field-bg */
 
   --border:            rgba(0,0,0,0.08);
   --border-strong:     rgba(0,0,0,0.14);
-  --border-focus:      rgba(79,156,240,0.4);
+  --border-focus:      rgba(33,115,255,0.4);
 
-  --text-primary:      #111318;
-  --text-secondary:    #5a6074;
+  --text-primary:      #1a1a1a;  /* DS --foreground */
+  --text-secondary:    #5c5c5c;  /* DS --field-supporting */
   --text-muted:        #8b929e;
-  --text-tertiary:     #9ca3af;
+  --text-tertiary:     #bababa;  /* DS --field-placeholder */
 
-  --accent-blue:        #2563eb;
-  --accent-blue-dim:    rgba(37,99,235,0.08);
-  --accent-blue-border: rgba(37,99,235,0.20);
+  --accent-blue:        #2173ff;
+  --accent-blue-dim:    rgba(33,115,255,0.08);
+  --accent-blue-border: rgba(33,115,255,0.2);
 
-  --accent-purple:        #7c3aed;
-  --accent-purple-dim:    rgba(124,58,237,0.08);
-  --accent-purple-border: rgba(124,58,237,0.20);
+  --accent-purple:        #4a1282;
+  --accent-purple-dim:    rgba(123,39,237,0.08);
+  --accent-purple-border: rgba(123,39,237,0.2);
 
-  --accent-teal:        #059669;
-  --accent-teal-dim:    rgba(5,150,105,0.08);
-  --accent-teal-border: rgba(5,150,105,0.20);
+  --accent-teal:        #003328;
+  --accent-teal-dim:    rgba(0,153,120,0.08);
+  --accent-teal-border: rgba(0,153,120,0.2);
 
-  --accent-amber:        #d97706;
-  --accent-amber-dim:    rgba(217,119,6,0.08);
-  --accent-amber-border: rgba(217,119,6,0.20);
+  --accent-amber:        #663c00;
+  --accent-amber-dim:    rgba(237,108,2,0.08);
+  --accent-amber-border: rgba(237,108,2,0.2);
 
-  --accent-coral:        #e11d48;
-  --accent-coral-dim:    rgba(225,29,72,0.08);
-  --accent-coral-border: rgba(225,29,72,0.20);
+  --accent-coral:        #5f2120;
+  --accent-coral-dim:    rgba(153,34,34,0.08);
+  --accent-coral-border: rgba(153,34,34,0.2);
 
-  --accent-green:        #16a34a;
-  --accent-green-dim:    rgba(22,163,74,0.08);
-  --accent-green-border: rgba(22,163,74,0.20);
+  --accent-green:        #3e5c0a;
+  --accent-green-dim:    rgba(160,218,29,0.1);
+  --accent-green-border: rgba(160,218,29,0.3);
 
-  --accent-gray:        #6b7280;
-  --accent-gray-dim:    rgba(107,114,128,0.10);
-  --accent-gray-border: rgba(107,114,128,0.18);
+  --accent-gray:        #5c5c5c;
+  --accent-gray-dim:    rgba(0,0,0,0.05);
+  --accent-gray-border: rgba(92,92,92,0.25);
 
-  --kpi-purple-bg: #f5f3ff;
-  --kpi-blue-bg:   #eff6ff;
-  --kpi-amber-bg:  #fffbeb;
-  --kpi-green-bg:  #f0fdf4;
-  --kpi-coral-bg:  #fff1f2;
+  --kpi-purple-bg: #f3e9fd;
+  --kpi-blue-bg:   #f6f9ff;
+  --kpi-amber-bg:  #fff4e5;
+  --kpi-green-bg:  #e5fdf8;
+  --kpi-coral-bg:  #fdeded;
 
   --shadow-card:   0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
   --shadow-modal:  0 24px 64px rgba(0,0,0,0.15);
   --shadow-drop:   0 8px 24px rgba(0,0,0,0.10);
+
+  /* ── DS component tokens — Button ───────────────────────────────────── */
+  --btn-primary-bg:        #2173ff;
+  --btn-primary-hover-bg:  #002f80;
+  --btn-primary-active-bg: #001a5c;
+  --btn-primary-ring:      #2173ff;
+
+  --btn-secondary-bg:          #ffffff;
+  --btn-secondary-fg:          #2a2a2a;
+  --btn-secondary-border:      #5c5c5c;
+  --btn-secondary-hover-bg:    #f2f2f2;
+  --btn-secondary-hover-bd:    #d9d9d9;
+  --btn-secondary-disabled-bg: #fafafa;
+  --btn-secondary-disabled-bd: #bababa;
+  --btn-secondary-disabled-fg: #bababa;
+
+  --btn-tertiary-fg:        #2a2a2a;
+  --btn-tertiary-hover-bg:  #fafafa;
+
+  --btn-warning-bg:        #d32f2f;
+  --btn-warning-hover-bg:  #b91c1c;
+  --btn-warning-active-bg: #991b1b;
+  --btn-warning-ring:      #d32f2f;
+
+  --btn-positive-bg:        #00a07e;
+  --btn-positive-hover-bg:  #003328;
+  --btn-positive-active-bg: #001f18;
+  --btn-positive-ring:      #00a07e;
+  --btn-main-ring:          #cbfff4;
+
+  /* ── DS component tokens — Tag (bg / border / fg per variant) ───────── */
+  --tag-success-bg: #e5fdf8; --tag-success-bd: #009978; --tag-success-fg: #003328;
+  --tag-error-bg:   #fdeded; --tag-error-bd:   #992222;  --tag-error-fg:   #5f2120;
+  --tag-alert-bg:   #ffeedb; --tag-alert-bd:   #b25102;  --tag-alert-fg:   #663c00;
+  --tag-purple-bg:  #f3e9fd; --tag-purple-bd:  #7b27ed;  --tag-purple-fg:  #4a1282;
+  --tag-lightblue-bg: #e5f8ff; --tag-lightblue-bd: #00b5d9; --tag-lightblue-fg: #0c4a6e;
+  --tag-limegreen-bg: #f9fee5; --tag-limegreen-bd: #a0da1d; --tag-limegreen-fg: #3e5c0a;
+  --tag-informative-bg: #e9f1ff; --tag-informative-bd: #2173ff; --tag-informative-fg: #001740;
+  --tag-neutral-bg: #f2f2f2; --tag-neutral-bd: #5c5c5c; --tag-neutral-fg: #2a2a2a;
+
+  /* ── DS component tokens — Modal / Drawer (SlideOut) ────────────────── */
+  --modal-scrim:   rgba(0,0,0,0.5);
+  --modal-border:  #bababa;
+  --drawer-overlay: rgba(0,0,0,0.3);
+
+  /* ── DS CardContainer hover glow (default/neutral variant) ──────────── */
+  --card-hover-shadow: 0 8px 24px rgba(33,115,255,0.12), 0 2px 6px rgba(0,0,0,0.06);
+
+  /* ── DS SlideOut — frosted-glass panel (Surface/Floating/Default) ──── */
+  --slide-out-bg:       rgba(255,255,255,0.92);
+  --slide-out-title:    #000000;
+  --slide-out-body:     #5c5c5c;
+  --slide-out-border:   rgba(0,0,0,0.08);
+  --slide-out-icon:     rgba(0,0,0,0.4);
+  --slide-out-icon-hover: rgba(0,0,0,0.75);
+  --slide-out-overlay:  rgba(0,0,0,0.3);
+
+  /* ── DS EntityList — high-density row card ──────────────────────────── */
+  --el-bg:       #ffffff;
+  --el-border:   #bababa;
+  --el-hover-bg: #F8F8F8;
+  --el-ai-bg:    rgba(103,76,186,0.06);
+  --el-ai-icon:  #674CBC;
 }

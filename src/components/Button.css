@@ -1,72 +1,133 @@
 .btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: background 0.12s, border-color 0.12s, opacity 0.12s, color 0.12s, transform 0.08s;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s, color 0.12s, box-shadow 0.12s, transform 0.08s;
   white-space: nowrap;
   cursor: pointer;
   border: 1px solid transparent;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Inter', sans-serif;
+  outline: none;
 }
 
 .btn:not(:disabled):active {
   transform: scale(0.97);
 }
 
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Pill — fully rounded, any size/variant */
+.btn--pill { border-radius: var(--radius-full) !important; }
+
+/* Icon-alone — square, no label (DS: S 24x24 / M 40x40 / L 56x56) */
+.btn--icon-alone.btn--sm { width: 24px; height: 24px; padding: 0; }
+.btn--icon-alone.btn--md { width: 40px; height: 40px; padding: 0; }
+.btn--icon-alone.btn--lg { width: 56px; height: 56px; padding: 0; }
 
 /* Sizes */
 .btn--sm { font-size: 12px; padding: 4px 10px; height: 28px; }
 .btn--md { font-size: 13px; padding: 6px 14px; height: 32px; }
-.btn--lg { font-size: 14px; padding: 8px 18px; height: 38px; }
+.btn--lg { font-size: 14px; padding: 8px 18px; height: 38px; border-radius: var(--radius-lg); }
 
-/* Primary */
+/* Focus rings — per-variant color, DS focus-visible spec */
+.btn--primary:focus-visible   { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--btn-primary-ring); }
+.btn--secondary:focus-visible,
+.btn--ghost:focus-visible     { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--btn-secondary-border); }
+.btn--destructive:focus-visible { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--btn-warning-ring); }
+.btn--positive:focus-visible  { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--btn-positive-ring); }
+.btn--main:focus-visible      { box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--btn-main-ring); }
+
+/* Primary — DS Button/Primary */
 .btn--primary {
-  background: var(--accent-blue);
+  background: var(--btn-primary-bg);
   color: #fff;
-  border-color: var(--accent-blue);
+  border-color: var(--btn-primary-bg);
 }
 .btn--primary:not(:disabled):hover {
-  background: color-mix(in srgb, var(--accent-blue) 85%, white);
+  background: var(--btn-primary-hover-bg);
+  border-color: var(--btn-primary-hover-bg);
+}
+.btn--primary:not(:disabled):active {
+  background: var(--btn-primary-active-bg);
+  border-color: var(--btn-primary-active-bg);
 }
 
-/* Secondary */
+/* Secondary — DS Button/Secondary */
 .btn--secondary {
-  background: transparent;
-  color: var(--text-primary);
-  border-color: var(--border-strong);
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border-color: var(--btn-secondary-border);
 }
 .btn--secondary:not(:disabled):hover {
-  background: var(--bg-row-hover);
-  border-color: var(--text-tertiary);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-hover-bd);
+}
+.btn--secondary:disabled {
+  background: var(--btn-secondary-disabled-bg);
+  border-color: var(--btn-secondary-disabled-bd);
+  color: var(--btn-secondary-disabled-fg);
 }
 
-/* Ghost */
+/* Ghost — DS Button/Tertiary (text-only) */
 .btn--ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--btn-tertiary-fg);
   border-color: transparent;
 }
 .btn--ghost:not(:disabled):hover {
-  background: var(--bg-row-hover);
+  background: var(--btn-tertiary-hover-bg);
   color: var(--text-primary);
 }
 
-/* Destructive */
+/* Destructive — DS Button/Warning: destructive/irreversible actions only.
+   Solid fill, same weight as Primary — not an outline. */
 .btn--destructive {
-  background: var(--accent-coral-dim);
-  color: var(--accent-coral);
-  border-color: var(--accent-coral-border);
+  background: var(--btn-warning-bg);
+  color: #fff;
+  border-color: var(--btn-warning-bg);
 }
 .btn--destructive:not(:disabled):hover {
-  background: var(--accent-coral);
-  color: #fff;
-  border-color: var(--accent-coral);
+  background: var(--btn-warning-hover-bg);
+  border-color: var(--btn-warning-hover-bg);
+}
+.btn--destructive:not(:disabled):active {
+  background: var(--btn-warning-active-bg);
+  border-color: var(--btn-warning-active-bg);
 }
 
-/* Purple accent */
+/* Positive — DS Button/Positive: save, approve, confirm, complete */
+.btn--positive {
+  background: var(--btn-positive-bg);
+  color: #fff;
+  border-color: var(--btn-positive-bg);
+}
+.btn--positive:not(:disabled):hover {
+  background: var(--btn-positive-hover-bg);
+  border-color: var(--btn-positive-hover-bg);
+}
+.btn--positive:not(:disabled):active {
+  background: var(--btn-positive-active-bg);
+  border-color: var(--btn-positive-active-bg);
+}
+
+/* Main Action — DS Button/Main: header-level CTA only, radial gradient + neon shadow */
+.btn--main {
+  color: #fff;
+  background: radial-gradient(ellipse 100% 160% at 61% 68%, #2173ff 0%, #09e2ab 100%);
+  box-shadow: 4px 8px 12px 8px rgba(9,226,171,0.16);
+  border-color: transparent;
+}
+.btn--main:not(:disabled):hover {
+  background: radial-gradient(ellipse 100% 160% at 59% 72%, #002f80 0%, #2173ff 40%, #09e2ab 100%);
+  box-shadow: 8px 8px 20px 0px rgba(0,201,79,0.35);
+  color: #fff;
+}
+.btn--main:not(:disabled):active { opacity: 0.9; }
+
+/* Purple accent — extension, not a core DS button variant (see DS-GAP) */
 .btn--purple {
   background: var(--accent-purple-dim);
   color: var(--accent-purple);

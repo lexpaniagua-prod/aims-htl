@@ -1,8 +1,14 @@
 ﻿.section-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, border-width 0.15s, box-shadow 0.15s;
+}
+
+.section-card:hover {
+  border-width: 1px;
+  border-color: var(--border-strong);
+  box-shadow: var(--card-hover-shadow);
 }
 
 .section-card-header {
@@ -16,7 +22,7 @@
 
 .section-card-title {
   font-family: 'Inter', sans-serif;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
 }
