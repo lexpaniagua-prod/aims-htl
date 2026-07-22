@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { ChevronDown, ChevronUp, Search } from 'lucide-react'
 import { TRANSFERS, AUDIT_LOG, PEOPLE } from '../data/workQueueData'
@@ -128,7 +128,7 @@ function AuditTab() {
           </thead>
           <tbody>
             {filtered.map(a => (
-              <>
+              <Fragment key={a.id}>
                 <tr
                   key={a.id}
                   className="wq-audit-row"
@@ -157,7 +157,7 @@ function AuditTab() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

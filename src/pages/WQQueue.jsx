@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, Flame, Zap, MoreVertical, Check, MessageSquare, SkipForward
+  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, MoreVertical, Check, MessageSquare, SkipForward
 } from 'lucide-react'
 import { Drawer, Modal } from '../components/Modal'
 import {
@@ -117,8 +117,9 @@ function TraceDrawer({ event, onClose }) {
   )
 }
 
-// ─── Card overflow menu (My Team: Take it / Nudge / Reassign) ─────────────────
-function CardMenu({ onTakeIt, onNudge, onReassign }) {
+// ─── Card overflow menu — Trace always first, Team actions appended when
+// relevant (Take it / Nudge / Reassign) ────────────────────────────────────────
+function CardMenu({ onTrace, showTeamActions, onTakeIt, onNudge, onReassign }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
 
@@ -139,7 +140,7 @@ function CardMenu({ onTakeIt, onNudge, onReassign }) {
   return (
     <div className="wq-card-menu-wrap" ref={wrapRef}>
       <button
-        className="wq-card-menu-btn"
+        className="wq-btn wq-btn--ghost wq-btn--icon wq-card-menu-btn"
         title="More actions"
         onClick={() => setOpen(o => !o)}
       >
@@ -147,9 +148,16 @@ function CardMenu({ onTakeIt, onNudge, onReassign }) {
       </button>
       {open && (
         <div className="wq-card-menu">
-          <button onClick={() => pick(onTakeIt)}>Take it</button>
-          <button onClick={() => pick(onNudge)}>Nudge</button>
-          <button onClick={() => pick(onReassign)}>Reassign</button>
+          <button onClick={() => pick(onTrace)}>
+            <GitBranch size={12} /> Trace
+          </button>
+          {showTeamActions && (
+            <>
+              <button onClick={() => pick(onTakeIt)}>Take it</button>
+              <button onClick={() => pick(onNudge)}>Nudge</button>
+              <button onClick={() => pick(onReassign)}>Reassign</button>
+            </>
+          )}
         </div>
       )}
     </div>
@@ -196,28 +204,9 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
       className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}
       onClick={handleCardClick}
     >
-      {/* Header row — trace/skip/meta (left) + primary actions (top right) */}
+      {/* Header row — id/comments/due (left) + primary actions (top right) */}
       <div className="wq-card-header">
         <div className="wq-card-meta-row">
-          <button className="wq-trace-btn" onClick={() => onTrace(event)}>
-            <GitBranch size={10} /> Trace
-          </button>
-          {teamMode && !isSkipped && (
-            <CardMenu
-              onTakeIt={() => onTakeIt(event)}
-              onNudge={() => onNudge(event)}
-              onReassign={() => onReassign(event)}
-            />
-          )}
-          {!isSkipped && (
-            <button
-              className="wq-skip-icon-btn"
-              title="Skip — resurfaces in 2h"
-              onClick={() => onSkip(event)}
-            >
-              <SkipForward size={13} />
-            </button>
-          )}
           <span className="wq-card-id">{event.id}</span>
           {thread && (
             <button
@@ -232,13 +221,34 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
           {event.dueLabel && (
             <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
           )}
+          {event.missionCritical && event.blastRadius?.workflows > 0 && (
+            <span className="wq-card-blast-inline">
+              <AlertTriangle size={11} />
+              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
+        {/* 1. Skip · 2. Details · 3. Ask · 4. Escalate · 5. More actions (Trace first) */}
         {!isSkipped && (
           <div className="wq-card-action-row">
+            <button
+              className="wq-btn wq-btn--ghost wq-btn--icon"
+              title="Skip — resurfaces in 2h"
+              onClick={() => onSkip(event)}
+            >
+              <SkipForward size={13} />
+            </button>
             <button className="wq-btn wq-btn--primary" onClick={() => onDetails(event)}>Details</button>
             <button className="wq-btn wq-btn--ghost" onClick={() => onAskTeammate(event)}>Ask</button>
             <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
+            <CardMenu
+              onTrace={() => onTrace(event)}
+              showTeamActions={teamMode}
+              onTakeIt={() => onTakeIt(event)}
+              onNudge={() => onNudge(event)}
+              onReassign={() => onReassign(event)}
+            />
           </div>
         )}
       </div>
@@ -248,12 +258,6 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
         <div className="wq-card-content">
           <div className="wq-card-title">{event.title}</div>
           <div className="wq-card-detail">{event.detail}</div>
-          {event.missionCritical && event.blastRadius?.workflows > 0 && (
-            <div className="wq-card-blast">
-              <AlertTriangle size={11} />
-              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
-            </div>
-          )}
         </div>
       </div>
 
@@ -609,9 +613,7 @@ export default function WQQueue() {
         if (!dueFilter.includes(urg)) return false
       }
       if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec?.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
-      if (sortMode === 'today')    return e.dueToday === true
-      if (sortMode === 'act-now')  return e.severity === 'now'
-      if (sortMode === 'critical') return e.severity === 'now' || e.severity === 'red'
+      if (sortMode === 'today') return e.dueToday === true
       return true
     })
   }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, teamFilter, dueFilter, sortMode, mode])
@@ -723,26 +725,6 @@ export default function WQQueue() {
   return (
     <div className="wq-queue">
 
-      {/* ── Severity stat chips ─────────────────────────────────────────── */}
-      <div className="wq-sev-chips">
-        {SEVERITY_ORDER.map(sev => {
-          const meta = SEVERITY[sev]
-          const active = sevFilter.includes(sev)
-          return (
-            <button
-              key={sev}
-              className={`wq-sev-chip${active ? ' wq-sev-chip--active' : ''}`}
-              style={active ? { background: meta.color, borderColor: meta.color } : { borderColor: meta.color + '55' }}
-              onClick={() => toggleSeverityFilter(sev)}
-            >
-              <span className="wq-sev-chip-dot" style={{ background: active ? '#fff' : meta.color }} />
-              {meta.label}
-              <span className="wq-sev-chip-count">{severityCounts[sev] || 0}</span>
-            </button>
-          )
-        })}
-      </div>
-
       {/* ── Filter bar with My Work / My Team toggle ─────────────────────── */}
       <div className="wq-filter-bar">
         {/* My Work / My Team toggle */}
@@ -784,25 +766,45 @@ export default function WQQueue() {
         )}
       </div>
 
-      {/* Sort pills */}
-      <div className="wq-sort-bar">
-        <span className="wq-sort-label">Sort:</span>
+      {/* ── Severity stat chips + sort chips (same chip treatment) ───────── */}
+      <div className="wq-sev-chips">
+        {SEVERITY_ORDER.map(sev => {
+          const meta = SEVERITY[sev]
+          const active = sevFilter.includes(sev)
+          return (
+            <button
+              key={sev}
+              className={`wq-sev-chip${active ? ' wq-sev-chip--active' : ''}`}
+              style={active ? { background: meta.color, borderColor: meta.color } : { borderColor: meta.color + '55' }}
+              onClick={() => toggleSeverityFilter(sev)}
+            >
+              <span className="wq-sev-chip-dot" style={{ background: active ? '#fff' : meta.color }} />
+              {meta.label}
+              <span className="wq-sev-chip-count">{severityCounts[sev] || 0}</span>
+            </button>
+          )
+        })}
+
+        <span className="wq-chip-divider" />
+
         {[
           { id: 'default',  label: 'Default' },
-          { id: 'today',    label: 'Today',    icon: <CalendarDays size={11} /> },
-          { id: 'act-now',  label: 'Act Now',  icon: <Zap size={11} /> },
-          { id: 'critical', label: 'Critical', icon: <Flame size={11} /> },
-          { id: 'due-date', label: 'Due Date', icon: <CalendarDays size={11} /> },
-        ].map(s => (
-          <button
-            key={s.id}
-            className={`wq-sort-pill${sortMode === s.id ? ' wq-sort-pill--active' : ''}`}
-            onClick={() => setSortMode(prev => prev === s.id ? 'default' : s.id)}
-          >
-            {s.icon && s.icon}
-            {s.label}
-          </button>
-        ))}
+          { id: 'today',    label: 'Today' },
+          { id: 'due-date', label: 'Due Date' },
+        ].map(s => {
+          const active = sortMode === s.id
+          return (
+            <button
+              key={s.id}
+              className={`wq-sev-chip wq-sev-chip--sort${active ? ' wq-sev-chip--active' : ''}`}
+              style={active ? { background: 'var(--accent-blue)', borderColor: 'var(--accent-blue)' } : { borderColor: 'var(--border-strong)' }}
+              onClick={() => setSortMode(prev => prev === s.id ? 'default' : s.id)}
+            >
+              {s.id !== 'default' && <CalendarDays size={12} />}
+              {s.label}
+            </button>
+          )
+        })}
       </div>
 
           {/* Active filter chips */}

@@ -31,7 +31,8 @@
       "PowerShell(\\(Get-Content \"C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\WorkQueue.css\" | Measure-Object -Line\\).Lines)",
       "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\EventModal.jsx'\\).Count\")",
       "Bash(git -C \"aims-os-design-system-main\" log --oneline -5)",
-      "Bash(git -C \"aims-os-design-system-main\" status)"
+      "Bash(git -C \"aims-os-design-system-main\" status)",
+      "WebFetch(domain:aims-os-design-system.vercel.app)"
     ]
   }
 }

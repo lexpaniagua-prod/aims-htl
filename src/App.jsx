@@ -7,7 +7,7 @@ import {
   List, CheckCircle, AlertTriangle, RefreshCw,
   LayoutDashboard, Clock, Route as RouteIcon, Activity, GraduationCap,
   FileText, CalendarOff, Zap, Shield,
-  Bell, Search, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, User, Users, Sparkles
+  Bell, Search, Sun, Moon, ChevronDown, ChevronRight, Users, Sparkles, PanelLeftOpen, PanelLeftClose
 } from 'lucide-react'
 
 import './shell.css'
@@ -193,25 +193,27 @@ export default function App() {
 
         <div className="topbar-center">
           <div className="search-wrap">
-            <Search size={13} strokeWidth={1.75} className="search-icon" />
+            <Search size={12} strokeWidth={1.75} className="search-icon" />
             <input className="search-input" placeholder="Search packs, agents, signals…" />
           </div>
         </div>
 
         <div className="topbar-right">
-          <button className="icon-btn icon-btn--main" title="AI">
-            <Sparkles size={15} strokeWidth={1.75} />
-          </button>
-          <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
-            {theme === 'dark' ? <Sun size={15} strokeWidth={1.75} /> : <Moon size={15} strokeWidth={1.75} />}
-          </button>
-          <button className="icon-btn notif-btn" title="Notifications">
-            <Bell size={15} strokeWidth={1.75} />
-            <span className="notif-dot" />
-          </button>
-          <button className="icon-btn" title="Settings">
-            <Settings size={15} strokeWidth={1.75} />
-          </button>
+          <div className="topbar-actions">
+            <button className="icon-btn icon-btn--main" title="AI">
+              <Sparkles size={13} strokeWidth={1.75} />
+            </button>
+            <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">
+              {theme === 'dark' ? <Sun size={13} strokeWidth={1.75} /> : <Moon size={13} strokeWidth={1.75} />}
+            </button>
+            <button className="icon-btn notif-btn" title="Notifications">
+              <Bell size={13} strokeWidth={1.75} />
+              <span className="notif-dot" />
+            </button>
+            <button className="icon-btn" title="Settings">
+              <Settings size={13} strokeWidth={1.75} />
+            </button>
+          </div>
           <div className="topbar-divider" />
           <div className="user-pill">
             <div className="user-avatar-sm" />
@@ -245,17 +247,10 @@ export default function App() {
                 title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               >
                 {sidebarCollapsed
-                  ? <ChevronRight size={16} strokeWidth={1.75} />
-                  : <ChevronLeft  size={16} strokeWidth={1.75} />}
+                  ? <PanelLeftOpen  size={16} strokeWidth={1.75} />
+                  : <PanelLeftClose size={16} strokeWidth={1.75} />}
               </button>
             </div>
-
-            {!sidebarCollapsed && (
-              <div className="studio-switcher">
-                <span>Human Touch Layer</span>
-                <ChevronDown size={10} />
-              </div>
-            )}
 
             {/* Nav */}
             <nav className="sidebar-nav">
@@ -277,15 +272,10 @@ export default function App() {
                       >
                         <span className="nav-icon-box nav-icon-box--label"><SectionIcon size={14} strokeWidth={1.75} /></span>
                         <span className="nav-section-text">{section}</span>
-                        <ChevronDown
-                          size={10}
-                          style={{
-                            marginLeft: 'auto',
-                            transition: 'transform 0.2s ease',
-                            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                            color: 'var(--text-tertiary)',
-                            flexShrink: 0,
-                          }}
+                        <ChevronRight
+                          size={16}
+                          strokeWidth={1.75}
+                          style={{ marginLeft: 'auto', color: 'var(--text-tertiary)', flexShrink: 0 }}
                         />
                       </div>
                     )}
@@ -319,18 +309,6 @@ export default function App() {
                 )
               })}
             </nav>
-
-            {/* Footer */}
-            <div className="sidebar-footer" data-tooltip="Alexa M. — Admin">
-              <div className="user-avatar-sm">
-                <User size={12} />
-              </div>
-              <div className="user-info">
-                <span className="user-name">Alexa M.</span>
-                <span className="user-role">Admin</span>
-              </div>
-              <Settings size={13} className="footer-settings" />
-            </div>
           </div>
         </aside>
 

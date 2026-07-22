@@ -14,7 +14,7 @@
   /* ── Sidebar — DS spec: always dark, regardless of app theme.
      Homologated to the app's own navy-black palette (matches --bg-app /
      --bg-card-elevated) instead of a mismatched neutral black/gray. ──── */
-  --sb-rail-bg:             #0A0E1A;  /* = --bg-app dark: same tone as the main canvas */
+  --sb-rail-bg:             #131C2E;  /* = --bg-card-elevated dark: matches the requested reference swatch */
   --sb-icon-default:        rgba(128,175,255,1);  /* Icon/Primary/Lighter */
   --sb-icon-hover:          rgba(255,255,255,0.7); /* Icon/Neutral/Light */
   --sb-icon-active:         #ffffff;
@@ -167,6 +167,23 @@
   --el-hover-bg: rgba(255,255,255,0.07);
   --el-ai-bg:    rgba(103,76,186,0.12);
   --el-ai-icon:  #A78BFA;
+
+  /* ── DS SwitchTab ────────────────────────────────────────────────────── */
+  --st-bg:          #131C2E;
+  --st-shadow:      8px 8px 24px 0px rgba(0,0,0,0.32);
+  --st-active-bg:   rgba(43,127,255,0.15);
+  --st-active-text: var(--accent-blue);
+  --st-text:        var(--text-primary);
+  --st-item-radius: 4px;
+
+  /* ── DS Table ────────────────────────────────────────────────────────── */
+  --table-bg:              rgba(255,255,255,0.10);
+  --table-header-bg:       rgba(255,255,255,0.10);
+  --table-border:          rgba(255,255,255,0.08);
+  --table-header-text:     rgba(255,255,255,0.60);
+  --table-cell-text:       rgba(255,255,255,0.60);
+  --table-row-hover-bg:    rgba(255,255,255,0.08);
+  --table-row-selected-bg: rgba(43,127,255,0.08);
 }
 
 [data-theme="light"] {
@@ -288,4 +305,21 @@
   --el-hover-bg: #F8F8F8;
   --el-ai-bg:    rgba(103,76,186,0.06);
   --el-ai-icon:  #674CBC;
+
+  /* ── DS SwitchTab ────────────────────────────────────────────────────── */
+  --st-bg:          #ffffff;
+  --st-shadow:      8px 8px 16px 0px rgba(0,0,0,0.08);
+  --st-active-bg:   #f6f9ff;
+  --st-active-text: var(--accent-blue);
+  --st-text:        var(--text-primary);
+  --st-item-radius: 4px;
+
+  /* ── DS Table ────────────────────────────────────────────────────────── */
+  --table-bg:              #F8FBFF;
+  --table-header-bg:       #EEF5FF;
+  --table-border:          rgba(33,115,255,0.10);
+  --table-header-text:     #2a2a2a;
+  --table-cell-text:       #5c5c5c;
+  --table-row-hover-bg:    #f2f2f2;
+  --table-row-selected-bg: rgba(246,249,255,1);
 }

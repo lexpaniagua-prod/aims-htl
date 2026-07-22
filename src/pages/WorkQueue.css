@@ -12,8 +12,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-primary);
+  background: transparent;
   flex-shrink: 0;
 }
 
@@ -181,6 +180,16 @@
 }
 .wq-btn--ghost:hover { background: var(--btn-secondary-hover-bg); border-color: var(--btn-secondary-hover-bd); color: var(--text-primary); }
 
+/* Icon-only — square, same height as the labelled buttons in the row
+   (Skip / More-actions) so every button in the action row lines up */
+.wq-btn--icon {
+  padding: 6px;
+  width: 28px;
+  height: 28px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 /* Danger — DS Button/Warning: destructive/irreversible actions only, solid fill */
 .wq-btn--danger {
   background: var(--btn-warning-bg);
@@ -204,36 +213,47 @@
 }
 
 /* Shared table */
-.wq-table-wrap { overflow-x: auto; }
+/* DS Table — size S: rounded-8px outer container, header/row 12px medium text */
+.wq-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--table-border);
+  border-radius: var(--radius-md);
+}
 
 .wq-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .wq-table th {
   text-align: left;
-  padding: 8px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--table-header-text);
+  background: var(--table-header-bg);
+  border-bottom: 1px solid var(--table-border);
   white-space: nowrap;
 }
 
+.wq-table tbody tr {
+  background: var(--table-bg);
+  transition: background 100ms;
+}
+.wq-table tbody tr:not(:last-child) td { border-bottom: 1px solid var(--table-border); }
+.wq-table tbody tr:hover { background: var(--table-row-hover-bg); }
+
 .wq-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary);
+  padding: 10px 8px;
+  font-weight: 500;
+  color: var(--table-cell-text);
   vertical-align: middle;
 }
 
-.wq-td-mono  { font-family: monospace; font-size: 11.5px; color: var(--text-secondary); }
-.wq-td-muted { color: var(--text-muted); font-size: 11.5px; }
-.wq-td-hash  { font-family: monospace; font-size: 10px; color: var(--text-muted); }
+.wq-td-mono  { font-family: monospace; font-size: 11.5px; color: var(--table-cell-text); }
+.wq-td-muted { color: var(--table-cell-text); font-size: 11.5px; }
+.wq-td-hash  { font-family: monospace; font-size: 10px; color: var(--table-cell-text); }
 
 /* ── Overview tab ────────────────────────────────────────────────────────────── */
 .wq-overview { display: flex; flex-direction: column; gap: 28px; max-width: 900px; }
@@ -425,23 +445,26 @@
   align-items: center;
   gap: 8px;
 }
+/* DS Chip — size M (28px, rounded-full), text size homologated to match the
+   filters/search bar (~13px) instead of the DS spec's default 14px. */
 .wq-sev-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   height: 28px;
-  padding: 0 10px;
-  border-radius: 14px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms, transform 150ms;
 }
 .wq-sev-chip:hover { background: var(--bg-row-hover); }
+.wq-sev-chip:active { transform: scale(0.95); }
 .wq-sev-chip--active { color: #fff; }
 .wq-sev-chip-dot {
   width: 7px;
@@ -468,28 +491,11 @@
   gap: 8px;
 }
 
-/* ── Card overflow menu (My Team: Take it / Nudge / Reassign) ────────────────── */
+/* ── Card overflow menu — Trace first, Team actions (Take it/Nudge/Reassign)
+   appended when relevant. Menu trigger reuses .wq-btn sizing (see
+   .wq-btn--icon) so it's homologated with Skip/Details/Ask/Escalate. ──────── */
 .wq-card-menu-wrap {
   position: relative;
-}
-.wq-card-menu-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-.wq-card-menu-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-  background: var(--bg-row-hover);
 }
 .wq-card-menu {
   position: absolute;
@@ -504,7 +510,9 @@
   z-index: 20;
 }
 .wq-card-menu button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
   text-align: left;
   padding: 7px 10px;
@@ -974,62 +982,30 @@
 }
 .wq-card-blast svg { color: var(--el-ai-icon); }
 
-/* Sort pills bar */
-.wq-sort-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 0 4px;
-  flex-wrap: wrap;
-}
-.wq-sort-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-weight: 500;
-  margin-right: 2px;
-}
-.wq-sort-pill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.wq-sort-pill:hover { background: var(--bg-row-hover); color: var(--text-primary); }
-.wq-sort-pill--active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: #fff;
-}
-
-/* Trace button in card header */
-.wq-trace-btn {
+/* Compact inline variant — sits next to the due badge in the meta row
+   instead of its own boxed line under the description */
+.wq-card-blast-inline {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
-  font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 5px;
-  border: 1px solid var(--border-strong);
-  background: var(--bg-row-hover);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  font-weight: 600;
+  color: var(--el-ai-icon);
   white-space: nowrap;
 }
-.wq-trace-btn:hover {
-  background: var(--bg-card);
-  color: var(--text-primary);
-  border-color: var(--accent-blue);
+
+/* Sort pills bar */
+/* Divider between severity chips and sort chips (same row) */
+.wq-chip-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
 }
+
+/* Sort chips reuse .wq-sev-chip — no dot, just an optional calendar icon */
+.wq-sev-chip--sort { color: var(--text-secondary); }
+.wq-sev-chip--sort.wq-sev-chip--active { color: #fff; }
 
 /* Trace empty state in drawer */
 .wq-trace-empty {
@@ -1251,7 +1227,6 @@
 }
 
 .wq-audit-row { cursor: pointer; }
-.wq-audit-row:hover td { background: rgba(255,255,255,0.03); }
 
 .wq-audit-expanded td { background: rgba(255,255,255,0.015); padding: 0; }
 
@@ -5313,26 +5288,6 @@ body.evm-active .drawer {
 }
 .wq-btn--escalate:hover { background: rgba(255,100,103,0.08); }
 
-.wq-skip-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-.wq-skip-icon-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--text-secondary);
-  background: var(--bg-row-hover);
-}
-
 /* ══════════════════════════════════════════════════════════════════════════════
    OVERVIEW — event-type count cards (Part 4)
    ══════════════════════════════════════════════════════════════════════════════ */
@@ -5620,32 +5575,33 @@ body.evm-active .drawer {
 }
 
 /* ── Work Queues — My Work / My Team inline toggle ─────────────────────────── */
+/* DS SwitchTab */
 .wq-view-toggle {
   display: flex;
-  background: var(--bg-card-elevated);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 2px;
+  background: var(--st-bg);
+  box-shadow: var(--st-shadow);
+  border-radius: var(--radius-md);
+  padding: 4px;
   gap: 2px;
   flex-shrink: 0;
 }
 
 .wq-view-btn {
   padding: 5px 14px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: var(--st-text);
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--st-item-radius);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;
 }
 
 .wq-view-btn--active {
-  background: var(--accent-purple);
-  color: #fff;
+  background: var(--st-active-bg);
+  color: var(--st-active-text);
   font-weight: 600;
 }
 
