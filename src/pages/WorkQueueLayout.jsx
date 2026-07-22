@@ -2,6 +2,8 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Sparkles, X, SkipForward, Folder, Shield } from 'lucide-react'
 import { PEOPLE, COMMENT_THREADS } from '../data/workQueueData'
+import { WQ_TOUR_STEPS } from '../data/walkmeSteps'
+import WalkMe from '../components/WalkMe'
 import './WorkQueue.css'
 
 const TABS = [
@@ -384,6 +386,8 @@ export default function WorkQueueLayout() {
       )}
 
       {toast && <div className="wq-toast">{toast}</div>}
+
+      <WalkMe steps={WQ_TOUR_STEPS} storageKey="wq-walkme" />
     </>
   )
 }

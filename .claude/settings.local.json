@@ -32,7 +32,9 @@
       "Bash(powershell -Command \"\\(Get-Content 'C:\\\\Users\\\\alexa\\\\OneDrive\\\\Desktop\\\\Prototypes\\\\HTL\\\\src\\\\pages\\\\EventModal.jsx'\\).Count\")",
       "Bash(git -C \"aims-os-design-system-main\" log --oneline -5)",
       "Bash(git -C \"aims-os-design-system-main\" status)",
-      "WebFetch(domain:aims-os-design-system.vercel.app)"
+      "WebFetch(domain:aims-os-design-system.vercel.app)",
+      "Bash(ls \"C:\\\\Users\\\\alexa\\\\.claude\\\\skills\" 2>/dev/null || echo \"NO_SKILLS_DIR\")",
+      "Bash(mkdir -p \"/c/Users/alexa/.claude/skills/demo-walkme-react\")"
     ]
   }
 }

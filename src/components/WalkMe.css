@@ -1,0 +1,207 @@
+/* ─── WalkMe — guided product tour (React port of the demo-walkme skill) ──── */
+
+.walkme-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Floating trigger — persistent, user toggles at will */
+.walkme-trigger {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 950;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px 0 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--accent-blue-border);
+  background: var(--btn-primary-bg);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: background 0.15s, transform 0.1s;
+}
+.walkme-trigger:hover { background: var(--btn-primary-hover-bg); }
+.walkme-trigger:active { transform: scale(0.97); }
+
+/* Overlay + 4-strip click-through mask.
+   z-index is intentionally above the app's own modals/drawers (e.g. this
+   project's Modal/Drawer sit at 1000) — a tour step can drive the real app
+   into opening one of those mid-tour (see the `setup` callback), and the
+   WalkMe popover must still render on top of it, not get buried underneath. */
+.walkme-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1900;
+}
+
+.walkme-mask {
+  position: fixed;
+  background: rgba(4,8,18,0.55);
+  backdrop-filter: blur(1px);
+  transition: opacity 0.15s;
+}
+[data-theme="light"] .walkme-mask { background: rgba(15,23,42,0.32); }
+.walkme-no-motion .walkme-mask { transition: none; }
+.walkme-mask--full { inset: 0; }
+
+.walkme-ring {
+  position: fixed;
+  border: 2px solid var(--accent-blue);
+  border-radius: 8px;
+  box-shadow: 0 0 0 4000px rgba(0,0,0,0), 0 0 20px rgba(43,127,255,0.6);
+  pointer-events: none;
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+.walkme-no-motion .walkme-ring { transition: none; }
+.walkme-ring--pulse { animation: walkme-pulse 1.6s ease-in-out infinite; }
+.walkme-no-motion .walkme-ring--pulse { animation: none; }
+
+@keyframes walkme-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(43,127,255,0.5); }
+  50%      { box-shadow: 0 0 0 8px rgba(43,127,255,0); }
+}
+
+/* Popover */
+.walkme-popover {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--slide-out-bg);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid var(--slide-out-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.45);
+  padding: 16px;
+  z-index: 1901;
+  animation: walkme-in 0.18s ease-out;
+}
+.walkme-no-motion.walkme-overlay .walkme-popover { animation: none; }
+
+@keyframes walkme-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.walkme-popover--sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0; top: auto;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  transform: none !important;
+}
+
+.walkme-popover-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.walkme-step-count {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slide-out-body);
+}
+
+.walkme-link {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--slide-out-icon);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.12s, color 0.12s;
+}
+.walkme-link:hover { background: var(--bg-row-hover); color: var(--slide-out-icon-hover); }
+.walkme-link--skip { margin-left: auto; }
+
+.walkme-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--slide-out-title);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.walkme-body {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--slide-out-body);
+  margin-bottom: 12px;
+}
+.walkme-body strong { color: var(--text-primary); font-weight: 600; }
+.walkme-body code {
+  font-family: monospace;
+  font-size: 11.5px;
+  background: var(--bg-row-hover);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.walkme-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+.walkme-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.walkme-dot--active { background: var(--accent-blue); width: 14px; border-radius: 3px; }
+.walkme-dot--done { background: color-mix(in srgb, var(--accent-blue) 45%, transparent); }
+
+.walkme-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.walkme-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.walkme-btn--primary {
+  background: var(--btn-primary-bg);
+  color: #fff;
+}
+.walkme-btn--primary:hover { background: var(--btn-primary-hover-bg); }
+.walkme-btn--ghost {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-secondary-fg);
+  border-color: var(--btn-secondary-border);
+}
+.walkme-btn--ghost:hover { background: var(--btn-secondary-hover-bg); }
+
+@media (max-width: 560px) {
+  .walkme-trigger span { display: none; }
+  .walkme-trigger { padding: 0; width: 44px; height: 44px; justify-content: center; border-radius: 50%; }
+}

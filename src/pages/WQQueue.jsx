@@ -142,20 +142,21 @@ function CardMenu({ onTrace, showTeamActions, onTakeIt, onNudge, onReassign }) {
       <button
         className="wq-btn wq-btn--ghost wq-btn--icon wq-card-menu-btn"
         title="More actions"
+        data-tour="wq-card-menu-btn"
         onClick={() => setOpen(o => !o)}
       >
         <MoreVertical size={13} />
       </button>
       {open && (
-        <div className="wq-card-menu">
-          <button onClick={() => pick(onTrace)}>
+        <div className="wq-card-menu" data-tour="wq-card-menu">
+          <button data-tour="wq-trace-item" onClick={() => pick(onTrace)}>
             <GitBranch size={12} /> Trace
           </button>
           {showTeamActions && (
             <>
-              <button onClick={() => pick(onTakeIt)}>Take it</button>
-              <button onClick={() => pick(onNudge)}>Nudge</button>
-              <button onClick={() => pick(onReassign)}>Reassign</button>
+              <button data-tour="wq-takeit-item" onClick={() => pick(onTakeIt)}>Take it</button>
+              <button data-tour="wq-nudge-item" onClick={() => pick(onNudge)}>Nudge</button>
+              <button data-tour="wq-reassign-item" onClick={() => pick(onReassign)}>Reassign</button>
             </>
           )}
         </div>
@@ -235,13 +236,14 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
             <button
               className="wq-btn wq-btn--ghost wq-btn--icon"
               title="Skip — resurfaces in 2h"
+              data-tour="wq-skip-btn"
               onClick={() => onSkip(event)}
             >
               <SkipForward size={13} />
             </button>
-            <button className="wq-btn wq-btn--primary" onClick={() => onDetails(event)}>Details</button>
-            <button className="wq-btn wq-btn--ghost" onClick={() => onAskTeammate(event)}>Ask</button>
-            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onEscalate(event)}>Escalate</button>
+            <button className="wq-btn wq-btn--primary" data-tour="wq-details-btn" onClick={() => onDetails(event)}>Details</button>
+            <button className="wq-btn wq-btn--ghost" data-tour="wq-ask-btn" onClick={() => onAskTeammate(event)}>Ask</button>
+            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" data-tour="wq-escalate-btn" onClick={() => onEscalate(event)}>Escalate</button>
             <CardMenu
               onTrace={() => onTrace(event)}
               showTeamActions={teamMode}

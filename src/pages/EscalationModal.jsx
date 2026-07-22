@@ -77,7 +77,7 @@ export default function EscalationModal({ event, onClose, onConfirm }) {
         </div>
       }
     >
-      <div className="esc-body">
+      <div className="esc-body" data-tour="wq-escalate-modal">
 
         {/* ── Item summary ────────────────────────────────────────────── */}
         {event && (
