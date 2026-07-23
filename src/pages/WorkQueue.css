@@ -8134,6 +8134,129 @@ body.evm-active .drawer {
    EVENT TYPE BLOCKS (etb-*) — per-eventCategory slideout + full-page content
    ═══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Customer Card — Client events (client-continuation / client-handoff) ────── */
+.etb-customer-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border);
+  border-left: 3px solid #14b8a6;
+  border-radius: 8px;
+}
+.etb-cc-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #14b8a6;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.etb-cc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.etb-cc-name {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.etb-cc-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--bg-row-hover);
+  border: 1px solid var(--border);
+}
+.etb-cc-sentiment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.etb-cc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.etb-cc-summary {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.etb-cc-deals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.etb-cc-deal-chip {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  padding: 3px 9px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--bg-row-hover);
+  border: 1px solid var(--border);
+}
+.etb-cc-last {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+.etb-cc-last-date {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+.etb-cc-last-summary {
+  color: var(--text-secondary);
+}
+.etb-cc-history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+.etb-cc-history-agent {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.etb-cc-ucp-link {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #14b8a6;
+  padding: 2px 0;
+  margin-top: 2px;
+}
+.etb-cc-ucp-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Slideout type-context block ─────────────────────────────────────────────── */
 .etb-slide-block {
   display: flex;

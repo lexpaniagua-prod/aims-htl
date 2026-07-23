@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, MessageCircle, Contact, Phone, Mail } from 'lucide-react'
 import { PEOPLE, EVENT_MODAL_DATA } from '../data/workQueueData'
 import { fmtTs, TraceTimeline } from './EventModal'
 
@@ -51,13 +51,70 @@ function SecondaryLinks({ onAsk, onEscalate }) {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════════
+   CUSTOMER CARD — the differentiator for Client events (client-continuation /
+   client-handoff). Renders between the Situation block and the Prepared
+   Output / Handoff Packet block, on both the slideout and the full page.
+   Only rendered when event.customerCard exists — internal HTL events are
+   unaffected.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+const CHANNEL_ICON  = { webchat: MessageCircle, vcard: Contact, voice: Phone, email: Mail }
+const CHANNEL_LABEL = { webchat: 'Website Chat', vcard: 'VCard', voice: 'Voice', email: 'Email' }
+const SENTIMENT_COLOR = { positive: 'var(--accent-green)', neutral: 'var(--text-muted)', concerned: 'var(--accent-amber)', frustrated: '#ef4444' }
+const SENTIMENT_LABEL = { positive: 'Positive', neutral: 'Neutral', concerned: 'Concerned', frustrated: 'Frustrated' }
+
+function CustomerCardBlock({ card, notify }) {
+  if (!card) return null
+  const ChannelIcon = CHANNEL_ICON[card.channel] || MessageCircle
+
+  return (
+    <div className="etb-customer-card">
+      <div className="etb-cc-label">Customer</div>
+      <div className="etb-cc-head">
+        <span className="etb-cc-name">{card.name}</span>
+        <span className="etb-cc-channel"><ChannelIcon size={11} /> {CHANNEL_LABEL[card.channel] || card.channel}</span>
+      </div>
+      <div className="etb-cc-sentiment">
+        <span className="etb-cc-dot" style={{ background: SENTIMENT_COLOR[card.sentiment] || 'var(--text-muted)' }} />
+        {SENTIMENT_LABEL[card.sentiment] || card.sentiment}
+      </div>
+      {card.relationshipSummary && <p className="etb-cc-summary">{card.relationshipSummary}</p>}
+      {card.openDeals?.length > 0 && (
+        <div className="etb-cc-deals">
+          {card.openDeals.map((d, i) => (
+            <span key={i} className="etb-cc-deal-chip">{d.name} · {d.stage} · {d.value}</span>
+          ))}
+        </div>
+      )}
+      {card.lastInteraction && (
+        <div className="etb-cc-last">
+          <span className="etb-cc-last-date">{card.lastInteraction.date}</span>
+          <span className="etb-cc-last-summary">{card.lastInteraction.summary}</span>
+        </div>
+      )}
+      {card.agentHistory?.length > 0 && (
+        <ul className="etb-cc-history">
+          {card.agentHistory.map((h, i) => (
+            <li key={i}><span className="etb-cc-history-agent">{h.agentName}</span> · {h.date} — {h.outcome}</li>
+          ))}
+        </ul>
+      )}
+      <button className="etb-cc-ucp-link" onClick={() => notify?.(`Opening UCP profile for ${card.name}...`)}>
+        View full UCP profile →
+      </button>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
    SLIDEOUT TYPE CONTEXT BLOCKS — compact, 3-5 lines, per eventCategory
    ══════════════════════════════════════════════════════════════════════════════ */
 
-function ContinuationSlide({ event, md }) {
+function ContinuationSlide({ event, md, notify }) {
   const isGE = md.geClass === 'GE-COMM'
   return (
     <div className="etb-slide-block">
+      <CustomerCardBlock card={event.customerCard} notify={notify} />
       <div className="etb-slide-row"><span className="etb-slide-label">Agent</span><span className="etb-slide-val">{md.agent} · {event.sourceWorkflow?.name}</span></div>
       <p className="etb-slide-line">About to send an external communication on this workflow's behalf.</p>
       <div className="etb-slide-row">
@@ -75,9 +132,10 @@ function ContinuationSlide({ event, md }) {
   )
 }
 
-function HandoffSlide({ event, md }) {
+function HandoffSlide({ event, md, notify }) {
   return (
     <div className="etb-slide-block">
+      <CustomerCardBlock card={event.customerCard} notify={notify} />
       <div className="etb-slide-row"><span className="etb-slide-label">Entity</span><span className="etb-slide-val">{md.entityName}</span></div>
       <p className="etb-slide-line">{md.nextSuggestedAction}</p>
       <p className="etb-slide-line etb-slide-line--muted">{md.handoffReason}</p>
@@ -198,7 +256,7 @@ function QuestionSlide({ event, onNavigateToEvent }) {
   )
 }
 
-export function SlideoutTypeContext({ event, thread, onNavigateToEvent }) {
+export function SlideoutTypeContext({ event, thread, onNavigateToEvent, notify }) {
   const md = EVENT_MODAL_DATA[event.id] || {}
   switch (event.eventCategory) {
     case 'htl-continuation':    return <ContinuationSlide    event={event} md={md} />
@@ -210,6 +268,8 @@ export function SlideoutTypeContext({ event, thread, onNavigateToEvent }) {
     case 'gov-break-glass':     return <GovBreakGlassSlide   event={event} md={md} />
     case 'gov-change-request':  return <GovChangeRequestSlide event={event} md={md} />
     case 'question':            return <QuestionSlide         event={event} onNavigateToEvent={onNavigateToEvent} />
+    case 'client-continuation': return <ContinuationSlide    event={event} md={md} notify={notify} />
+    case 'client-handoff':      return <HandoffSlide         event={event} md={md} notify={notify} />
     default: return null
   }
 }
@@ -219,7 +279,7 @@ export function SlideoutTypeContext({ event, thread, onNavigateToEvent }) {
    ══════════════════════════════════════════════════════════════════════════════ */
 
 // ── 1. HTL-Continuation ──────────────────────────────────────────────────────────
-function ContinuationFull({ event, md, onDecide, onAsk, onEscalate }) {
+function ContinuationFull({ event, md, onDecide, onAsk, onEscalate, notify }) {
   const [view, setView] = useState('idle') // idle | confirm-approve | editing | confirm-edit | confirm-block
   const [editedBody, setEditedBody] = useState(md.draftEmail?.body || '')
   const [blockReason, setBlockReason] = useState('')
@@ -240,6 +300,12 @@ function ContinuationFull({ event, md, onDecide, onAsk, onEscalate }) {
           <span className="etb-confidence-label">confidence</span>
         </div>
       </div>
+
+      {event.customerCard && (
+        <div className="evm-section">
+          <CustomerCardBlock card={event.customerCard} notify={notify} />
+        </div>
+      )}
 
       {md.draftEmail && (
         <div className="evm-section">
@@ -318,7 +384,7 @@ function ContinuationFull({ event, md, onDecide, onAsk, onEscalate }) {
 }
 
 // ── 2. HTL-Handoff ───────────────────────────────────────────────────────────────
-function HandoffFull({ event, md, onDecide, onAsk, onEscalate, status, onStatusChange }) {
+function HandoffFull({ event, md, onDecide, onAsk, onEscalate, status, onStatusChange, notify }) {
   const [reassignOpen, setReassignOpen] = useState(false)
 
   return (
@@ -334,6 +400,12 @@ function HandoffFull({ event, md, onDecide, onAsk, onEscalate, status, onStatusC
         </div>
         <p className="etb-reason-note">{md.handoffReason}</p>
       </div>
+
+      {event.customerCard && (
+        <div className="evm-section">
+          <CustomerCardBlock card={event.customerCard} notify={notify} />
+        </div>
+      )}
 
       <div className="evm-section">
         <div className="evm-section-title">WHAT THE AGENT PREPARED FOR YOU</div>
@@ -993,6 +1065,10 @@ export function DecisionSurface({ event, onDecide, onAsk, onEscalate, thread, on
       return <GovBreakGlassFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} currentUser={currentUser} />
     case 'gov-change-request':
       return <GovChangeRequestFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} />
+    case 'client-continuation':
+      return <ContinuationFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} notify={notify} />
+    case 'client-handoff':
+      return <HandoffFull event={event} md={md} onDecide={onDecide} onAsk={onAsk} onEscalate={onEscalate} status={status} onStatusChange={onStatusChange} notify={notify} />
     default:
       return null
   }

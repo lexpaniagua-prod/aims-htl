@@ -17,6 +17,8 @@ export const EVENT_TYPES = {
   train:       { key: 'train',       label: 'Train Me',    verb: 'Decide',      desc: 'Human decision trains the model',          color: '#f43f5e' },
   'inbound-question': { key: 'inbound-question', label: 'Question', verb: 'Ask', desc: 'Agent-intercepted message requiring human review', color: '#f59e0b' },
   question:    { key: 'question',    label: 'Question',    verb: 'Respond',     desc: 'A question routed to a specific person for their input', color: '#f59e0b' },
+  'client-continuation': { key: 'client-continuation', label: 'Client · Continuation', verb: 'Respond', desc: 'A customer-facing workflow paused — human decision required', color: '#14b8a6' },
+  'client-handoff':      { key: 'client-handoff',      label: 'Client · Handoff',      verb: 'Respond', desc: 'A customer-facing workflow handed off — human owns it now', color: '#14b8a6' },
 }
 
 // ─── Studios ──────────────────────────────────────────────────────────────────
@@ -24,6 +26,10 @@ export const STUDIOS = {
   gov:     { key: 'gov',     name: 'Helix Governance Studio', short: 'GOV',   accentColor: '#8b5cf6' },
   data:    { key: 'data',    name: 'Helix Data Studio',       short: 'DATA',  accentColor: '#0ea5e9' },
   agentic: { key: 'agentic', name: 'Agentic Studio',          short: 'AGNT',  accentColor: '#10b981' },
+  // Customer-facing escalations — technically routed through Agentic Studio
+  // workflows, but shown with their own badge/filter so they read as
+  // customer-facing at a glance rather than internal agentic ops.
+  client:  { key: 'client',  name: 'Client',                  short: 'CLIENT', accentColor: '#14b8a6' },
 }
 
 // ─── Teams ────────────────────────────────────────────────────────────────────
@@ -42,7 +48,7 @@ export const TEAMS = {
 export const PEOPLE = [
   {
     id: 'p1',  name: 'Alexa M.',   initials: 'AM', role: 'Admin',              dept: 'Platform',
-    scope: 'executive', studios: ['gov','data','agentic'], partitions: ['*'],
+    scope: 'executive', studios: ['gov','data','agentic','client'], partitions: ['*'],
     teams: ['governance-operations', 'agentic-oversight'],
   },
   {
@@ -67,12 +73,12 @@ export const PEOPLE = [
   },
   {
     id: 'p6',  name: 'Casey V.',   initials: 'CV', role: 'Agentic Ops',        dept: 'AI Ops',
-    scope: 'individual', studios: ['agentic'],       partitions: ['agentic'],
+    scope: 'individual', studios: ['agentic','client'], partitions: ['agentic'],
     teams: ['agentic-oversight'],
   },
   {
     id: 'p7',  name: 'Devon N.',   initials: 'DN', role: 'IT Security',        dept: 'IT',
-    scope: 'individual', studios: ['gov','data'],    partitions: ['security','pii'],
+    scope: 'individual', studios: ['gov','data','client'], partitions: ['security','pii'],
     teams: ['immediate-response'],
   },
   {
@@ -87,12 +93,12 @@ export const PEOPLE = [
   },
   {
     id: 'p10', name: 'Morgan C.',  initials: 'MC', role: 'Agentic Ops Lead',   dept: 'AI Ops',
-    scope: 'manager',   studios: ['agentic'],        partitions: ['agentic'],
+    scope: 'manager',   studios: ['agentic','client'], partitions: ['agentic'],
     teams: ['agentic-oversight'],
   },
   {
     id: 'p11', name: 'Quinn S.',   initials: 'QS', role: 'CTO',                dept: 'Executive',
-    scope: 'executive', studios: ['gov','data','agentic'], partitions: ['*'],
+    scope: 'executive', studios: ['gov','data','agentic','client'], partitions: ['*'],
     teams: ['agentic-oversight'],
   },
   {
@@ -113,7 +119,7 @@ export const PEOPLE = [
   },
   {
     id: 'p15', name: 'Jamie C.',   initials: 'JC', role: 'IT Operations',      dept: 'IT',
-    scope: 'individual', studios: ['gov','data'],    partitions: ['security'],
+    scope: 'individual', studios: ['gov','data','client'], partitions: ['security'],
     teams: ['immediate-response'],
   },
   {
@@ -414,6 +420,141 @@ export const EVENTS = [
     quickActions: ['Reply', 'Forward'],
     spec: 'MSG-0601', kind: 'Broadcast',
   },
+
+  // ── Client events — customer-facing AI-to-human handoffs ───────────────
+  {
+    id: 'EVT-C001', severity: 'now', studio: 'client', ownerId: 'p10',
+    title: 'Website Chat: high-intent prospect asking about enterprise pricing',
+    detail: 'SalesForecastPA paused — prospect asked for custom enterprise pricing not covered by Canon. Confidence 0.68. Human required to provide accurate quote.',
+    blastRadius: { workflows: 0, agents: 1, description: 'SalesForecastPA paused pending human quote' },
+    dueLabel: 'Live — prospect waiting', dueDate: '2026-07-02', type: 'client-continuation', origin: 'customer', dueToday: true, missionCritical: false,
+    eventCategory: 'client-continuation',
+    quickActions: ['Approve', 'Edit', 'Block'],
+    spec: 'WEBCHAT-88312', kind: 'Client Continuation',
+    sourceWorkflow: {
+      id: 'WF-WEBCHAT-001',
+      name: 'Enterprise Inbound Lead Qualification',
+      steps: [
+        { step: 1, label: 'Visitor identified', status: 'done', timestamp: '2026-07-02T09:58:00Z' },
+        { step: 2, label: 'Intent classified: pricing inquiry', status: 'done', timestamp: '2026-07-02T09:58:15Z' },
+        { step: 3, label: 'Canon queried — no enterprise tier match', status: 'done', timestamp: '2026-07-02T09:58:30Z' },
+        { step: 4, label: 'HITL Approval — awaiting human', status: 'paused', timestamp: '2026-07-02T10:00:00Z' },
+      ],
+    },
+    customerCard: {
+      customerId: 'UCP-88312',
+      name: 'Marcus Webb',
+      channel: 'webchat',
+      sentiment: 'positive',
+      relationshipSummary: 'New prospect, arrived via paid search. Third visit this week. Viewed enterprise pricing page twice.',
+      openDeals: [
+        { name: 'Enterprise Platform Trial', stage: 'Interest', value: '$180,000 ARR est.' },
+      ],
+      lastInteraction: { date: '2 min ago', summary: 'Asked about custom pricing for 500-seat deployment' },
+      agentHistory: [],
+    },
+  },
+  {
+    id: 'EVT-C002', severity: 'now', studio: 'client', ownerId: 'p1',
+    title: 'Website Chat: customer expressing cancellation intent',
+    detail: 'CustomerEscalationPA paused — GE-COMM action blocked. Customer used explicit cancellation language. Confidence 0.71. Pack rule: cancellation intent requires human.',
+    blastRadius: { workflows: 2, agents: 1, description: 'CustomerEscalationPA blocked pending human response' },
+    dueLabel: 'Live — customer waiting', dueDate: '2026-07-02', type: 'client-continuation', origin: 'customer', dueToday: true, missionCritical: true,
+    eventCategory: 'client-continuation',
+    quickActions: ['Approve', 'Edit', 'Block'],
+    spec: 'RETENTION-44201', kind: 'Client Continuation',
+    sourceWorkflow: {
+      id: 'WF-RETENTION-001',
+      name: 'Customer Retention Escalation',
+      steps: [
+        { step: 1, label: 'Cancellation intent detected', status: 'done', timestamp: '2026-07-02T09:56:00Z' },
+        { step: 2, label: 'Retention script initiated', status: 'done', timestamp: '2026-07-02T09:56:30Z' },
+        { step: 3, label: 'Customer sentiment: frustrated', status: 'done', timestamp: '2026-07-02T09:57:00Z' },
+        { step: 4, label: 'GE-COMM block — HITL required', status: 'paused', timestamp: '2026-07-02T10:00:00Z' },
+      ],
+    },
+    customerCard: {
+      customerId: 'UCP-44201',
+      name: 'Sandra Ortega',
+      channel: 'webchat',
+      sentiment: 'frustrated',
+      relationshipSummary: 'Enterprise customer, 3-year relationship. $240K ARR. Two unresolved support tickets open for 8+ days.',
+      openDeals: [
+        { name: 'Annual Renewal Q3', stage: 'At Risk', value: '$240,000 ARR' },
+      ],
+      lastInteraction: { date: '8 days ago', summary: 'Opened support ticket — integration sync failure' },
+      agentHistory: [
+        { agentName: 'SupportBot v2', date: '8 days ago', outcome: 'Ticket opened, unresolved' },
+        { agentName: 'SupportBot v2', date: '3 days ago', outcome: 'Follow-up sent, no resolution' },
+      ],
+    },
+  },
+  {
+    id: 'EVT-C003', severity: 'red', studio: 'client', ownerId: 'p6',
+    title: 'VCard: prospect requested human contact — field sales handoff',
+    detail: 'Prospect explicitly requested to speak with a sales representative via VCard interaction. AI workflow transferred ownership.',
+    blastRadius: { workflows: 0, agents: 1, description: 'Awaiting human follow-up — no automation blocked' },
+    dueLabel: 'Respond within 2h', dueDate: '2026-07-02', type: 'client-handoff', origin: 'customer', dueToday: true, missionCritical: false,
+    eventCategory: 'client-handoff',
+    quickActions: ['Acknowledge', 'Reassign'],
+    spec: 'VCARD-91044', kind: 'Client Handoff',
+    sourceWorkflow: {
+      id: 'WF-VCARD-001',
+      name: 'VCard Prospect Engagement',
+      steps: [
+        { step: 1, label: 'VCard activated by prospect', status: 'done', timestamp: '2026-07-02T09:42:00Z' },
+        { step: 2, label: 'Product interest identified: Data Studio', status: 'done', timestamp: '2026-07-02T09:45:00Z' },
+        { step: 3, label: 'Human request detected', status: 'done', timestamp: '2026-07-02T09:48:00Z' },
+        { step: 4, label: 'HTL Handoff — ownership transferred', status: 'done', timestamp: '2026-07-02T09:48:05Z' },
+      ],
+    },
+    customerCard: {
+      customerId: 'UCP-91044',
+      name: 'Priya Nair',
+      channel: 'vcard',
+      sentiment: 'positive',
+      relationshipSummary: 'Warm inbound prospect from referral. Director of Data at a 2,000-person professional services firm. Expressed interest in Helix Data Studio.',
+      openDeals: [
+        { name: 'Helix Data Studio Evaluation', stage: 'Discovery', value: '$95,000 ARR est.' },
+      ],
+      lastInteraction: { date: '12 min ago', summary: 'Asked about connector library and data pipeline governance. Requested to speak with someone.' },
+      agentHistory: [
+        { agentName: 'ProspectPA', date: '18 min ago', outcome: 'Engagement initiated, interest confirmed' },
+      ],
+    },
+  },
+  {
+    id: 'EVT-C004', severity: 'now', studio: 'client', ownerId: 'p1',
+    title: 'Voice: vulnerable customer signal — immediate human required',
+    detail: 'VoiceAssistantPA detected vulnerable customer indicators during call. Council classified as GE-COMP. Transferred to human immediately per policy.',
+    blastRadius: { workflows: 1, agents: 1, description: 'Voice call held pending human takeover' },
+    dueLabel: 'Immediate — call in progress', dueDate: '2026-07-02', type: 'client-handoff', origin: 'customer', dueToday: true, missionCritical: true,
+    eventCategory: 'client-handoff',
+    quickActions: ['Acknowledge', 'Reassign'],
+    spec: 'VOICE-22819', kind: 'Client Handoff',
+    sourceWorkflow: {
+      id: 'WF-VOICE-001',
+      name: 'Inbound Voice AI Handler',
+      steps: [
+        { step: 1, label: 'Call received and identified', status: 'done', timestamp: '2026-07-02T09:54:00Z' },
+        { step: 2, label: 'Vulnerability indicators detected', status: 'done', timestamp: '2026-07-02T09:55:00Z' },
+        { step: 3, label: 'Council: GE-COMP — ESCALATE', status: 'done', timestamp: '2026-07-02T09:55:10Z' },
+        { step: 4, label: 'HTL Handoff — human required now', status: 'done', timestamp: '2026-07-02T09:55:15Z' },
+      ],
+    },
+    customerCard: {
+      customerId: 'UCP-22819',
+      name: 'Robert Tanner',
+      channel: 'voice',
+      sentiment: 'concerned',
+      relationshipSummary: 'Existing customer, 68 years old per profile. Called about account changes. Vulnerability indicators: confusion, repeated questions, emotional distress signals detected by voice model.',
+      openDeals: [],
+      lastInteraction: { date: '6 min ago', summary: 'Called to ask about recent account changes. Appeared confused and distressed.' },
+      agentHistory: [
+        { agentName: 'VoiceAssistantPA', date: '6 min ago', outcome: 'Vulnerability detected — transferred to human' },
+      ],
+    },
+  },
 ]
 
 // ─── Transfers (3 entries) ────────────────────────────────────────────────────
@@ -699,6 +840,72 @@ export const EVENT_MODAL_DATA = {
     sourceB: { name: 'Northfield Capital',  records: 23,  source: 'NetSuite ERP',    lastUpdated: '2026-05-30' },
     matchSignals: ['Address match (92%)', 'Phone prefix match (88%)', 'Industry code match (100%)', 'Contact name partial match (71%)'],
     modelConfidence: 0.68,
+  },
+
+  'EVT-C001': {
+    agent: 'SalesForecastPA',
+    model: 'GPT-4 Sales Assistant',
+    confidence: 0.68,
+    geClass: 'GE-SALES',
+    draftEmail: {
+      to: 'Marcus Webb (marcus.webb@example.com)',
+      subject: 'Re: Enterprise pricing inquiry',
+      body: 'Our enterprise plans start at $150,000 ARR. I can connect you with our solutions team for a custom quote. Would Thursday work for a 30-minute call?',
+    },
+  },
+
+  'EVT-C002': {
+    agent: 'CustomerEscalationPA',
+    model: 'GPT-4 Retention Assistant',
+    confidence: 0.71,
+    geClass: 'GE-COMM',
+    draftEmail: {
+      to: 'Sandra Ortega (sandra.ortega@example.com)',
+      subject: 'Re: Your account and recent experience',
+      body: "Sandra, I completely understand your frustration and I sincerely apologize for the delays. I'm escalating your case directly to our senior support team right now and will personally follow up within the hour.",
+    },
+  },
+
+  'EVT-C003': {
+    entityName: 'Priya Nair (Prospect)',
+    recordId: 'UCP-91044',
+    sourceSystem: 'VCard Engagement Platform',
+    handoffReason: 'Prospect explicitly requested to speak with a human sales representative.',
+    keyFacts: [
+      'Director of Data at a 2,000-person professional services firm',
+      'Referred by an existing customer',
+      'Asked about connector library and data pipeline governance',
+    ],
+    recommendations: [
+      'Lead with the connector library walkthrough',
+      'Loop in a Data Studio solutions engineer for the first call',
+    ],
+    nextSuggestedAction: 'Reach out within 2 hours — high engagement, warm referral.',
+    crmRecord: 'OPP-40218',
+    transcriptSummary: 'Prospect asked detailed questions about connector library and data pipeline governance before requesting a human contact.',
+    knowledgeContract: 'Helix Data Studio — Evaluation Playbook v3',
+  },
+
+  'EVT-C004': {
+    entityName: 'Robert Tanner (Customer)',
+    recordId: 'UCP-22819',
+    sourceSystem: 'Inbound Voice AI Platform',
+    handoffReason: 'Voice model detected vulnerability indicators (confusion, repeated questions, emotional distress) — Council classified GE-COMP, policy requires immediate human transfer.',
+    keyFacts: [
+      '68 years old per profile',
+      'Called about recent account changes',
+      'Voice model flagged confusion and repeated questions',
+      'Emotional distress signals detected',
+    ],
+    recommendations: [
+      'Speak slowly and confirm understanding at each step',
+      'Document the vulnerability assessment before closing the case',
+      'Loop in Vulnerable Customer Support if unresolved',
+    ],
+    nextSuggestedAction: 'Take ownership immediately — do not return this call to automation.',
+    crmRecord: 'ACCT-77031',
+    transcriptSummary: 'Customer called confused about recent account changes; voice model detected distress signals mid-call and escalated per policy.',
+    knowledgeContract: 'Vulnerable Customer Handling Policy v2',
   },
 }
 

@@ -34,7 +34,15 @@
       "Bash(git -C \"aims-os-design-system-main\" status)",
       "WebFetch(domain:aims-os-design-system.vercel.app)",
       "Bash(ls \"C:\\\\Users\\\\alexa\\\\.claude\\\\skills\" 2>/dev/null || echo \"NO_SKILLS_DIR\")",
-      "Bash(mkdir -p \"/c/Users/alexa/.claude/skills/demo-walkme-react\")"
+      "Bash(mkdir -p \"/c/Users/alexa/.claude/skills/demo-walkme-react\")",
+      "Bash(node --input-type=module --check)",
+      "Bash(node --check src/pages/EventTypeBlocks.jsx)",
+      "Bash(npx --yes esbuild src/pages/EventTypeBlocks.jsx --loader=jsx --bundle=false --outfile=/dev/null)",
+      "Bash(npx --yes esbuild src/pages/WQQueue.jsx --loader=jsx --bundle=false --outfile=/dev/null)",
+      "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --loader=jsx --bundle=false --outfile=/dev/null)",
+      "Bash(npx --yes esbuild src/pages/EventTypeBlocks.jsx --bundle=false --outfile=out1.js)",
+      "Bash(npx --yes esbuild src/pages/WQQueue.jsx --bundle=false --outfile=out2.js)",
+      "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --bundle=false --outfile=out3.js)"
     ]
   }
 }

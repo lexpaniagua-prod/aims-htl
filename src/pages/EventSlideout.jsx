@@ -47,7 +47,7 @@ function fmtDate(iso) {
 }
 
 // ── Event slideout — Level 1 fast-context drawer ────────────────────────────────
-export default function EventSlideout({ event, thread, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace, onNavigateToEvent }) {
+export default function EventSlideout({ event, thread, onClose, onOpenFullPage, onAsk, onViewThread, onEscalate, onTrace, onNavigateToEvent, notify }) {
   const drawerRef = useRef(null)
   const { width, onPointerDown } = useSlideoutResize(SLIDEOUT_DEFAULT_WIDTH)
 
@@ -136,7 +136,7 @@ export default function EventSlideout({ event, thread, onClose, onOpenFullPage, 
 
           {/* Type context block — event-category-specific summary */}
           {event.eventCategory && (
-            <SlideoutTypeContext event={event} thread={thread} onNavigateToEvent={onNavigateToEvent} />
+            <SlideoutTypeContext event={event} thread={thread} onNavigateToEvent={onNavigateToEvent} notify={notify} />
           )}
 
           {/* Actions */}

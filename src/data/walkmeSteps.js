@@ -214,6 +214,20 @@ export const WQ_TOUR_STEPS = [
     scrollToTarget: true,
   },
   {
+    title: 'Client Continuation',
+    body: 'Same idea as HTL Continuation, but the workflow talking to the AI is customer-facing — a website chat, VCard, or voice call. That’s why you’ll see a <strong>Customer Card</strong> here too: the customer’s profile, relationship history, and sentiment, so you have the context to respond to a real person, not just resume a workflow.',
+    route: '/work-queue/event/EVT-C001',
+    target: '.wqep-detail',
+    scrollToTarget: true,
+  },
+  {
+    title: 'Client Handoff',
+    body: 'A customer-facing AI handed the conversation to you directly — no more automation to run. The <strong>Customer Card</strong> at the top gives you everything you need to pick up where the AI left off: who they are, what they’ve asked, and how they’re feeling about it.',
+    route: '/work-queue/event/EVT-C004',
+    target: '.wqep-detail',
+    scrollToTarget: true,
+  },
+  {
     title: 'Question',
     body: 'A direct question from a colleague, sent through the queue instead of chat, so it doesn’t get buried. You can answer it right here and it counts as handling the event.',
     route: '/work-queue/event/EVT-022',
