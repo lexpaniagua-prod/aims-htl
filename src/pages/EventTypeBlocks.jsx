@@ -607,7 +607,27 @@ function TrainMeFull({ event, md, onDecide, onAsk, onEscalate }) {
 
 // Shared claim-decision list — used by Governance Proposal (attesting new claims)
 // and Governance Review (deciding a claim routed over by a colleague).
+// "Correct" opens an inline editable copy of the claim text — saving it
+// replaces the displayed value but keeps the original visible underneath, so
+// nothing is silently lost.
 function ClaimsList({ title, claims, conflicts, decisions, setDecision }) {
+  const [openIds, setOpenIds] = useState({})   // claimId -> editor open?
+  const [drafts, setDrafts]   = useState({})   // claimId -> in-progress draft text
+  const [saved, setSaved]     = useState({})   // claimId -> saved corrected text
+
+  const openCorrection = (c) => {
+    setDecision(c.id, 'correct')
+    setDrafts(prev => ({ ...prev, [c.id]: prev[c.id] ?? saved[c.id] ?? c.text }))
+    setOpenIds(prev => ({ ...prev, [c.id]: !prev[c.id] }))
+  }
+  const saveCorrection = (id) => {
+    setSaved(prev => ({ ...prev, [id]: drafts[id] ?? '' }))
+    setOpenIds(prev => ({ ...prev, [id]: false }))
+  }
+  const cancelCorrection = (id) => {
+    setOpenIds(prev => ({ ...prev, [id]: false }))
+  }
+
   return (
     <div className="evm-section">
       <div className="evm-section-title">{title}</div>
@@ -615,14 +635,23 @@ function ClaimsList({ title, claims, conflicts, decisions, setDecision }) {
         {claims.map(c => {
           const conflict = (conflicts || []).find(cf => cf.claimId === c.id)
           const decision = decisions[c.id]
+          const isOpen = !!openIds[c.id]
+          const hasCorrection = saved[c.id] !== undefined
+          const displayText = hasCorrection ? saved[c.id] : c.text
           return (
             <div key={c.id} className={`evm-claim${c.conflict ? ' evm-claim--conflict' : ''}`}>
               <div className="evm-claim-header">
                 <span className="evm-claim-id">{c.id}</span>
                 <span className="evm-claim-conf" style={{ color: confidenceColor(c.confidence) }}>{Math.round(c.confidence * 100)}%</span>
                 {c.conflict && <span className="evm-claim-conflict-badge">CONFLICT</span>}
+                {hasCorrection && <span className="etb-claim-corrected-badge">Corrected</span>}
               </div>
-              <div className="evm-claim-text">{c.text}</div>
+              <div className="evm-claim-text">
+                {displayText || <em className="etb-claim-text-empty">(cleared — no replacement text)</em>}
+              </div>
+              {hasCorrection && (
+                <div className="etb-claim-original">Original: {c.text}</div>
+              )}
               {conflict && (
                 <div className="etb-mini-compare">
                   <div className="etb-mini-source"><span className="evm-source-badge evm-source-badge--a">Source A</span> {conflict.sourceA.name} — {conflict.sourceA.value}</div>
@@ -632,8 +661,24 @@ function ClaimsList({ title, claims, conflicts, decisions, setDecision }) {
               <div className="etb-claim-actions">
                 <button className={`etb-claim-btn${decision === 'approve' ? ' etb-claim-btn--approve-on' : ''}`} onClick={() => setDecision(c.id, 'approve')}>Approve</button>
                 <button className={`etb-claim-btn${decision === 'reject' ? ' etb-claim-btn--reject-on' : ''}`} onClick={() => setDecision(c.id, 'reject')}>Reject</button>
-                <button className="etb-claim-btn" onClick={() => setDecision(c.id, 'correct')}>Correct</button>
+                <button className={`etb-claim-btn${decision === 'correct' ? ' etb-claim-btn--correct-on' : ''}`} onClick={() => openCorrection(c)}>Correct</button>
               </div>
+              {isOpen && (
+                <div className="etb-claim-correct-panel">
+                  <textarea
+                    className="evm-form-textarea"
+                    rows={2}
+                    placeholder="Edit or clear the claim text…"
+                    value={drafts[c.id] ?? ''}
+                    onChange={e => setDrafts(prev => ({ ...prev, [c.id]: e.target.value }))}
+                  />
+                  <p className="etb-claim-correct-hint">Original: {c.text}</p>
+                  <div className="etb-claim-correct-actions">
+                    <button className="wq-btn wq-btn--ghost wq-btn--sm" onClick={() => cancelCorrection(c.id)}>Cancel</button>
+                    <button className="wq-btn wq-btn--primary wq-btn--sm" onClick={() => saveCorrection(c.id)}>Save correction</button>
+                  </div>
+                </div>
+              )}
             </div>
           )
         })}

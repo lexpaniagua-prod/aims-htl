@@ -7,7 +7,7 @@ import {
   Sun, Briefcase, Users,
 } from 'lucide-react'
 import {
-  EVENTS, SEVERITY, SEVERITY_ORDER, STUDIOS, EVENT_TYPES,
+  EVENTS, SEVERITY, SEVERITY_ORDER, STUDIOS,
   MESSAGES, ATTESTATIONS, PEOPLE,
 } from '../data/workQueueData'
 
@@ -168,8 +168,19 @@ function personaStudios(user) {
 const SEV_CONFIG = [
   { sev: 'now',    accent: 'var(--accent-coral)', border: 'rgba(244,63,94,0.35)',  bg: 'rgba(244,63,94,0.07)'  },
   { sev: 'red',    accent: '#ef4444',             border: 'rgba(239,68,68,0.35)',  bg: 'rgba(239,68,68,0.07)'  },
-  { sev: 'yellow', accent: 'var(--accent-amber)', border: 'rgba(245,158,11,0.35)', bg: 'rgba(245,158,11,0.07)' },
   { sev: 'green',  accent: 'var(--accent-green)', border: 'rgba(16,185,129,0.35)', bg: 'rgba(16,185,129,0.07)' },
+]
+
+// ─── Event category stats — mirrors the Work Queues "Type" filter ────────────
+const CATEGORY_STATS = [
+  { key: 'htl-continuation', label: 'HTL Continuation', color: '#3b82f6', match: e => e.eventCategory === 'htl-continuation' },
+  { key: 'htl-handoff',      label: 'HTL Handoff',       color: '#10b981', match: e => e.eventCategory === 'htl-handoff' },
+  { key: 'inbound-question', label: 'Question',         color: '#f59e0b', match: e => e.eventCategory === 'inbound-question' },
+  { key: 'train-me',         label: 'Train Me',          color: '#f43f5e', match: e => e.eventCategory === 'train-me' },
+  { key: 'gov-promotion',    label: 'Gov Promotion',     color: '#8b5cf6', match: e => e.eventCategory === 'gov-promotion' },
+  { key: 'gov-review',       label: 'Gov Review',        color: '#a78bfa', match: e => e.eventCategory === 'gov-review' },
+  { key: 'gov-break-glass',  label: 'Gov Break Glass',   color: '#ef4444', match: e => e.eventCategory === 'gov-break-glass' },
+  { key: 'customer',         label: 'Customer',          color: '#64748b', match: e => e.origin === 'customer' },
 ]
 
 // ─── DonutScore ───────────────────────────────────────────────────────────────
@@ -469,10 +480,10 @@ export default function WQOverview() {
     }
   }
 
-  // Part 4: type count cards
-  const TYPE_CARDS = Object.values(EVENT_TYPES).map(et => ({
-    ...et,
-    count: personaEvents.filter(e => e.type === et.key).length,
+  // Part 4: type count cards — mirrors the Work Queues "Type" filter categories
+  const TYPE_CARDS = CATEGORY_STATS.map(cat => ({
+    ...cat,
+    count: personaEvents.filter(cat.match).length,
   }))
 
   // Part 6: 2 most recent messages by timestamp
@@ -487,7 +498,44 @@ export default function WQOverview() {
   return (
     <div className="wqov-root">
 
-      {/* ── Row 1: My Day (left) + Jump To + Messages (right) ───────────── */}
+      {/* ── Row 1: Unified count strip — severity + event type, compact ──── */}
+      <div className="wqov-count-row">
+        <div className="wqov-count-group wqov-count-group--sev">
+          {SEV_CONFIG.map(({ sev, accent }) => {
+            const { count } = sevStats[sev]
+            const meta = SEVERITY[sev]
+            return (
+              <button
+                key={sev}
+                className={`wqov-count-card${count === 0 ? ' wqov-count-card--empty' : ''}`}
+                style={{ borderLeftColor: accent }}
+                onClick={() => navigate(`/work-queue/work-queues?view=my-work&severity=${sev}`)}
+                disabled={count === 0}
+              >
+                <span className="wqov-count-num" style={{ color: accent }}>{count}</span>
+                <span className="wqov-count-lbl">{meta.label}</span>
+              </button>
+            )
+          })}
+        </div>
+        <div className="wqov-count-divider" />
+        <div className="wqov-count-group wqov-count-group--type">
+          {TYPE_CARDS.map(et => (
+            <button
+              key={et.key}
+              className={`wqov-count-card${et.count === 0 ? ' wqov-count-card--empty' : ''}`}
+              style={{ borderLeftColor: et.color }}
+              onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
+              disabled={et.count === 0}
+            >
+              <span className="wqov-count-num" style={{ color: et.color }}>{et.count}</span>
+              <span className="wqov-count-lbl">{et.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Row 2: My Day (left) + Jump To + Messages (right) ───────────── */}
       <div className="wqov-top-cols">
 
         <div className="wqov-col-myday wqov-col-myday--framed">
@@ -584,42 +632,6 @@ export default function WQOverview() {
             </div>
           </section>
 
-        </div>
-      </div>
-
-      {/* ── Row 2: Unified count cards — severity + event type ──────────── */}
-      <div className="wqov-count-row">
-        <div className="wqov-count-group wqov-count-group--sev">
-          {SEV_CONFIG.map(({ sev, accent }) => {
-            const { count } = sevStats[sev]
-            const meta = SEVERITY[sev]
-            return (
-              <button
-                key={sev}
-                className={`wqov-count-card${count === 0 ? ' wqov-count-card--empty' : ''}`}
-                style={{ borderTopColor: accent }}
-                onClick={() => navigate(`/work-queue/work-queues?view=my-work&severity=${sev}`)}
-                disabled={count === 0}
-              >
-                <span className="wqov-count-num" style={{ color: accent }}>{count}</span>
-                <span className="wqov-count-lbl">{meta.label}</span>
-              </button>
-            )
-          })}
-        </div>
-        <div className="wqov-count-group wqov-count-group--type">
-          {TYPE_CARDS.map(et => (
-            <button
-              key={et.key}
-              className={`wqov-count-card${et.count === 0 ? ' wqov-count-card--empty' : ''}`}
-              style={{ borderTopColor: et.color }}
-              onClick={() => navigate(`/work-queue/work-queues?view=my-work&type=${et.key}`)}
-              disabled={et.count === 0}
-            >
-              <span className="wqov-count-num" style={{ color: et.color }}>{et.count}</span>
-              <span className="wqov-count-lbl">{et.label}</span>
-            </button>
-          ))}
         </div>
       </div>
 

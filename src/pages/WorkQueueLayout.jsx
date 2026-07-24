@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { Sparkles, X, SkipForward, Folder, Shield } from 'lucide-react'
+import { Sparkles, X, SkipForward, Layers, ClipboardList } from 'lucide-react'
 import { PEOPLE, COMMENT_THREADS } from '../data/workQueueData'
 import { WQ_TOUR_STEPS } from '../data/walkmeSteps'
 import WalkMe from '../components/WalkMe'
@@ -48,62 +48,64 @@ function WhatsnewModal({ onClose, onNavigate }) {
 
           {/* Shipped banner */}
           <div className="wqwn-section-banner wqwn-section-banner--shipped">
-            <span className="wqwn-section-banner-label">SHIPPED — Phase 1</span>
-            <span className="wqwn-section-banner-sub">Core structure, mock data, and all four tabs are live.</span>
+            <span className="wqwn-section-banner-label">SHIPPED — V1</span>
+            <span className="wqwn-section-banner-sub">The full Work Queues tab — every event type — plus Activity, are live and interactive.</span>
           </div>
 
           <div className="wqwn-cards">
 
-            {/* Card 1 — Skip */}
+            {/* Card 1 — Card actions */}
             <div className="wqwn-card">
               <div className="wqwn-card-icon wqwn-card-icon--skip">
                 <SkipForward size={15} />
               </div>
               <div className="wqwn-card-body">
                 <div className="wqwn-card-eyebrow">YOU CAN NOW</div>
-                <div className="wqwn-card-headline">You have an escape for Act Now items.</div>
+                <div className="wqwn-card-headline">Every card is fully actionable.</div>
                 <p className="wqwn-card-desc">
-                  Skip moves the item to the bottom of its severity group and
-                  resurfaces it in 2 hours. Logged to audit.
+                  Skip, Details, Ask, and Escalate all work end-to-end, plus the
+                  ⋮ menu for Trace and — in My Team view — Take it, Nudge, and Reassign.
                 </p>
-                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/work-queues?severity=now')}>
-                  Find an Act Now item →
+                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/work-queues')}>
+                  Try a live card →
                 </button>
               </div>
             </div>
 
-            {/* Card 2 — Watch-folder */}
+            {/* Card 2 — Event types */}
             <div className="wqwn-card">
               <div className="wqwn-card-icon wqwn-card-icon--folder">
-                <Folder size={15} />
+                <Layers size={15} />
               </div>
               <div className="wqwn-card-body">
                 <div className="wqwn-card-eyebrow">YOU CAN NOW</div>
-                <div className="wqwn-card-headline">Watch-folder ingest is a first-class event.</div>
+                <div className="wqwn-card-headline">Ten event types, each with its own decision surface.</div>
                 <p className="wqwn-card-desc">
-                  When files land in a watched drive, an approval event appears
-                  in your queue before extraction begins.
+                  HTL Continuation, HTL Handoff, Question, Train Me, Gov Promotion,
+                  Gov Review, Gov Break Glass, Gov Change Request, and the new
+                  Client Continuation / Client Handoff — with a Customer Card for
+                  the customer-facing ones.
                 </p>
-                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/work-queues?studio=gov&type=approve')}>
-                  See watch-folder event →
+                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/event/EVT-001')}>
+                  See a Gov Promotion →
                 </button>
               </div>
             </div>
 
-            {/* Card 3 — Break Glass */}
+            {/* Card 3 — Activity */}
             <div className="wqwn-card">
               <div className="wqwn-card-icon wqwn-card-icon--shield">
-                <Shield size={15} />
+                <ClipboardList size={15} />
               </div>
               <div className="wqwn-card-body">
                 <div className="wqwn-card-eyebrow">YOU CAN NOW</div>
-                <div className="wqwn-card-headline">Break Glass requests appear as Act Now events.</div>
+                <div className="wqwn-card-headline">Activity is fully live.</div>
                 <p className="wqwn-card-desc">
-                  Two-key gate — both approvers must act. Logged to audit ledger
-                  with requester, reason, and timestamp.
+                  Transfers tracks every handoff between people, and the Audit
+                  Ledger is the tamper-proof, hash-chained record of every action taken.
                 </p>
-                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/work-queues?severity=now')}>
-                  See break-glass request →
+                <button className="wqwn-cta" onClick={() => onNavigate('/work-queue/activity')}>
+                  Open Activity →
                 </button>
               </div>
             </div>
@@ -112,14 +114,13 @@ function WhatsnewModal({ onClose, onNavigate }) {
 
           {/* Staged banner */}
           <div className="wqwn-section-banner wqwn-section-banner--staged">
-            <span className="wqwn-section-banner-label">STAGED FOR NEXT PHASE</span>
+            <span className="wqwn-section-banner-label">NOT YET V1</span>
           </div>
           <ul className="wqwn-staged-list">
-            <li>Full modal flows for all event types — Approve, Review, Respond, Resolve, Acknowledge, Train</li>
-            <li>Escalation modal with person/group selector</li>
-            <li>Trace slideout with workflow step timeline</li>
-            <li>Attestation verification request wired end-to-end</li>
-            <li>Reports section in HTL Reports area</li>
+            <li>Overview tab (My Day, counts, Studio Health)</li>
+            <li>Messages — both the current and proposed versions</li>
+            <li>Attestations</li>
+            <li>Task View</li>
           </ul>
 
         </div>

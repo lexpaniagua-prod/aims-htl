@@ -19,10 +19,7 @@ const CATEGORY_OPTIONS = [
   { value: 'gov-promotion',      label: 'Gov Promotion',      group: 'eventCategory' },
   { value: 'gov-review',         label: 'Gov Review',         group: 'eventCategory' },
   { value: 'gov-break-glass',    label: 'Gov Break Glass',    group: 'eventCategory' },
-  { value: 'client-continuation', label: 'Client Continuation', group: 'eventCategory' },
-  { value: 'client-handoff',      label: 'Client Handoff',      group: 'eventCategory' },
   { value: 'customer',           label: 'Customer',           group: 'origin' },
-  { value: 'internal',           label: 'Internal',           group: 'origin' },
 ]
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
