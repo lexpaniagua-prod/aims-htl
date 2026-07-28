@@ -203,29 +203,10 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
       className={`wq-event-card wq-event-card--${event.severity}${isSkipped ? ' wq-event-card--skipped' : ''}`}
       onClick={handleCardClick}
     >
-      {/* Header row — id/comments/due (left) + primary actions (top right) */}
+      {/* Header row — title (left) + primary actions (top right) */}
       <div className="wq-card-header">
-        <div className="wq-card-meta-row">
-          <span className="wq-card-id">{event.id}</span>
-          {thread && (
-            <button
-              className={`wq-comment-indicator${hasUnread ? ' wq-comment-indicator--unread' : ''}`}
-              title={`${commentCount} comment${commentCount === 1 ? '' : 's'}`}
-              onClick={() => onAskTeammate(event)}
-            >
-              <MessageSquare size={12} />
-              <span>{commentCount}</span>
-            </button>
-          )}
-          {event.dueLabel && (
-            <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
-          )}
-          {event.missionCritical && event.blastRadius?.workflows > 0 && (
-            <span className="wq-card-blast-inline">
-              <AlertTriangle size={11} />
-              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
-            </span>
-          )}
+        <div className="wq-card-title-wrap">
+          <div className="wq-card-title">{event.title}</div>
         </div>
 
         {/* 1. Skip · 2. Details · 3. Ask · 4. Escalate · 5. More actions (Trace first) */}
@@ -253,52 +234,76 @@ function EventCard({ event, currentUser, teamMode, teamFilter, onTrace, onOpenSl
         )}
       </div>
 
-      {/* Body content */}
+      {/* Body content — description only */}
       <div className="wq-card-body">
         <div className="wq-card-content">
-          <div className="wq-card-title">{event.title}</div>
           <div className="wq-card-detail">{event.detail}</div>
         </div>
       </div>
 
-      {/* Tags row — severity/studio/type/team/critical/etc., aligned right */}
-      <div className="wq-card-tags-row">
-        <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
-        <span className="wq-badge wq-badge--studio" style={{ color: studio.accentColor, borderColor: studio.accentColor + '44' }}>
-          {studio.short}
-        </span>
-        <span className="wq-badge wq-badge--type" style={{ color: etype.color, borderColor: etype.color + '44' }}>
-          {etype.label}
-        </span>
-        {displayTeams.length > 0 && (
-          <span className="wq-badge wq-badge--team">
-            {TEAMS[displayTeams[0]]?.label || displayTeams[0]}
-            {displayTeams.length > 1 && ` +${displayTeams.length - 1}`}
+      {/* Bottom row — id/comments/due/blast (left) + tags (right), same row */}
+      <div className="wq-card-bottom-row">
+        <div className="wq-card-meta-row">
+          <span className="wq-card-id">{event.id}</span>
+          {thread && (
+            <button
+              className={`wq-comment-indicator${hasUnread ? ' wq-comment-indicator--unread' : ''}`}
+              title={`${commentCount} comment${commentCount === 1 ? '' : 's'}`}
+              onClick={() => onAskTeammate(event)}
+            >
+              <MessageSquare size={12} />
+              <span>{commentCount}</span>
+            </button>
+          )}
+          {event.dueLabel && (
+            <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
+          )}
+          {event.missionCritical && event.blastRadius?.workflows > 0 && (
+            <span className="wq-card-blast-inline">
+              <AlertTriangle size={11} />
+              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''} · {event.blastRadius.agents} agent{event.blastRadius.agents !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        <div className="wq-card-tags-row">
+          <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
+          <span className="wq-badge wq-badge--studio" style={{ color: studio.accentColor, borderColor: studio.accentColor + '44' }}>
+            {studio.short}
           </span>
-        )}
-        {event.missionCritical && (
-          <span className="wq-badge wq-badge--critical">
-            <AlertTriangle size={9} /> Mission Critical
+          <span className="wq-badge wq-badge--type" style={{ color: etype.color, borderColor: etype.color + '44' }}>
+            {etype.label}
           </span>
-        )}
-        {isCovering && (
-          <span className="wq-badge wq-badge--covering">
-            Covering for {personName(event.coveringFor)}
-          </span>
-        )}
-        {teamMode && owner && (
-          <span className="wq-badge wq-badge--owner">
-            <span className="wq-owner-initials">{owner.initials}</span>
-            {owner.name}
-            {isOwn && <span className="wq-badge-mine">Mine</span>}
-          </span>
-        )}
-        {isSkipped && (
-          <span className="wq-badge wq-skipped-chip">Skipped · comes back in 2h</span>
-        )}
-        {isEscalated && (
-          <span className="wq-badge wq-badge--escalated">Escalated</span>
-        )}
+          {displayTeams.length > 0 && (
+            <span className="wq-badge wq-badge--team">
+              {TEAMS[displayTeams[0]]?.label || displayTeams[0]}
+              {displayTeams.length > 1 && ` +${displayTeams.length - 1}`}
+            </span>
+          )}
+          {event.missionCritical && (
+            <span className="wq-badge wq-badge--critical">
+              <AlertTriangle size={9} /> Mission Critical
+            </span>
+          )}
+          {isCovering && (
+            <span className="wq-badge wq-badge--covering">
+              Covering for {personName(event.coveringFor)}
+            </span>
+          )}
+          {teamMode && owner && (
+            <span className="wq-badge wq-badge--owner">
+              <span className="wq-owner-initials">{owner.initials}</span>
+              {owner.name}
+              {isOwn && <span className="wq-badge-mine">Mine</span>}
+            </span>
+          )}
+          {isSkipped && (
+            <span className="wq-badge wq-skipped-chip">Skipped · comes back in 2h</span>
+          )}
+          {isEscalated && (
+            <span className="wq-badge wq-badge--escalated">Escalated</span>
+          )}
+        </div>
       </div>
     </div>
   )

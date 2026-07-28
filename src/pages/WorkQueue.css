@@ -776,26 +776,39 @@
 .wq-event-card--yellow { border-left-color: #f59e0b; }
 .wq-event-card--green  { border-left-color: #34d399; }
 
-/* Card header row */
+/* Card header row — title (left) + primary action buttons (right) */
 .wq-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-/* Bottom row: severity/studio/type/team tags, aligned to the right */
+.wq-card-title-wrap {
+  flex: 1 1 auto;
+  min-width: 160px;
+}
+
+/* Bottom row: id/comments/due/blast (left) + severity/studio/type/team tags (right) */
+.wq-card-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .wq-card-tags-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 5px;
-  margin-top: 8px;
 }
 
-/* Top-left of header: Trace, Skip, ID, comments, due — kept on one line */
+/* Left side of the bottom row: ID, comments, due, blast-radius */
 .wq-card-meta-row {
   display: flex;
   align-items: center;
