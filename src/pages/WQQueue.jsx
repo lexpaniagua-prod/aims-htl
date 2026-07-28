@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
-  Search, ChevronDown, X, GitBranch, AlertTriangle, CalendarDays, MoreVertical, Check, MessageSquare, SkipForward
+  Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward
 } from 'lucide-react'
 import { Drawer, Modal } from '../components/Modal'
 import {
@@ -10,6 +10,10 @@ import {
 import EventSlideout from './EventSlideout'
 import EscalationModal from './EscalationModal'
 import QuestionModal from './QuestionModal'
+
+// Severity filter chips — Action (yellow) intentionally excluded; those events
+// still appear in the list, just without a dedicated filter chip.
+const SEVERITY_CHIP_ORDER = ['now', 'red', 'green']
 
 const CATEGORY_OPTIONS = [
   { value: 'htl-continuation',   label: 'HTL Continuation',   group: 'eventCategory' },
@@ -480,7 +484,6 @@ export default function WQQueue() {
   // Comment threads the current persona has opened this session — drives the unread indicator
   const [readThreads, setReadThreads] = useState(new Set())
 
-  const [sortMode,       setSortMode]       = useState('default')
   const [categoryFilter, setCategoryFilter] = useState([])
   const [ownerFilter,    setOwnerFilter]    = useState([])
   const [dueFilter,      setDueFilter]      = useState([])
@@ -618,10 +621,9 @@ export default function WQQueue() {
         if (!dueFilter.includes(urg)) return false
       }
       if (q && !e.title.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q) && !e.spec?.toLowerCase().includes(q) && !e.id.toLowerCase().includes(q)) return false
-      if (sortMode === 'today') return e.dueToday === true
       return true
     })
-  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, teamFilter, dueFilter, sortMode, mode])
+  }, [baseEvents, resolvedIds, search, studioFilter, combinedTypeFilter, categoryFilter, ownerFilter, teamFilter, dueFilter, mode])
 
   const filtered = useMemo(() => {
     if (!sevFilter.length) return preSeverityFiltered
@@ -642,16 +644,7 @@ export default function WQQueue() {
     const active  = events.filter(e => !skippedIds.has(e.id))
     const skipped = events.filter(e =>  skippedIds.has(e.id))
 
-    const sortedActive = sortMode === 'due-date'
-      ? [...active].sort((a, b) => {
-          if (!a.dueDate && !b.dueDate) return 0
-          if (!a.dueDate) return 1
-          if (!b.dueDate) return -1
-          return a.dueDate < b.dueDate ? -1 : a.dueDate > b.dueDate ? 1 : 0
-        })
-      : active
-
-    return [...sortedActive, ...skipped]
+    return [...active, ...skipped]
   })
 
   const studioOptions = Object.values(STUDIOS).map(s => ({
@@ -773,7 +766,7 @@ export default function WQQueue() {
 
       {/* ── Severity stat chips + sort chips (same chip treatment) ───────── */}
       <div className="wq-sev-chips">
-        {SEVERITY_ORDER.map(sev => {
+        {SEVERITY_CHIP_ORDER.map(sev => {
           const meta = SEVERITY[sev]
           const active = sevFilter.includes(sev)
           return (
@@ -786,27 +779,6 @@ export default function WQQueue() {
               <span className="wq-sev-chip-dot" style={{ background: active ? '#fff' : meta.color }} />
               {meta.label}
               <span className="wq-sev-chip-count">{severityCounts[sev] || 0}</span>
-            </button>
-          )
-        })}
-
-        <span className="wq-chip-divider" />
-
-        {[
-          { id: 'default',  label: 'Default' },
-          { id: 'today',    label: 'Today' },
-          { id: 'due-date', label: 'Due Date' },
-        ].map(s => {
-          const active = sortMode === s.id
-          return (
-            <button
-              key={s.id}
-              className={`wq-sev-chip wq-sev-chip--sort${active ? ' wq-sev-chip--active' : ''}`}
-              style={active ? { background: 'var(--accent-blue)', borderColor: 'var(--accent-blue)' } : { borderColor: 'var(--border-strong)' }}
-              onClick={() => setSortMode(prev => prev === s.id ? 'default' : s.id)}
-            >
-              {s.id !== 'default' && <CalendarDays size={12} />}
-              {s.label}
             </button>
           )
         })}
