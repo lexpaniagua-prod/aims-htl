@@ -5662,7 +5662,51 @@ body.evm-active .drawer {
 .wq-inbox {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: 0;
+}
+
+/* Drag-to-resize divider between the list and the detail pane — same
+   hover/drag visual language as the slideout's .drawer-resize-handle. */
+.wq-inbox-resize-handle {
+  position: relative;
+  flex: 0 0 12px;
+  width: 12px;
+  align-self: stretch;
+  cursor: ew-resize;
+  touch-action: none;
+}
+.wq-inbox-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 5px;
+  width: 2px;
+  background: transparent;
+  border-radius: 2px;
+  transition: background 0.15s;
+}
+.wq-inbox-resize-handle:hover::before,
+.wq-inbox-resize-handle:active::before {
+  background: var(--accent-blue);
+}
+.wq-inbox-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 3px;
+  width: 6px;
+  height: 24px;
+  transform: translateY(-50%);
+  opacity: 0;
+  transition: opacity 0.15s;
+  background-image: radial-gradient(circle, var(--accent-blue) 1.5px, transparent 1.5px);
+  background-size: 6px 6px;
+  background-repeat: repeat-y;
+}
+.wq-inbox-resize-handle:hover::after,
+.wq-inbox-resize-handle:active::after {
+  opacity: 1;
 }
 
 /* Each pane scrolls independently — subtle, thin scrollbars.
@@ -5907,6 +5951,8 @@ body.evm-active .drawer {
 @media (max-width: 900px) {
   .wq-inbox { flex-direction: column; }
   .wq-inbox-list { flex: 1 1 auto; width: 100%; }
+  .wq-inbox-list-col { width: 100% !important; flex-basis: auto !important; }
+  .wq-inbox-resize-handle { display: none; }
 }
 
 /* ── My Day on Overview — divider below ─────────────────────────────────────── */
@@ -8995,6 +9041,11 @@ body.evm-active .drawer {
 /* In the Inbox view's embedded detail pane, the full Ask/Escalate/Trace/…
    action bar below already covers this — hide the redundant small text links. */
 .wqep-body--embedded .etb-secondary-links {
+  display: none;
+}
+/* Legacy (pre-eventCategory) event types render their own footer with an
+   inline Escalate button — same redundancy, same fix, different component. */
+.wqep-footer--embedded .evm-escalate-btn {
   display: none;
 }
 .etb-secondary-link {

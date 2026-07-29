@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
@@ -85,10 +85,14 @@ const INBOX_GROUPS = [
   { key: 'critical', label: 'Critical', icon: AlertTriangle, color: '#ef4444', match: e => e.severity === 'red' },
   { key: 'overdue',  label: 'Over Due', icon: Clock,         color: '#e05252', match: e => dueUrgency(e) === 'overdue' },
   { key: 'act-now',  label: 'Act Now',  icon: AlertTriangle, color: '#f43f5e', match: e => e.severity === 'now' },
-  { key: 'heads-up', label: 'Heads-up', icon: CheckCircle2,  color: '#10b981', match: e => e.severity === 'green' },
+  // Catch-all — anything not already bucketed above (green heads-up, yellow
+  // "Action" tier, or any other case) still needs a group to show up in, so
+  // a filtered event never silently disappears from every list.
+  { key: 'heads-up', label: 'Heads-up', icon: CheckCircle2,  color: '#10b981', match: () => true },
 ]
 
-// Each event lands in exactly one group — first matching group in the order above wins.
+// Each event lands in exactly one group — first matching group in the order above wins,
+// and the last group is a catch-all so no filtered event is ever left unbucketed.
 function bucketInboxEvents(events) {
   const used = new Set()
   const buckets = {}
@@ -188,6 +192,36 @@ function InboxView({
   const [paneHeight, setPaneHeight] = useState(null)
   const [filtersHeight, setFiltersHeight] = useState(0)
 
+  // Left column width — drag the handle between the list and the detail pane
+  // to trade space between them; clamped so neither pane collapses to nothing.
+  const [listWidth, setListWidth] = useState(300)
+  const draggingRef = useRef(false)
+
+  const onResizeStart = useCallback((e) => {
+    e.preventDefault()
+    draggingRef.current = true
+    document.body.style.cursor = 'ew-resize'
+    document.body.style.userSelect = 'none'
+
+    const onMove = (ev) => {
+      if (!draggingRef.current || !containerRef.current) return
+      const left = containerRef.current.getBoundingClientRect().left
+      const containerWidth = containerRef.current.getBoundingClientRect().width
+      const next = ev.clientX - left
+      const maxWidth = Math.max(260, containerWidth - 360)
+      setListWidth(Math.max(240, Math.min(next, maxWidth)))
+    }
+    const onUp = () => {
+      draggingRef.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+  }, [])
+
   // Measure the real space left below this container (rather than guessing a
   // fixed "100vh minus N" offset) so both panes cap exactly at the visible
   // viewport edge and scroll internally instead of growing the whole page.
@@ -210,7 +244,7 @@ function InboxView({
 
   return (
     <div className="wq-inbox" ref={containerRef}>
-      <div className="wq-inbox-list-col">
+      <div className="wq-inbox-list-col" style={{ width: listWidth, flex: `0 0 ${listWidth}px` }}>
         {/* Row 1: search — row 2: My Work/My Team — row 3: filters */}
         <div className="wq-inbox-filters" ref={filtersRef}>
           <div className="wq-search-wrap wq-search-wrap--full">
@@ -293,6 +327,12 @@ function InboxView({
         )}
         </div>
       </div>
+
+      <div
+        className="wq-inbox-resize-handle"
+        onPointerDown={onResizeStart}
+        style={paneHeight ? { height: paneHeight } : undefined}
+      />
 
       <div className="wq-inbox-detail" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
         {selectedEvent ? (

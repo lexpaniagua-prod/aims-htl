@@ -255,7 +255,7 @@ export default function WQEventPage({ eventId } = {}) {
                 />
               </div>
 
-              <div className="wqep-footer">
+              <div className={`wqep-footer${isEmbedded ? ' wqep-footer--embedded' : ''}`}>
                 <FooterActions
                   view={view} event={event}
                   reason={reason} changeRequest={changeRequest}
