@@ -5622,6 +5622,293 @@ body.evm-active .drawer {
   background: var(--bg-row-hover);
 }
 
+/* ── Card view / Inbox view — small icon-only toggle, same SwitchTab tokens ── */
+.wq-queue-view-toggle {
+  display: inline-flex;
+  background: var(--st-bg);
+  box-shadow: var(--st-shadow);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.wq-queue-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--st-text);
+  background: transparent;
+  border: none;
+  border-radius: var(--st-item-radius);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.wq-queue-view-btn--active {
+  background: var(--st-active-bg);
+  color: var(--st-active-text);
+}
+
+.wq-queue-view-btn:not(.wq-queue-view-btn--active):hover {
+  color: var(--text-primary);
+  background: var(--bg-row-hover);
+}
+
+/* ── Inbox view — grouped mini-card list (left) + full detail (right) ───────── */
+.wq-inbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Each pane scrolls independently — subtle, thin scrollbars.
+   max-height is set inline via JS (measured against the real viewport space
+   left below the container) once mounted; this is just the pre-measurement
+   fallback so there's no flash of unconstrained height on first paint. */
+.wq-inbox-list,
+.wq-inbox-detail {
+  max-height: 640px;
+  min-height: 280px;
+  overflow-y: auto;
+}
+.wq-inbox-list::-webkit-scrollbar,
+.wq-inbox-detail::-webkit-scrollbar {
+  width: 5px;
+}
+.wq-inbox-list::-webkit-scrollbar-track,
+.wq-inbox-detail::-webkit-scrollbar-track {
+  background: transparent;
+}
+.wq-inbox-list::-webkit-scrollbar-thumb,
+.wq-inbox-detail::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Left column — filters (search / My Work-Team / Team-Studio-Type-Due) stacked
+   above the grouped list, so the detail pane on the right keeps as much
+   width as possible. Card view keeps the full-width top filter bar instead. */
+.wq-inbox-list-col {
+  flex: 0 0 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wq-inbox-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.wq-search-wrap--full {
+  width: 100%;
+}
+
+.wq-view-toggle--full {
+  width: 100%;
+}
+.wq-view-toggle--full .wq-view-btn {
+  flex: 1;
+  text-align: center;
+}
+
+.wq-inbox-filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.wq-inbox-filter-grid .wq-multiselect {
+  width: 100%;
+}
+.wq-inbox-filter-grid .wq-multiselect-trigger {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.wq-inbox-list {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 6px;
+}
+
+.wq-inbox-list-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12.5px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+
+.wq-inbox-group {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.wq-inbox-group-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.wq-inbox-group-header:hover { background: var(--bg-row-hover); }
+
+.wq-inbox-group-chevron {
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+.wq-inbox-group-chevron--collapsed { transform: rotate(-90deg); }
+
+.wq-inbox-group-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.wq-inbox-group-count {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full, 999px);
+  padding: 1px 7px;
+}
+
+.wq-inbox-group-items {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+.wq-inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.wq-inbox-group-items .wq-inbox-item:last-child { border-bottom: none; }
+.wq-inbox-item:hover { background: var(--bg-row-hover); }
+.wq-inbox-item--active {
+  background: var(--bg-row-hover);
+  box-shadow: inset 2px 0 0 var(--accent-blue);
+}
+
+.wq-inbox-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.wq-inbox-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wq-inbox-item-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wq-inbox-item-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wq-inbox-item-id {
+  font-size: 10px;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.wq-inbox-item-blast {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-amber);
+}
+
+.wq-inbox-detail {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Beneath the decision buttons in the embedded detail pane — same actions
+   as Card view (Skip/Ask/Escalate/Trace), plus team actions in My Team. */
+.wq-inbox-detail-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 14px 4px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.wq-inbox-detail-actions-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+.wq-inbox-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 64px 24px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--text-muted);
+  min-height: 320px;
+}
+
+@media (max-width: 900px) {
+  .wq-inbox { flex-direction: column; }
+  .wq-inbox-list { flex: 1 1 auto; width: 100%; }
+}
+
 /* ── My Day on Overview — divider below ─────────────────────────────────────── */
 .wqov-myday-wrap {
   margin-bottom: 24px;
@@ -8704,6 +8991,11 @@ body.evm-active .drawer {
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
+}
+/* In the Inbox view's embedded detail pane, the full Ask/Escalate/Trace/…
+   action bar below already covers this — hide the redundant small text links. */
+.wqep-body--embedded .etb-secondary-links {
+  display: none;
 }
 .etb-secondary-link {
   background: none;

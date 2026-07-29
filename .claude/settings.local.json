@@ -42,7 +42,8 @@
       "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --loader=jsx --bundle=false --outfile=/dev/null)",
       "Bash(npx --yes esbuild src/pages/EventTypeBlocks.jsx --bundle=false --outfile=out1.js)",
       "Bash(npx --yes esbuild src/pages/WQQueue.jsx --bundle=false --outfile=out2.js)",
-      "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --bundle=false --outfile=out3.js)"
+      "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --bundle=false --outfile=out3.js)",
+      "Bash(powershell -Command \"Get-ChildItem -Path C:\\\\Users\\\\alexa -Directory -Filter '*aims-os-design-system*' -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object FullName\")"
     ]
   }
 }

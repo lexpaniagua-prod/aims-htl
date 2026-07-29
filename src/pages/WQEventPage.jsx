@@ -91,8 +91,13 @@ function AuditTrailBlock({ event, onViewFullAudit }) {
 // ── Full-page event view ───────────────────────────────────────────────────────
 // Level 2 of the two-level pattern: full screen, all information, full decision
 // flows. Reached only via the Details button on a card or in the slideout.
-export default function WQEventPage() {
-  const { id } = useParams()
+export default function WQEventPage({ eventId } = {}) {
+  const params = useParams()
+  const id = eventId || params.id
+  // When rendered embedded inside the Inbox view (eventId passed as a prop),
+  // there's no "back to the list" concept — the list is already visible
+  // alongside this detail pane, so the breadcrumb is hidden (not removed).
+  const isEmbedded = !!eventId
   const navigate = useNavigate()
   const location = useLocation()
   const {
@@ -177,9 +182,11 @@ export default function WQEventPage() {
   return (
     <div className="wqep-root">
       <div className="wqep-sticky-header">
-        <button className="wqep-back" onClick={handleBack}>
-          <ArrowLeft size={13} /> Work Queues
-        </button>
+        {!isEmbedded && (
+          <button className="wqep-back" onClick={handleBack}>
+            <ArrowLeft size={13} /> Work Queues
+          </button>
+        )}
         <div className="wqep-sticky-row">
           <div className="wqep-header-meta">
             <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
@@ -212,7 +219,7 @@ export default function WQEventPage() {
         {/* Left — event detail / decision surface */}
         <div className="wqep-detail">
           {event.eventCategory ? (
-            <div className="wqep-body">
+            <div className={`wqep-body${isEmbedded ? ' wqep-body--embedded' : ''}`}>
               <DecisionSurface
                 event={event}
                 onDecide={handleDecide}
