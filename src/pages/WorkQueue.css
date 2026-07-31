@@ -5733,47 +5733,13 @@ body.evm-active .drawer {
   border-radius: 3px;
 }
 
-/* Left column — filters (search / My Work-Team / Team-Studio-Type-Due) stacked
-   above the grouped list, so the detail pane on the right keeps as much
-   width as possible. Card view keeps the full-width top filter bar instead. */
+/* Left column — the grouped list only; the shared filter bar (search / My
+   Work-Team / Team-Studio-Type-Due) renders full-width above, same as Card view. */
 .wq-inbox-list-col {
   flex: 0 0 300px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-}
-
-.wq-inbox-filters {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
-.wq-search-wrap--full {
-  width: 100%;
-}
-
-.wq-view-toggle--full {
-  width: 100%;
-}
-.wq-view-toggle--full .wq-view-btn {
-  flex: 1;
-  text-align: center;
-}
-
-.wq-inbox-filter-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.wq-inbox-filter-grid .wq-multiselect {
-  width: 100%;
-}
-.wq-inbox-filter-grid .wq-multiselect-trigger {
-  width: 100%;
-  justify-content: space-between;
 }
 
 .wq-inbox-list {
@@ -5793,11 +5759,11 @@ body.evm-active .drawer {
   border-radius: 10px;
 }
 
+/* Section grouping is now a plain label row (dot + uppercase text + count +
+   collapse chevron) over a divider, not a boxed container — each event
+   below stands on its own as an individual elevated card. Matches the
+   reference "attention room" list pattern. */
 .wq-inbox-group {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -5806,80 +5772,135 @@ body.evm-active .drawer {
   align-items: center;
   gap: 6px;
   width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-.wq-inbox-group-header:hover { background: var(--bg-row-hover); }
-
-.wq-inbox-group-chevron {
-  color: var(--text-muted);
-  transition: transform 0.15s;
-  flex-shrink: 0;
-}
-.wq-inbox-group-chevron--collapsed { transform: rotate(-90deg); }
-
-.wq-inbox-group-label {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-primary);
-  flex: 1;
-}
-
-.wq-inbox-group-count {
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: var(--radius-full, 999px);
-  padding: 1px 7px;
-}
-
-.wq-inbox-group-items {
-  display: flex;
-  flex-direction: column;
-  border-top: 1px solid var(--border);
-}
-
-.wq-inbox-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 12px;
+  padding: 8px 4px;
+  margin-bottom: 8px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s;
+  border-radius: 0;
 }
-.wq-inbox-group-items .wq-inbox-item:last-child { border-bottom: none; }
-.wq-inbox-item:hover { background: var(--bg-row-hover); }
+.wq-inbox-group-header:hover .wq-inbox-group-label { color: var(--text-primary); }
+
+.wq-inbox-group-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wq-inbox-group-chevron {
+  color: var(--text-muted);
+  transition: transform 0.15s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.wq-inbox-group-chevron--collapsed { transform: rotate(-90deg); }
+
+.wq-inbox-group-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+
+.wq-inbox-group-count {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 1px 7px;
+  border: 1px solid transparent;
+}
+
+.wq-inbox-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Individual elevated card — translucent surface, subtle border, DS hover
+   glow, solid accent border when selected. Same visual language as the
+   reference's Card Container component. */
+.wq-inbox-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  background: var(--ibx-card-bg);
+  border: 1px solid var(--ibx-card-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.wq-inbox-item:hover {
+  box-shadow: var(--card-hover-shadow);
+}
 .wq-inbox-item--active {
-  background: var(--bg-row-hover);
-  box-shadow: inset 2px 0 0 var(--accent-blue);
+  border-color: var(--accent-blue);
 }
 
 .wq-inbox-item-icon {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
+}
+
+/* Styled tooltip — event type label, shown above the icon on hover.
+   Same visual language as the sidebar's collapsed-state tooltip
+   (theme-invariant dark chip + arrow), scoped to the Inbox view only. */
+.wq-inbox-item-icon[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--sb-tooltip-bg);
+  color: var(--sb-tooltip-text);
+  border-radius: 4px;
+  padding: 5px 9px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 20;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  pointer-events: none;
+  animation: wq-inbox-tooltip-in 0.12s ease-out;
+}
+.wq-inbox-item-icon[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: var(--sb-tooltip-bg);
+  z-index: 21;
+  pointer-events: none;
+}
+@keyframes wq-inbox-tooltip-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(2px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
 }
 
 .wq-inbox-item-body {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  flex: 1;
 }
 
 .wq-inbox-item-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.3;

@@ -184,6 +184,10 @@
   --table-cell-text:       rgba(255,255,255,0.60);
   --table-row-hover-bg:    rgba(255,255,255,0.08);
   --table-row-selected-bg: rgba(43,127,255,0.08);
+
+  /* ── DS Card Container — "attention room" list-item card (Inbox view) ── */
+  --ibx-card-bg:     rgba(255,255,255,0.1);
+  --ibx-card-border: rgba(255,255,255,0.15);
 }
 
 [data-theme="light"] {
@@ -322,4 +326,8 @@
   --table-cell-text:       #5c5c5c;
   --table-row-hover-bg:    #f2f2f2;
   --table-row-selected-bg: rgba(246,249,255,1);
+
+  /* ── DS Card Container — "attention room" list-item card (Inbox view) ── */
+  --ibx-card-bg:     var(--bg-card);
+  --ibx-card-border: var(--border-strong);
 }

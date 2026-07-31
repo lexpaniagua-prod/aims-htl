@@ -2,7 +2,10 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
-  LayoutGrid, Inbox, Clock, CheckCircle2,
+  LayoutGrid, Inbox,
+  Workflow, ArrowRightLeft, MessageCircleQuestion, GraduationCap,
+  ShieldCheck, ClipboardCheck, ShieldAlert, GitPullRequest, PhoneCall,
+  CircleHelp, GitMerge, Reply, CircleCheckBig,
 } from 'lucide-react'
 import { Drawer, Modal } from '../components/Modal'
 import {
@@ -82,14 +85,52 @@ function WQToast({ text, onDismiss }) {
 // Reuses the exact same full event page (WQEventPage/DecisionSurface) for the
 // right-hand detail — no decision-flow content is re-implemented here.
 const INBOX_GROUPS = [
-  { key: 'critical', label: 'Critical', icon: AlertTriangle, color: '#ef4444', match: e => e.severity === 'red' },
-  { key: 'overdue',  label: 'Over Due', icon: Clock,         color: '#e05252', match: e => dueUrgency(e) === 'overdue' },
-  { key: 'act-now',  label: 'Act Now',  icon: AlertTriangle, color: '#f43f5e', match: e => e.severity === 'now' },
+  { key: 'critical', label: 'Critical', color: '#ef4444', match: e => e.severity === 'red' },
+  { key: 'overdue',  label: 'Over Due', color: '#e05252', match: e => dueUrgency(e) === 'overdue' },
+  { key: 'act-now',  label: 'Act Now',  color: '#f43f5e', match: e => e.severity === 'now' },
   // Catch-all — anything not already bucketed above (green heads-up, yellow
   // "Action" tier, or any other case) still needs a group to show up in, so
   // a filtered event never silently disappears from every list.
-  { key: 'heads-up', label: 'Heads-up', icon: CheckCircle2,  color: '#10b981', match: () => true },
+  { key: 'heads-up', label: 'Heads-up', color: '#10b981', match: () => true },
 ]
+
+// Mini-card icon reflects the event's own type/category, not its severity
+// bucket — lets you recognize what kind of case it is at a glance, the same
+// way the group color tells you how urgent it is.
+// eventCategory covers the newer governance/HTL/client taxonomy; not every
+// event has one (older entries predate it), so `type` — populated on every
+// event — is the fallback. Each entry pairs an icon with its own color, so a
+// case reads as "what kind" at a glance, distinct from the group's own
+// color-coded "how urgent" dot/count.
+const CATEGORY_ICON = {
+  'htl-continuation':   { icon: Workflow,              color: '#38bdf8', label: 'HTL Continuation' },
+  'htl-handoff':        { icon: ArrowRightLeft,         color: '#a855f7', label: 'HTL Handoff' },
+  'inbound-question':   { icon: MessageCircleQuestion,  color: '#f59e0b', label: 'Question' },
+  'train-me':           { icon: GraduationCap,          color: '#84cc16', label: 'Train Me' },
+  'gov-promotion':      { icon: ShieldCheck,            color: '#2b7fff', label: 'Gov Promotion' },
+  'gov-review':         { icon: ClipboardCheck,         color: '#34d399', label: 'Gov Review' },
+  'gov-break-glass':    { icon: ShieldAlert,            color: '#e05252', label: 'Gov Break Glass' },
+  'gov-change-request': { icon: GitPullRequest,         color: '#f472b6', label: 'Gov Change Request' },
+  'client-continuation': { icon: MessageSquare,         color: '#14b8a6', label: 'Client Continuation' },
+  'client-handoff':      { icon: PhoneCall,             color: '#14b8a6', label: 'Client Handoff' },
+}
+
+const TYPE_ICON = {
+  approve:     { icon: CircleCheckBig, color: '#2b7fff', label: 'Approve' },
+  review:      { icon: ClipboardCheck, color: '#34d399', label: 'Review' },
+  respond:     { icon: Reply,          color: '#14b8a6', label: 'Respond' },
+  resolve:     { icon: GitMerge,       color: '#f97316', label: 'Resolve' },
+  acknowledge: { icon: Check,          color: '#34d399', label: 'Acknowledge' },
+  train:       { icon: GraduationCap,  color: '#84cc16', label: 'Train Me' },
+  'inbound-question':    { icon: MessageCircleQuestion, color: '#f59e0b', label: 'Question' },
+  question:              { icon: CircleHelp,            color: '#f59e0b', label: 'Question' },
+  'client-continuation': { icon: MessageSquare,          color: '#14b8a6', label: 'Client Continuation' },
+  'client-handoff':      { icon: PhoneCall,              color: '#14b8a6', label: 'Client Handoff' },
+}
+
+function categoryVisual(event) {
+  return CATEGORY_ICON[event.eventCategory] || TYPE_ICON[event.type] || { icon: AlertTriangle, color: 'var(--text-muted)', label: 'Event' }
+}
 
 // Each event lands in exactly one group — first matching group in the order above wins,
 // and the last group is a catch-all so no filtered event is ever left unbucketed.
@@ -103,15 +144,16 @@ function bucketInboxEvents(events) {
   return buckets
 }
 
-function InboxMiniCard({ event, icon: Icon, isSelected, onClick }) {
-  const sev = SEVERITY[event.severity]
+function InboxMiniCard({ event, isSelected, onClick }) {
   const urgency = dueUrgency(event)
+  const { icon: Icon, color, label } = categoryVisual(event)
+  const iconBg = color.startsWith('#') ? color + '1a' : 'var(--bg-row-hover)'
   return (
     <button
       className={`wq-inbox-item${isSelected ? ' wq-inbox-item--active' : ''}`}
       onClick={onClick}
     >
-      <span className="wq-inbox-item-icon" style={{ color: sev.color, background: sev.color + '1a' }}>
+      <span className="wq-inbox-item-icon" data-tooltip={label} style={{ color, background: iconBg }}>
         <Icon size={13} />
       </span>
       <div className="wq-inbox-item-body">
@@ -167,12 +209,7 @@ function InboxDetailActionBar({ event, teamMode, onSkip, onAsk, onEscalate, onTr
 }
 
 function InboxView({
-  events, view, setSearchParams, search, setSearch, mode,
-  teamOptions, teamFilter, setTeamFilter,
-  studioOptions, studioFilter, setStudioFilter,
-  categoryOptions, categoryFilter, setCategoryFilter,
-  dueOptions, dueFilter, setDueFilter,
-  ownerOptions, ownerFilter, setOwnerFilter,
+  events, mode,
   onSkip, onAsk, onEscalate, onTrace, onTakeIt, onNudge, onReassign,
 }) {
   // Critical starts open (the rest start collapsed), and its first item is
@@ -188,9 +225,7 @@ function InboxView({
     Object.fromEntries(INBOX_GROUPS.map(g => [g.key, g.key !== 'critical']))
   )
   const containerRef = useRef(null)
-  const filtersRef = useRef(null)
   const [paneHeight, setPaneHeight] = useState(null)
-  const [filtersHeight, setFiltersHeight] = useState(0)
 
   // Left column width — drag the handle between the list and the detail pane
   // to trade space between them; clamped so neither pane collapses to nothing.
@@ -231,7 +266,6 @@ function InboxView({
       if (!el) return
       const top = el.getBoundingClientRect().top
       setPaneHeight(Math.max(280, window.innerHeight - top - 20))
-      setFiltersHeight(filtersRef.current?.getBoundingClientRect().height || 0)
     }
     measure()
     window.addEventListener('resize', measure)
@@ -240,55 +274,11 @@ function InboxView({
 
   const buckets = useMemo(() => bucketInboxEvents(events), [events])
   const selectedEvent = events.find(e => e.id === selectedId) || null
-  const listMaxHeight = paneHeight ? Math.max(200, paneHeight - filtersHeight - 10) : undefined
 
   return (
     <div className="wq-inbox" ref={containerRef}>
       <div className="wq-inbox-list-col" style={{ width: listWidth, flex: `0 0 ${listWidth}px` }}>
-        {/* Row 1: search — row 2: My Work/My Team — row 3: filters */}
-        <div className="wq-inbox-filters" ref={filtersRef}>
-          <div className="wq-search-wrap wq-search-wrap--full">
-            <Search size={13} className="wq-search-icon" />
-            <input
-              className="wq-search-input"
-              placeholder="Search events, specs, IDs…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="wq-search-clear" onClick={() => setSearch('')}>
-                <X size={12} />
-              </button>
-            )}
-          </div>
-
-          <div className="wq-view-toggle wq-view-toggle--full">
-            <button
-              className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'my-work' })}
-            >
-              My Work
-            </button>
-            <button
-              className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'my-team' })}
-            >
-              My Team
-            </button>
-          </div>
-
-          <div className="wq-inbox-filter-grid">
-            <MultiSelect label="Team"   options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter}     />
-            <MultiSelect label="Studio" options={studioOptions}   selected={studioFilter}   onChange={setStudioFilter}   />
-            <MultiSelect label="Type"   options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
-            <MultiSelect label="Due"    options={dueOptions}      selected={dueFilter}      onChange={setDueFilter}      />
-            {mode === 'team' && (
-              <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
-            )}
-          </div>
-        </div>
-
-        <div className="wq-inbox-list" style={listMaxHeight ? { maxHeight: listMaxHeight } : undefined}>
+        <div className="wq-inbox-list" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
         {INBOX_GROUPS.map(g => {
           const items = buckets[g.key] || []
           if (!items.length) return null
@@ -299,12 +289,13 @@ function InboxView({
                 className="wq-inbox-group-header"
                 onClick={() => setCollapsed(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
               >
+                <span className="wq-inbox-group-dot" style={{ background: g.color }} />
+                <span className="wq-inbox-group-label">{g.label}</span>
+                <span className="wq-inbox-group-count" style={{ color: g.color, background: g.color + '1a' }}>{items.length}</span>
                 <ChevronDown
                   size={13}
                   className={`wq-inbox-group-chevron${isCollapsed ? ' wq-inbox-group-chevron--collapsed' : ''}`}
                 />
-                <span className="wq-inbox-group-label">{g.label}</span>
-                <span className="wq-inbox-group-count" style={{ color: g.color, background: g.color + '1a' }}>{items.length}</span>
               </button>
               {!isCollapsed && (
                 <div className="wq-inbox-group-items">
@@ -312,7 +303,6 @@ function InboxView({
                     <InboxMiniCard
                       key={e.id}
                       event={e}
-                      icon={g.icon}
                       isSelected={selectedId === e.id}
                       onClick={() => setSelectedId(e.id)}
                     />
@@ -1028,75 +1018,52 @@ export default function WQQueue() {
         </button>
       </div>
 
-      {/* ── Filter bar with My Work / My Team toggle — Card view only ───────
-          In Inbox view, this same set of controls renders vertically inside
-          the left column instead (see InboxView), to leave the detail pane
-          as much width as possible. */}
-      {queueViewMode === 'card' && (
-        <div className="wq-filter-bar">
-          {/* My Work / My Team toggle */}
-          <div className="wq-view-toggle">
-            <button
-              className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'my-work' })}
-            >
-              My Work
-            </button>
-            <button
-              className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
-              onClick={() => setSearchParams({ view: 'my-team' })}
-            >
-              My Team
-            </button>
-          </div>
+      {/* ── Filter bar with My Work / My Team toggle — shared by Card and
+          Inbox view alike, same horizontal row in both. */}
+      <div className="wq-filter-bar">
+        {/* My Work / My Team toggle */}
+        <div className="wq-view-toggle">
+          <button
+            className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'my-work' })}
+          >
+            My Work
+          </button>
+          <button
+            className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
+            onClick={() => setSearchParams({ view: 'my-team' })}
+          >
+            My Team
+          </button>
+        </div>
 
-          <div className="wq-search-wrap">
-            <Search size={13} className="wq-search-icon" />
-            <input
-              className="wq-search-input"
-              placeholder="Search events, specs, IDs…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button className="wq-search-clear" onClick={() => setSearch('')}>
-                <X size={12} />
-              </button>
-            )}
-          </div>
-          <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
-          <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
-          <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
-          <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
-          {mode === 'team' && (
-            <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+        <div className="wq-search-wrap">
+          <Search size={13} className="wq-search-icon" />
+          <input
+            className="wq-search-input"
+            placeholder="Search events, specs, IDs…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="wq-search-clear" onClick={() => setSearch('')}>
+              <X size={12} />
+            </button>
           )}
         </div>
-      )}
+        <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
+        <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
+        <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
+        <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
+        {mode === 'team' && (
+          <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+        )}
+      </div>
 
       {queueViewMode === 'inbox' ? (
         <InboxView
           events={preSeverityFiltered}
-          view={view}
-          setSearchParams={setSearchParams}
-          search={search}
-          setSearch={setSearch}
           mode={mode}
-          teamOptions={teamOptions}
-          teamFilter={teamFilter}
-          setTeamFilter={setTeamFilter}
-          studioOptions={studioOptions}
-          studioFilter={studioFilter}
-          setStudioFilter={setStudioFilter}
-          categoryOptions={categoryOptions}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          dueOptions={DUE_OPTIONS}
-          dueFilter={dueFilter}
-          setDueFilter={setDueFilter}
-          ownerOptions={ownerOptions}
-          ownerFilter={ownerFilter}
-          setOwnerFilter={setOwnerFilter}
           onSkip={handleSkip}
           onAsk={handleAsk}
           onEscalate={handleEscalateCard}
