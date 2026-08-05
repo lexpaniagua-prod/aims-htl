@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
-  LayoutGrid, Inbox,
+  LayoutGrid, Inbox, Filter,
   Workflow, ArrowRightLeft, MessageCircleQuestion, GraduationCap,
   ShieldCheck, ClipboardCheck, ShieldAlert, GitPullRequest, PhoneCall,
   CircleHelp, GitMerge, Reply, CircleCheckBig,
@@ -94,6 +95,14 @@ const INBOX_GROUPS = [
   { key: 'heads-up', label: 'Heads-up', color: '#10b981', match: () => true },
 ]
 
+// Critical vs. Normal — same signal as the card's own coral severity bar and
+// its "Critical" status tag (severity === 'red'), and nothing broader. This
+// is the single source of truth for "critical" across the Inbox view: the
+// border, the tag, and this filter can never disagree on a given card.
+function isCriticalEvent(event) {
+  return event.severity === 'red'
+}
+
 // Mini-card icon reflects the event's own type/category, not its severity
 // bucket — lets you recognize what kind of case it is at a glance, the same
 // way the group color tells you how urgent it is.
@@ -132,44 +141,131 @@ function categoryVisual(event) {
   return CATEGORY_ICON[event.eventCategory] || TYPE_ICON[event.type] || { icon: AlertTriangle, color: 'var(--text-muted)', label: 'Event' }
 }
 
-// Each event lands in exactly one group — first matching group in the order above wins,
-// and the last group is a catch-all so no filtered event is ever left unbucketed.
-function bucketInboxEvents(events) {
-  const used = new Set()
-  const buckets = {}
-  for (const g of INBOX_GROUPS) {
-    buckets[g.key] = events.filter(e => !used.has(e.id) && g.match(e))
-    buckets[g.key].forEach(e => used.add(e.id))
-  }
-  return buckets
+// Studio is the icon badge's color — a benchmark-driven decision (Linear/Jira):
+// the badge should be recognizable at a glance after repeated exposure, the
+// same way a colored folder or app icon becomes instantly identifiable.
+const STUDIO_ICON_CLASS = {
+  gov: 'wq-inbox-item-icon--gov',
+  data: 'wq-inbox-item-icon--data',
+  agentic: 'wq-inbox-item-icon--agentic',
+  client: 'wq-inbox-item-icon--client',
 }
 
+// Top-right slot always shows the calendar date (never the free-text status
+// word like "Blocking"/"Paused"/"Respond within 2h" — those move down into
+// the tags row instead, so every card's date sits in the same place).
+function formatDueDate(dateStr) {
+  if (!dateStr) return null
+  return new Date(`${dateStr}T00:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+}
+
+// Each event resolves to exactly one tier — first matching entry in the
+// order above wins, and the last entry is a catch-all so nothing is ever
+// left unclassified. Used both for the per-card status chip and for sorting
+// the flat list below (no grouped/collapsible buckets — a single ordered
+// list: Critical, then Over Due, then Act Now, then everything else).
+function resolveGroup(event) {
+  return INBOX_GROUPS.find(g => g.match(event)) || INBOX_GROUPS[INBOX_GROUPS.length - 1]
+}
+
+function sortInboxEvents(events) {
+  const tierIndex = new Map(INBOX_GROUPS.map((g, i) => [g.key, i]))
+  return [...events].sort((a, b) => tierIndex.get(resolveGroup(a).key) - tierIndex.get(resolveGroup(b).key))
+}
+
+// ─── Inbox mini-card — 5-layer anatomy (severity bar / type icon / title /
+// impact chips / studio+type badge), benchmarked against Linear, Zendesk,
+// Intercom, Jira and PagerDuty's task-list cards. No description text and no
+// action buttons on the card itself — those live in the detail pane on the
+// right; the card is a triage surface only. Severity bar is two states only
+// (critical vs normal) — "overdue" is carried by the due-date chip's color,
+// not a third bar color.
 function InboxMiniCard({ event, isSelected, onClick }) {
   const urgency = dueUrgency(event)
-  const { icon: Icon, color, label } = categoryVisual(event)
-  const iconBg = color.startsWith('#') ? color + '1a' : 'var(--bg-row-hover)'
+  const { icon: Icon, label: typeLabel } = categoryVisual(event)
+  const studio = STUDIOS[event.studio]
+  const group = resolveGroup(event)
+  const isCritical = event.severity === 'red'
+  const isCustomerFacing = event.origin === 'customer' || event.studio === 'client'
+  const blockedCount = event.blastRadius?.workflows || 0
+  const dueDate = formatDueDate(event.dueDate)
+
+  // Tooltip is positioned in JS (fixed, portaled to <body>) rather than a
+  // pure-CSS sibling-hover box — the card list scrolls with overflow-y:auto,
+  // which per the CSS spec forces overflow-x to clip too, so a tooltip
+  // anchored purely in-flow gets cut off for cards near the top of the list.
+  // Sizing it to the card's own width (not a fixed small box) also uses the
+  // full horizontal room of the left column instead of a cramped popup.
+  const cardRef = useRef(null)
+  const [tooltipRect, setTooltipRect] = useState(null)
+  const showTooltip = () => {
+    const card = cardRef.current
+    if (!card) return
+    const rect = card.getBoundingClientRect()
+    const below = rect.top < 100
+    setTooltipRect({ left: rect.left, width: rect.width, top: rect.top, bottom: rect.bottom, below })
+  }
+  const hideTooltip = () => setTooltipRect(null)
+
   return (
     <button
-      className={`wq-inbox-item${isSelected ? ' wq-inbox-item--active' : ''}`}
+      ref={cardRef}
+      className={`wq-inbox-item${isCritical ? ' wq-inbox-item--critical' : ''}${isSelected ? ' wq-inbox-item--active' : ''}`}
       onClick={onClick}
     >
-      <span className="wq-inbox-item-icon" data-tooltip={label} style={{ color, background: iconBg }}>
-        <Icon size={13} />
-      </span>
-      <div className="wq-inbox-item-body">
-        <div className="wq-inbox-item-title">{event.title}</div>
-        <div className="wq-inbox-item-meta">
-          <span className="wq-inbox-item-id">{event.id}</span>
-          {event.dueLabel && (
-            <span className={`wq-card-due wq-card-due--${urgency}`}>{event.dueLabel}</span>
-          )}
-          {event.missionCritical && event.blastRadius?.workflows > 0 && (
-            <span className="wq-inbox-item-blast">
-              <AlertTriangle size={9} />
-              Blocks {event.blastRadius.workflows} workflow{event.blastRadius.workflows !== 1 ? 's' : ''}
-            </span>
-          )}
+      <div className="wq-inbox-item-top">
+        <div className="wq-inbox-item-icon-wrap" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
+          <span className={`wq-inbox-item-icon ${STUDIO_ICON_CLASS[event.studio] || 'wq-inbox-item-icon--other'}`}>
+            <Icon size={13} />
+          </span>
         </div>
+        {tooltipRect && createPortal(
+          <div
+            className="wq-inbox-tooltip"
+            role="tooltip"
+            style={{
+              left: tooltipRect.left,
+              width: tooltipRect.width,
+              ...(tooltipRect.below
+                ? { top: tooltipRect.bottom + 8 }
+                : { bottom: window.innerHeight - tooltipRect.top + 8 }),
+            }}
+          >
+            <div className="wq-inbox-tooltip-title">{event.title}</div>
+            <div className="wq-inbox-tooltip-meta">{studio?.name || event.studio} · {typeLabel}</div>
+          </div>,
+          document.body
+        )}
+        <span className="wq-inbox-item-title">{event.title}</span>
+        {dueDate && (
+          <span className="wq-inbox-chip wq-inbox-chip--neutral wq-inbox-item-date">{dueDate}</span>
+        )}
+      </div>
+      <div className="wq-inbox-item-tags">
+        <span
+          className={`wq-inbox-chip${group.key !== 'critical' ? ' wq-inbox-chip--neutral' : ''}`}
+          style={group.key === 'critical' ? { color: group.color, background: group.color + '1a' } : undefined}
+        >
+          {group.label}
+        </span>
+        {event.dueLabel && event.dueLabel !== dueDate && (
+          <span className="wq-inbox-chip wq-inbox-chip--neutral">{event.dueLabel}</span>
+        )}
+        {studio && (
+          <span className="wq-inbox-chip wq-inbox-chip--neutral">{studio.short}</span>
+        )}
+        {EVENT_TYPES[event.type] && (
+          <span className="wq-inbox-chip wq-inbox-chip--neutral">{EVENT_TYPES[event.type].label}</span>
+        )}
+        {blockedCount > 0 && (
+          <span className="wq-inbox-chip wq-inbox-chip--neutral">
+            <AlertTriangle size={9} /> {blockedCount} workflow{blockedCount !== 1 ? 's' : ''} blocked
+          </span>
+        )}
+        {isCustomerFacing && (
+          <span className="wq-inbox-chip wq-inbox-chip--accent">Client</span>
+        )}
+        <span className="wq-inbox-item-id">{event.id}</span>
       </div>
     </button>
   )
@@ -208,22 +304,83 @@ function InboxDetailActionBar({ event, teamMode, onSkip, onAsk, onEscalate, onTr
   )
 }
 
+// ─── Inbox filters slideout — DS "Filters" panel anatomy (380px right-side
+// slideout: sticky header with Clear all + close, scrollable body of
+// checkbox sections, sticky footer). Team/Studio/Type/Due/Owner live here
+// instead of the horizontal bar, so the search input can take that room —
+// reference: aims-os-design-system.vercel.app/?page=filters&tab=overview ──
+function FilterSection({ title, options, selected, onChange }) {
+  if (!options.length) return null
+  const toggle = (value) => {
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value])
+  }
+  return (
+    <div className="wq-inbox-filters-section">
+      <div className="wq-inbox-filters-section-title">{title}</div>
+      <div className="wq-inbox-filters-section-list">
+        {options.map(o => (
+          <label key={o.value} className="wq-inbox-filters-option">
+            <input
+              type="checkbox"
+              checked={selected.includes(o.value)}
+              onChange={() => toggle(o.value)}
+            />
+            <span className="wq-inbox-filters-option-label">{o.label}</span>
+            <span className="wq-inbox-filters-option-count">{o.count}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function InboxFilterSlideout({
+  open, onClose, onClearAll,
+  teamOptions, teamFilter, setTeamFilter,
+  studioOptions, studioFilter, setStudioFilter,
+  categoryOptions, categoryFilter, setCategoryFilter,
+  dueOptions, dueFilter, setDueFilter,
+  ownerOptions, ownerFilter, setOwnerFilter,
+  showOwner,
+}) {
+  return (
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title="Filters"
+      footer={
+        <>
+          <button className="wq-btn wq-btn--ghost" onClick={onClose}>Cancel</button>
+          <button className="wq-btn wq-btn--primary" onClick={onClose}>Apply filters</button>
+        </>
+      }
+    >
+      <div className="wq-inbox-filters-header">
+        <button className="wq-inbox-filters-clear-all" onClick={onClearAll}>Clear all</button>
+      </div>
+      <FilterSection title="Team"   options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter} />
+      <FilterSection title="Studio" options={studioOptions}   selected={studioFilter}   onChange={setStudioFilter} />
+      <FilterSection title="Type"   options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+      <FilterSection title="Due"    options={dueOptions}      selected={dueFilter}      onChange={setDueFilter} />
+      {showOwner && (
+        <FilterSection title="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+      )}
+    </Drawer>
+  )
+}
+
 function InboxView({
   events, mode,
   onSkip, onAsk, onEscalate, onTrace, onTakeIt, onNudge, onReassign,
+  onOpenFilters, filterCount,
 }) {
-  // Critical starts open (the rest start collapsed), and its first item is
-  // pre-selected so the detail pane never needs to show the empty state on load.
-  const [selectedId, setSelectedId] = useState(() => {
-    const buckets = bucketInboxEvents(events)
-    for (const g of INBOX_GROUPS) {
-      if (buckets[g.key]?.length) return buckets[g.key][0].id
-    }
-    return null
-  })
-  const [collapsed, setCollapsed] = useState(() =>
-    Object.fromEntries(INBOX_GROUPS.map(g => [g.key, g.key !== 'critical']))
-  )
+  // First item in priority order is pre-selected so the detail pane never
+  // needs to show the empty state on load.
+  const [selectedId, setSelectedId] = useState(() => sortInboxEvents(events)[0]?.id ?? null)
+  // Critical / Normal chip — a coarser split than the Critical/Over Due/Act
+  // Now/Heads-up tiers; null shows everything.
+  const [criticalFilter, setCriticalFilter] = useState(null)
+  const toggleCriticalFilter = (val) => setCriticalFilter(prev => prev === val ? null : val)
   const containerRef = useRef(null)
   const [paneHeight, setPaneHeight] = useState(null)
 
@@ -272,47 +429,49 @@ function InboxView({
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  const buckets = useMemo(() => bucketInboxEvents(events), [events])
+  const criticalCount = useMemo(() => events.filter(isCriticalEvent).length, [events])
+
+  // Flat, ordered list — no buckets. Critical first, then Over Due, then Act
+  // Now, then everything else; stable within each tier.
+  const sortedEvents = useMemo(() => {
+    const scoped = criticalFilter
+      ? events.filter(e => (isCriticalEvent(e) ? 'critical' : 'normal') === criticalFilter)
+      : events
+    return sortInboxEvents(scoped)
+  }, [events, criticalFilter])
   const selectedEvent = events.find(e => e.id === selectedId) || null
 
   return (
     <div className="wq-inbox" ref={containerRef}>
       <div className="wq-inbox-list-col" style={{ width: listWidth, flex: `0 0 ${listWidth}px` }}>
+        <div className="wq-inbox-crit-chips">
+          <button
+            className={`wq-inbox-crit-chip wq-inbox-crit-chip--all${criticalFilter === null ? ' wq-inbox-crit-chip--active' : ''}`}
+            onClick={() => setCriticalFilter(null)}
+          >
+            All <span className="wq-inbox-crit-chip-count">{events.length}</span>
+          </button>
+          <button
+            className={`wq-inbox-crit-chip wq-inbox-crit-chip--critical${criticalFilter === 'critical' ? ' wq-inbox-crit-chip--active' : ''}`}
+            onClick={() => toggleCriticalFilter('critical')}
+          >
+            <span className="wq-inbox-crit-chip-dot" /> Critical <span className="wq-inbox-crit-chip-count">{criticalCount}</span>
+          </button>
+          <button className="wq-inbox-filters-btn" onClick={onOpenFilters}>
+            <Filter size={12} /> Filters
+            {filterCount > 0 && <span className="wq-inbox-filters-btn-count">{filterCount}</span>}
+          </button>
+        </div>
         <div className="wq-inbox-list" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
-        {INBOX_GROUPS.map(g => {
-          const items = buckets[g.key] || []
-          if (!items.length) return null
-          const isCollapsed = !!collapsed[g.key]
-          return (
-            <div key={g.key} className="wq-inbox-group">
-              <button
-                className="wq-inbox-group-header"
-                onClick={() => setCollapsed(prev => ({ ...prev, [g.key]: !prev[g.key] }))}
-              >
-                <span className="wq-inbox-group-dot" style={{ background: g.color }} />
-                <span className="wq-inbox-group-label">{g.label}</span>
-                <span className="wq-inbox-group-count" style={{ color: g.color, background: g.color + '1a' }}>{items.length}</span>
-                <ChevronDown
-                  size={13}
-                  className={`wq-inbox-group-chevron${isCollapsed ? ' wq-inbox-group-chevron--collapsed' : ''}`}
-                />
-              </button>
-              {!isCollapsed && (
-                <div className="wq-inbox-group-items">
-                  {items.map(e => (
-                    <InboxMiniCard
-                      key={e.id}
-                      event={e}
-                      isSelected={selectedId === e.id}
-                      onClick={() => setSelectedId(e.id)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
-        {events.length === 0 && (
+        {sortedEvents.map(e => (
+          <InboxMiniCard
+            key={e.id}
+            event={e}
+            isSelected={selectedId === e.id}
+            onClick={() => setSelectedId(e.id)}
+          />
+        ))}
+        {sortedEvents.length === 0 && (
           <div className="wq-inbox-list-empty">No events match the current filters.</div>
         )}
         </div>
@@ -755,6 +914,10 @@ export default function WQQueue() {
 
   // Card view (today's list) vs Inbox view (in progress — empty state for now)
   const [queueViewMode, setQueueViewMode] = useState('card')
+  // Inbox view — Team/Studio/Type/Due/Owner move into a slideout (DS Filters
+  // pattern) instead of living in the horizontal bar, freeing that room for
+  // the search input.
+  const [inboxFiltersOpen, setInboxFiltersOpen] = useState(false)
 
   // Local ownership overrides (Take it / Reassign) — never mutates workQueueData.js
   const [ownerOverrides, setOwnerOverrides] = useState({})
@@ -1051,27 +1214,56 @@ export default function WQQueue() {
             </button>
           )}
         </div>
-        <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
-        <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
-        <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
-        <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
-        {mode === 'team' && (
-          <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+        {queueViewMode !== 'inbox' && (
+          <>
+            <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
+            <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
+            <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
+            <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
+            {mode === 'team' && (
+              <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
+            )}
+          </>
         )}
       </div>
 
       {queueViewMode === 'inbox' ? (
-        <InboxView
-          events={preSeverityFiltered}
-          mode={mode}
-          onSkip={handleSkip}
-          onAsk={handleAsk}
-          onEscalate={handleEscalateCard}
-          onTrace={setTraceEvent}
-          onTakeIt={handleTakeIt}
-          onNudge={handleNudge}
-          onReassign={handleReassignOpen}
-        />
+        <>
+          <InboxView
+            events={preSeverityFiltered}
+            mode={mode}
+            onSkip={handleSkip}
+            onAsk={handleAsk}
+            onEscalate={handleEscalateCard}
+            onTrace={setTraceEvent}
+            onTakeIt={handleTakeIt}
+            onNudge={handleNudge}
+            onReassign={handleReassignOpen}
+            onOpenFilters={() => setInboxFiltersOpen(true)}
+            filterCount={teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length}
+          />
+          <InboxFilterSlideout
+            open={inboxFiltersOpen}
+            onClose={() => setInboxFiltersOpen(false)}
+            onClearAll={clearAll}
+            teamOptions={teamOptions}
+            teamFilter={teamFilter}
+            setTeamFilter={setTeamFilter}
+            studioOptions={studioOptions}
+            studioFilter={studioFilter}
+            setStudioFilter={setStudioFilter}
+            categoryOptions={categoryOptions}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            dueOptions={DUE_OPTIONS}
+            dueFilter={dueFilter}
+            setDueFilter={setDueFilter}
+            ownerOptions={ownerOptions}
+            ownerFilter={ownerFilter}
+            setOwnerFilter={setOwnerFilter}
+            showOwner={mode === 'team'}
+          />
+        </>
       ) : (
         <>
 

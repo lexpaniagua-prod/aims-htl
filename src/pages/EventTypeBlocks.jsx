@@ -331,7 +331,7 @@ function ContinuationFull({ event, md, onDecide, onAsk, onEscalate, notify }) {
         </div>
       )}
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
 
         {view === 'confirm-approve' && (
@@ -442,7 +442,7 @@ function HandoffFull({ event, md, onDecide, onAsk, onEscalate, status, onStatusC
         </div>
       )}
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
 
         {status !== 'In Progress' && status !== 'Resolved' && (
@@ -498,7 +498,7 @@ function MessageFull({ event, thread, onAsk, onEscalate, onCloseThread, notify }
         <p className="evm-situation-text" style={{ marginTop: 10 }}>{first?.body}</p>
       </div>
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="etb-action-row">
           <button className="wq-btn wq-btn--primary" onClick={onAsk}>Reply</button>
           <button className="wq-btn wq-btn--ghost" onClick={() => notify?.('Forward — recipient picker not yet wired in this prototype')}>Forward</button>
@@ -569,7 +569,7 @@ function TrainMeFull({ event, md, onDecide, onAsk, onEscalate }) {
         </div>
       )}
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
         {view === 'confirm-promote' && (
           <ConfirmBar
@@ -728,7 +728,7 @@ function GovProposalFull({ event, md, onDecide, onAsk, onEscalate }) {
         decisions={decisions} setDecision={setDecision}
       />
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
         {view === 'confirm-submit' ? (
           <ConfirmBar
@@ -795,7 +795,7 @@ function GovReviewFull({ event, md, onDecide, onAsk, onEscalate }) {
         decisions={decisions} setDecision={setDecision}
       />
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
         {view === 'confirm-submit' ? (
           <ConfirmBar
@@ -877,7 +877,7 @@ function GovBreakGlassFull({ event, md, onDecide, onAsk, onEscalate, currentUser
         <p className="etb-hint-text">Both approvers must confirm before access is granted.</p>
       </div>
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
         {view === 'confirm-approve' && (
           <ConfirmBar
@@ -977,7 +977,7 @@ function GovChangeRequestFull({ event, md, onDecide, onAsk, onEscalate }) {
         </div>
       )}
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">DECISION</div>
         {view === 'confirm-accept' && (
           <ConfirmBar
@@ -1068,7 +1068,7 @@ function QuestionFull({ event, onAsk, onEscalate, onAnswer, onNavigateToEvent })
         </div>
       )}
 
-      <div className="evm-section">
+      <div className="evm-section evm-section--decision">
         <div className="evm-section-title">RESPONSE</div>
         <textarea
           className="evm-form-textarea"

@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useLocation, useOutletContext, Link } from 'react-router-dom'
 import { ArrowLeft, AlertTriangle } from 'lucide-react'
 import { EVENTS, EVENT_TYPES, SEVERITY, STUDIOS, ATTESTATIONS, AUDIT_LOG, PEOPLE } from '../data/workQueueData'
 import {
-  BodyContent, FooterActions, getInitialView, VIEW_LABELS, SEV_COLORS, fmtTs,
+  BodyContent, FooterActions, getInitialView, VIEW_LABELS, fmtTs,
 } from './EventModal'
 import { DecisionSurface } from './EventTypeBlocks'
 import CommentsSection from './EventComments'
@@ -121,6 +121,14 @@ export default function WQEventPage({ eventId } = {}) {
   const [status,        setStatus]        = useState('Open')
   const [commentsSignal, setCommentsSignal] = useState(location.state?.focusComments ? 1 : 0)
   const [activeTab, setActiveTab] = useState('thread') // thread | attestation | audit
+
+  // Inbox view only: Attestation is a Governance-studio concept — only
+  // Helix Governance Studio events get that tab there. The standalone route
+  // is unaffected. Reset off Attestation whenever the selected event changes
+  // (the Inbox view reuses this same component instance across selections),
+  // so a hidden tab can never be left stuck as the active one.
+  const showAttestationTab = !isEmbedded || event?.studio === 'gov'
+  useEffect(() => { setActiveTab('thread') }, [id])
   const [questionOpen, setQuestionOpen] = useState(false)
   const commentsRef = useRef(null)
 
@@ -163,7 +171,6 @@ export default function WQEventPage({ eventId } = {}) {
   const etype    = EVENT_TYPES[event.type]
   const sev      = SEVERITY[event.severity]
   const studio   = STUDIOS[event.studio] || { key: event.studio, name: event.studio, short: (event.studio || '??').toUpperCase(), accentColor: '#6b7280' }
-  const sevColor = SEV_COLORS[event.severity]
 
   const handleDecide = (msg) => {
     setStatus('Resolved')
@@ -187,6 +194,10 @@ export default function WQEventPage({ eventId } = {}) {
             <ArrowLeft size={13} /> Work Queues
           </button>
         )}
+        {/* Inbox view's embedded detail pane leads with the title — the tag
+            row reads as supporting metadata once you're already looking at
+            a selected card, not the first thing to scan. */}
+        {isEmbedded && <h1 className="wqep-title wqep-title--first">{event.title}</h1>}
         <div className="wqep-sticky-row">
           <div className="wqep-header-meta">
             <span className={`wq-badge wq-badge--sev wq-badge--${event.severity}`}>{sev.label}</span>
@@ -210,10 +221,8 @@ export default function WQEventPage({ eventId } = {}) {
             <span className={`wqep-status wqep-status--${status.toLowerCase().replace(' ', '-')}`}>{status}</span>
           </div>
         </div>
-        <h1 className="wqep-title">{event.title}</h1>
+        {!isEmbedded && <h1 className="wqep-title">{event.title}</h1>}
       </div>
-
-      <div className="wqep-sev-strip" style={{ background: sevColor }} />
 
       <div className="wqep-columns">
         {/* Left — event detail / decision surface */}
@@ -278,12 +287,14 @@ export default function WQEventPage({ eventId } = {}) {
             >
               Thread
             </button>
-            <button
-              className={`wqep-tab${activeTab === 'attestation' ? ' wqep-tab--active' : ''}`}
-              onClick={() => setActiveTab('attestation')}
-            >
-              Attestation
-            </button>
+            {showAttestationTab && (
+              <button
+                className={`wqep-tab${activeTab === 'attestation' ? ' wqep-tab--active' : ''}`}
+                onClick={() => setActiveTab('attestation')}
+              >
+                Attestation
+              </button>
+            )}
             <button
               className={`wqep-tab${activeTab === 'audit' ? ' wqep-tab--active' : ''}`}
               onClick={() => setActiveTab('audit')}
@@ -308,7 +319,7 @@ export default function WQEventPage({ eventId } = {}) {
                 />
               </div>
             )}
-            {activeTab === 'attestation' && (
+            {activeTab === 'attestation' && showAttestationTab && (
               <AttestationStrip event={event} onRequestVerification={() => setAttestOpen(true)} />
             )}
             {activeTab === 'audit' && (
