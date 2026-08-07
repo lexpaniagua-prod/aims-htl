@@ -215,7 +215,7 @@ function InboxMiniCard({ event, isSelected, onClick }) {
     >
       <div className="wq-inbox-item-top">
         <div className="wq-inbox-item-icon-wrap" onMouseEnter={showTooltip} onMouseLeave={hideTooltip}>
-          <span className={`wq-inbox-item-icon ${STUDIO_ICON_CLASS[event.studio] || 'wq-inbox-item-icon--other'}`}>
+          <span className={`wq-inbox-item-icon ${isCritical ? 'wq-inbox-item-icon--critical' : (STUDIO_ICON_CLASS[event.studio] || 'wq-inbox-item-icon--other')}`}>
             <Icon size={13} />
           </span>
         </div>
@@ -238,33 +238,72 @@ function InboxMiniCard({ event, isSelected, onClick }) {
         )}
         <span className="wq-inbox-item-title">{event.title}</span>
         {dueDate && (
-          <span className="wq-inbox-chip wq-inbox-chip--neutral wq-inbox-item-date">{dueDate}</span>
+          <span className="wq-inbox-item-date">{dueDate}</span>
         )}
       </div>
       <div className="wq-inbox-item-tags">
-        <span
-          className={`wq-inbox-chip${group.key !== 'critical' ? ' wq-inbox-chip--neutral' : ''}`}
-          style={group.key === 'critical' ? { color: group.color, background: group.color + '1a' } : undefined}
-        >
-          {group.label}
-        </span>
-        {event.dueLabel && event.dueLabel !== dueDate && (
-          <span className="wq-inbox-chip wq-inbox-chip--neutral">{event.dueLabel}</span>
-        )}
-        {studio && (
-          <span className="wq-inbox-chip wq-inbox-chip--neutral">{studio.short}</span>
-        )}
-        {EVENT_TYPES[event.type] && (
-          <span className="wq-inbox-chip wq-inbox-chip--neutral">{EVENT_TYPES[event.type].label}</span>
-        )}
-        {blockedCount > 0 && (
-          <span className="wq-inbox-chip wq-inbox-chip--neutral">
-            <AlertTriangle size={9} /> {blockedCount} workflow{blockedCount !== 1 ? 's' : ''} blocked
-          </span>
-        )}
-        {isCustomerFacing && (
-          <span className="wq-inbox-chip wq-inbox-chip--accent">Client</span>
-        )}
+        {(() => {
+          // Status tag is red text only when the group is genuinely
+          // "Critical" — every other tag is neutral unless it carries its
+          // own status meaning (blocked workflows, customer-facing).
+          const descriptors = [
+            { key: 'status', node: (
+              <span
+                key="status"
+                className={`wq-inbox-chip${group.key !== 'critical' ? ' wq-inbox-chip--neutral' : ''}`}
+                style={group.key === 'critical' ? { color: group.color, background: group.color + '1a' } : undefined}
+              >
+                {group.label}
+              </span>
+            ), label: group.label },
+            event.dueLabel && event.dueLabel !== dueDate ? {
+              key: 'due',
+              node: <span key="due" className="wq-inbox-chip wq-inbox-chip--neutral">{event.dueLabel}</span>,
+              label: event.dueLabel,
+            } : null,
+            studio ? {
+              key: 'studio',
+              node: <span key="studio" className="wq-inbox-chip wq-inbox-chip--neutral">{studio.short}</span>,
+              label: studio.short,
+            } : null,
+            EVENT_TYPES[event.type] ? {
+              key: 'type',
+              node: <span key="type" className="wq-inbox-chip wq-inbox-chip--neutral">{EVENT_TYPES[event.type].label}</span>,
+              label: EVENT_TYPES[event.type].label,
+            } : null,
+            blockedCount > 0 ? {
+              key: 'blocked',
+              node: (
+                <span key="blocked" className="wq-inbox-chip wq-inbox-chip--neutral">
+                  <AlertTriangle size={9} /> {blockedCount} workflow{blockedCount !== 1 ? 's' : ''} blocked
+                </span>
+              ),
+              label: `${blockedCount} workflow${blockedCount !== 1 ? 's' : ''} blocked`,
+            } : null,
+            isCustomerFacing ? {
+              key: 'client',
+              node: <span key="client" className="wq-inbox-chip wq-inbox-chip--accent">Client</span>,
+              label: 'Client',
+            } : null,
+          ].filter(Boolean)
+
+          const visible = descriptors.slice(0, 2)
+          const overflow = descriptors.slice(2)
+
+          return (
+            <>
+              {visible.map(d => d.node)}
+              {overflow.length > 0 && (
+                <span className="wq-inbox-chip wq-inbox-chip--neutral wq-inbox-tag-overflow">
+                  +{overflow.length}
+                  <div className="wq-inbox-tag-overflow-tooltip">
+                    {overflow.map(d => <div key={d.key}>{d.label}</div>)}
+                  </div>
+                </span>
+              )}
+            </>
+          )
+        })()}
         <span className="wq-inbox-item-id">{event.id}</span>
       </div>
     </button>
@@ -334,6 +373,98 @@ function FilterSection({ title, options, selected, onChange }) {
   )
 }
 
+// Toggle List — a switch per row, used where each option is effectively a
+// binary on/off and there are few enough rows that a full-width row per
+// option reads fine (Studio: only 4 studios).
+function ToggleListSection({ title, options, selected, onChange }) {
+  if (!options.length) return null
+  const toggle = (value) => {
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value])
+  }
+  return (
+    <div className="wq-inbox-filters-section">
+      <div className="wq-inbox-filters-section-title">{title}</div>
+      <div className="wq-inbox-filters-section-list">
+        {options.map(o => (
+          <div key={o.value} className="wq-inbox-filters-toggle-row">
+            <span className="wq-inbox-filters-option-label">{o.label}</span>
+            <span className="wq-inbox-filters-option-count">{o.count}</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={selected.includes(o.value)}
+              className={`wq-toggle-switch${selected.includes(o.value) ? ' wq-toggle-switch--on' : ''}`}
+              onClick={() => toggle(o.value)}
+            >
+              <span className="wq-toggle-switch-thumb" />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Chip Select — wrapped pill buttons, more items fit per row than a
+// full-width checkbox row (Type: many event types).
+function ChipSelectSection({ title, options, selected, onChange }) {
+  if (!options.length) return null
+  const toggle = (value) => {
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value])
+  }
+  return (
+    <div className="wq-inbox-filters-section">
+      <div className="wq-inbox-filters-section-title">{title}</div>
+      <div className="wq-inbox-filters-chip-list">
+        {options.map(o => (
+          <button
+            key={o.value}
+            type="button"
+            className={`wq-inbox-filters-chip${selected.includes(o.value) ? ' wq-inbox-filters-chip--active' : ''}`}
+            onClick={() => toggle(o.value)}
+          >
+            {o.label} <span className="wq-inbox-filters-option-count">{o.count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Priority — checkbox + colored dot + label, so the urgency reads visually
+// at a glance (overdue=red, due today=yellow, this week=blue, no date=gray).
+const DUE_PRIORITY_COLOR = {
+  overdue: 'var(--accent-coral)',
+  today:   'var(--accent-amber)',
+  week:    'var(--accent-blue)',
+  none:    'var(--text-muted)',
+}
+function PrioritySection({ title, options, selected, onChange }) {
+  if (!options.length) return null
+  const toggle = (value) => {
+    onChange(selected.includes(value) ? selected.filter(v => v !== value) : [...selected, value])
+  }
+  return (
+    <div className="wq-inbox-filters-section">
+      <div className="wq-inbox-filters-section-title">{title}</div>
+      <div className="wq-inbox-filters-section-list">
+        {options.map(o => (
+          <label key={o.value} className="wq-inbox-filters-option">
+            <input
+              type="checkbox"
+              checked={selected.includes(o.value)}
+              onChange={() => toggle(o.value)}
+            />
+            <span className="wq-inbox-filters-priority-dot" style={{ background: DUE_PRIORITY_COLOR[o.value] }} />
+            <span className="wq-inbox-filters-option-label">{o.label}</span>
+            <span className="wq-inbox-filters-option-count">{o.count}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function InboxFilterSlideout({
   open, onClose, onClearAll,
   teamOptions, teamFilter, setTeamFilter,
@@ -358,10 +489,10 @@ function InboxFilterSlideout({
       <div className="wq-inbox-filters-header">
         <button className="wq-inbox-filters-clear-all" onClick={onClearAll}>Clear all</button>
       </div>
-      <FilterSection title="Team"   options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter} />
-      <FilterSection title="Studio" options={studioOptions}   selected={studioFilter}   onChange={setStudioFilter} />
-      <FilterSection title="Type"   options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
-      <FilterSection title="Due"    options={dueOptions}      selected={dueFilter}      onChange={setDueFilter} />
+      <FilterSection      title="Team"   options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter} />
+      <ToggleListSection  title="Studio" options={studioOptions}   selected={studioFilter}   onChange={setStudioFilter} />
+      <ChipSelectSection  title="Type"   options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+      <PrioritySection    title="Due"    options={dueOptions}      selected={dueFilter}      onChange={setDueFilter} />
       {showOwner && (
         <FilterSection title="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
       )}
@@ -455,7 +586,7 @@ function InboxView({
             className={`wq-inbox-crit-chip wq-inbox-crit-chip--critical${criticalFilter === 'critical' ? ' wq-inbox-crit-chip--active' : ''}`}
             onClick={() => toggleCriticalFilter('critical')}
           >
-            <span className="wq-inbox-crit-chip-dot" /> Critical <span className="wq-inbox-crit-chip-count">{criticalCount}</span>
+            Critical <span className="wq-inbox-crit-chip-count">{criticalCount}</span>
           </button>
           <button className="wq-inbox-filters-btn" onClick={onOpenFilters}>
             <Filter size={12} /> Filters
@@ -1163,7 +1294,8 @@ export default function WQQueue() {
   return (
     <div className="wq-queue">
 
-      {/* ── Card view / Inbox view toggle ─────────────────────────────────── */}
+      {/* ── Card view / Inbox view toggle — its own clearly-visible row, not
+          buried inside the filter bar. ─────────────────────────────────── */}
       <div className="wq-queue-view-toggle">
         <button
           className={`wq-queue-view-btn${queueViewMode === 'card' ? ' wq-queue-view-btn--active' : ''}`}
@@ -1200,7 +1332,7 @@ export default function WQQueue() {
           </button>
         </div>
 
-        <div className="wq-search-wrap">
+        <div className="wq-search-wrap wq-search-wrap--sm">
           <Search size={13} className="wq-search-icon" />
           <input
             className="wq-search-input"

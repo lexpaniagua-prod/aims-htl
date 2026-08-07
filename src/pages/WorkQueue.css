@@ -2691,6 +2691,45 @@
   transition: opacity 0.15s;
 }
 .evm-footer-link:hover { opacity: 0.75; }
+/* Inbox view — proper tertiary-button treatment: text-label color instead of
+   an accent-blue link, hover picks up a neutral surface tint instead of just
+   fading opacity (DS Button spec — tertiary variant). */
+.wqep-root--embedded .evm-footer-link {
+  color: var(--btn-tertiary-fg);
+  padding: 6px 8px;
+  margin: 6px -8px 0;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+.wqep-root--embedded .evm-footer-link:hover {
+  background: var(--btn-tertiary-hover-bg);
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+/* Highlight boxes — Card Container Size-S semantic variants (full border +
+   ~10%-tinted bg) instead of a left-accent-line, Inbox view only. */
+.wqep-root--embedded .etb-reason-note {
+  border-left: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg-card-elevated);
+}
+.wqep-root--embedded .etb-reason-note--rose {
+  border-color: var(--card-red-border);
+  background: var(--card-red-bg);
+}
+.wqep-root--embedded .etb-customer-card {
+  border-left: none;
+  border: 1px solid var(--card-lightblue-border);
+  background: var(--card-lightblue-bg);
+}
+.wqep-root--embedded .evc-question-bubble {
+  border-left: none;
+  border: 1px solid var(--card-yellow-border);
+  background: var(--card-yellow-bg);
+  border-radius: 8px;
+}
 
 .evm-attest-list { display: flex; flex-direction: column; gap: 5px; margin-bottom: 6px; }
 
@@ -5770,26 +5809,13 @@ body.evm-active .drawer {
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
-.wq-inbox-crit-chip-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-.wq-inbox-crit-chip--critical .wq-inbox-crit-chip-dot { background: var(--accent-coral); }
-.wq-inbox-crit-chip--normal .wq-inbox-crit-chip-dot { background: var(--text-muted); }
+/* DS Chip: state communicated by coloring the whole chip via the semantic
+   token, no separate dot/badge element. */
 .wq-inbox-crit-chip--critical.wq-inbox-crit-chip--active {
-  background: var(--accent-coral);
+  background: var(--accent-coral-dim);
   border-color: var(--accent-coral);
-  color: #fff;
+  color: var(--accent-coral);
 }
-.wq-inbox-crit-chip--critical.wq-inbox-crit-chip--active .wq-inbox-crit-chip-dot { background: #fff; }
-.wq-inbox-crit-chip--normal.wq-inbox-crit-chip--active {
-  background: var(--text-secondary);
-  border-color: var(--text-secondary);
-  color: var(--bg-app);
-}
-.wq-inbox-crit-chip--normal.wq-inbox-crit-chip--active .wq-inbox-crit-chip-dot { background: var(--bg-app); }
 .wq-inbox-crit-chip-count {
   font-size: 10px;
   font-weight: 700;
@@ -5803,9 +5829,9 @@ body.evm-active .drawer {
   color: inherit;
 }
 .wq-inbox-crit-chip--all.wq-inbox-crit-chip--active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: #fff;
+  background: var(--tag-informative-bg);
+  border-color: var(--tag-informative-bd);
+  color: var(--tag-informative-fg);
 }
 
 /* Filters trigger — opens the DS Filters slideout (Team/Studio/Type/Due/Owner) */
@@ -5912,6 +5938,83 @@ body.evm-active .drawer {
   flex-shrink: 0;
 }
 
+/* Toggle List — Studio field: a switch per row instead of a checkbox */
+.wq-inbox-filters-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 2px;
+}
+.wq-toggle-switch {
+  flex-shrink: 0;
+  width: 26px;
+  height: 16px;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid var(--toggle-border-off, var(--border-strong));
+  background: var(--toggle-track-off, var(--bg-card-elevated));
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.wq-toggle-switch-thumb {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--toggle-thumb-off, var(--text-muted));
+  transition: transform 0.15s, background 0.15s;
+}
+.wq-toggle-switch--on {
+  background: var(--toggle-track-on, var(--accent-blue));
+  border-color: var(--toggle-track-on, var(--accent-blue));
+}
+.wq-toggle-switch--on .wq-toggle-switch-thumb {
+  background: var(--toggle-thumb-on, #fff);
+  transform: translateX(10px);
+}
+
+/* Chip Select — Type field: wrapped pills, more items fit per row */
+.wq-inbox-filters-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.wq-inbox-filters-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--field-border, var(--border));
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.wq-inbox-filters-chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+.wq-inbox-filters-chip--active {
+  background: var(--tag-informative-bg);
+  border-color: var(--tag-informative-bd);
+  color: var(--tag-informative-fg);
+}
+.wq-inbox-filters-chip--active .wq-inbox-filters-option-count {
+  color: inherit;
+  opacity: 0.75;
+}
+
+/* Priority — Due field: checkbox + colored dot + label */
+.wq-inbox-filters-priority-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .wq-inbox-list {
   min-width: 0;
   display: flex;
@@ -5954,14 +6057,12 @@ body.evm-active .drawer {
 .wq-inbox-item:hover {
   box-shadow: var(--card-hover-shadow);
 }
-.wq-inbox-item--critical {
-  border-left-color: var(--accent-coral);
-}
+/* Critical is communicated by the red icon badge + red "Critical" tag only —
+   deliberately no colored left border. A dedicated card variant just for
+   this would mean a new Figma/repo Card Container variant to document for a
+   signal two existing elements already cover; the team decided against it. */
 .wq-inbox-item--active {
   border-color: var(--accent-blue);
-}
-.wq-inbox-item--active.wq-inbox-item--critical {
-  border-left-color: var(--accent-coral);
 }
 
 /* Layer: top row — type icon, title, due date */
@@ -5992,6 +6093,9 @@ body.evm-active .drawer {
 .wq-inbox-item-icon--agentic { color: var(--accent-teal);   background: var(--accent-teal-dim); }
 .wq-inbox-item-icon--client  { color: var(--accent-amber);  background: var(--accent-amber-dim); }
 .wq-inbox-item-icon--other   { color: var(--accent-gray);   background: var(--accent-gray-dim); }
+/* Critical overrides the studio color — the one thing that should jump out
+   scanning the list, so it always reads red regardless of which area it's from. */
+.wq-inbox-item-icon--critical { color: var(--accent-coral); background: var(--accent-coral-dim); }
 
 .wq-inbox-item-title {
   flex: 1;
@@ -6005,18 +6109,54 @@ body.evm-active .drawer {
   white-space: nowrap;
 }
 
+/* Entity List timestamp style — plain caption text, no chip/background */
 .wq-inbox-item-date {
   flex-shrink: 0;
   white-space: nowrap;
+  font-size: 12px;
+  color: var(--ibx-caption);
+  padding: 0;
+  background: none;
 }
 
 /* Layer: tags row — status, studio, type, impact chips, ID. Only chips that
    apply to a given event render — never shown empty. */
+/* Always a single row — overflow collapses into a "+N" chip instead of
+   wrapping to a second line, so a narrow (resized) column still reads as
+   one tidy row with the rest a hover away. */
 .wq-inbox-item-tags {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 5px;
+  overflow: hidden;
+}
+.wq-inbox-tag-overflow {
+  position: relative;
+  cursor: default;
+}
+.wq-inbox-tag-overflow-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 120px;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  box-shadow: var(--shadow-drop);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.wq-inbox-tag-overflow-tooltip > div + div {
+  margin-top: 3px;
+}
+.wq-inbox-tag-overflow:hover .wq-inbox-tag-overflow-tooltip {
+  display: block;
 }
 
 .wq-inbox-chip {

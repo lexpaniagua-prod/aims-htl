@@ -187,7 +187,7 @@ export default function WQEventPage({ eventId } = {}) {
   }
 
   return (
-    <div className="wqep-root">
+    <div className={`wqep-root${isEmbedded ? ' wqep-root--embedded' : ''}`}>
       <div className="wqep-sticky-header">
         {!isEmbedded && (
           <button className="wqep-back" onClick={handleBack}>

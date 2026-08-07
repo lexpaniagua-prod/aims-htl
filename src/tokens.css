@@ -188,6 +188,24 @@
   /* ── DS Card Container — "attention room" list-item card (Inbox view) ── */
   --ibx-card-bg:     rgba(255,255,255,0.1);
   --ibx-card-border: rgba(255,255,255,0.15);
+  /* DS Entity List timestamp — text/caption, 50% opacity */
+  --ibx-caption:     rgba(255,255,255,0.5);
+  /* DS Filters — Toggle List switch */
+  --toggle-track-on:   #2b7fff;
+  --toggle-track-off:  rgba(255,255,255,0.12);
+  --toggle-thumb-on:   #fff;
+  --toggle-thumb-off:  rgba(255,255,255,0.6);
+  --toggle-border-off: rgba(255,255,255,0.18);
+
+  /* DS Card Container Size-S semantic variants — full border + ~10%-tinted
+     bg, no left-accent-line. */
+  --card-primary-bg:     rgba(43,127,255,0.08);  --card-primary-border:     rgba(43,127,255,0.35);
+  --card-green-bg:       rgba(52,211,153,0.08);  --card-green-border:       rgba(52,211,153,0.35);
+  --card-yellow-bg:      rgba(245,158,11,0.08);  --card-yellow-border:      rgba(245,158,11,0.35);
+  --card-red-bg:         rgba(224,82,82,0.08);   --card-red-border:         rgba(224,82,82,0.35);
+  --card-purple-bg:      rgba(168,85,247,0.08);  --card-purple-border:      rgba(168,85,247,0.35);
+  --card-lightblue-bg:   rgba(56,189,248,0.08);  --card-lightblue-border:   rgba(56,189,248,0.35);
+  --card-lime-bg:        rgba(163,230,53,0.08);  --card-lime-border:        rgba(163,230,53,0.35);
 }
 
 [data-theme="light"] {
@@ -330,4 +348,22 @@
   /* ── DS Card Container — "attention room" list-item card (Inbox view) ── */
   --ibx-card-bg:     var(--bg-card);
   --ibx-card-border: var(--border-strong);
+  /* DS Entity List timestamp — text/caption, 50% opacity */
+  --ibx-caption:     rgba(0,0,0,0.5);
+  /* DS Filters — Toggle List switch */
+  --toggle-track-on:   #2173ff;
+  --toggle-track-off:  rgba(0,0,0,0.08);
+  --toggle-thumb-on:   #fff;
+  --toggle-thumb-off:  #fff;
+  --toggle-border-off: rgba(0,0,0,0.18);
+
+  /* DS Card Container Size-S semantic variants — full border + ~10%-tinted
+     bg, no left-accent-line. */
+  --card-primary-bg:     rgba(33,115,255,0.06);  --card-primary-border:     rgba(33,115,255,0.3);
+  --card-green-bg:       rgba(16,185,129,0.06);  --card-green-border:       rgba(16,185,129,0.3);
+  --card-yellow-bg:      rgba(237,108,2,0.06);   --card-yellow-border:      rgba(237,108,2,0.3);
+  --card-red-bg:         rgba(153,34,34,0.06);   --card-red-border:         rgba(153,34,34,0.3);
+  --card-purple-bg:      rgba(147,51,234,0.06);  --card-purple-border:      rgba(147,51,234,0.3);
+  --card-lightblue-bg:   rgba(2,132,199,0.06);   --card-lightblue-border:   rgba(2,132,199,0.3);
+  --card-lime-bg:        rgba(101,163,13,0.06);  --card-lime-border:        rgba(101,163,13,0.3);
 }
