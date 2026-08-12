@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
-  LayoutGrid, Inbox, Filter,
+  LayoutGrid, Inbox, SlidersHorizontal, ArrowDown,
   Workflow, ArrowRightLeft, MessageCircleQuestion, GraduationCap,
   ShieldCheck, ClipboardCheck, ShieldAlert, GitPullRequest, PhoneCall,
   CircleHelp, GitMerge, Reply, CircleCheckBig,
@@ -171,6 +171,27 @@ function resolveGroup(event) {
 function sortInboxEvents(events) {
   const tierIndex = new Map(INBOX_GROUPS.map((g, i) => [g.key, i]))
   return [...events].sort((a, b) => tierIndex.get(resolveGroup(a).key) - tierIndex.get(resolveGroup(b).key))
+}
+
+// DS Filters "show sort" — Criticality keeps the tier-based order above
+// (the existing default); Event Type / Studio sort alphabetically. The
+// direction toggle reverses whichever field is active.
+const INBOX_SORT_OPTIONS = [
+  { value: 'criticality', label: 'Criticality' },
+  { value: 'eventType',   label: 'Event Type' },
+  { value: 'studio',      label: 'Studio' },
+]
+
+function sortInboxEventsBy(events, sortField, direction) {
+  let sorted
+  if (sortField === 'eventType') {
+    sorted = [...events].sort((a, b) => (EVENT_TYPES[a.type]?.label || '').localeCompare(EVENT_TYPES[b.type]?.label || ''))
+  } else if (sortField === 'studio') {
+    sorted = [...events].sort((a, b) => (STUDIOS[a.studio]?.name || '').localeCompare(STUDIOS[b.studio]?.name || ''))
+  } else {
+    sorted = sortInboxEvents(events)
+  }
+  return direction === 'desc' ? sorted.reverse() : sorted
 }
 
 // ─── Inbox mini-card — 5-layer anatomy (severity bar / type icon / title /
@@ -501,19 +522,38 @@ function InboxFilterSlideout({
 }
 
 function InboxView({
-  events, mode,
+  events, mode, sortField, sortDirection,
   onSkip, onAsk, onEscalate, onTrace, onTakeIt, onNudge, onReassign,
-  onOpenFilters, filterCount,
 }) {
-  // First item in priority order is pre-selected so the detail pane never
-  // needs to show the empty state on load.
-  const [selectedId, setSelectedId] = useState(() => sortInboxEvents(events)[0]?.id ?? null)
+  // First item in sort order is pre-selected so the detail pane never needs
+  // to show the empty state on load.
+  const [selectedId, setSelectedId] = useState(() => sortInboxEventsBy(events, sortField, sortDirection)[0]?.id ?? null)
   // Critical / Normal chip — a coarser split than the Critical/Over Due/Act
   // Now/Heads-up tiers; null shows everything.
   const [criticalFilter, setCriticalFilter] = useState(null)
   const toggleCriticalFilter = (val) => setCriticalFilter(prev => prev === val ? null : val)
   const containerRef = useRef(null)
   const [paneHeight, setPaneHeight] = useState(null)
+  // The two pinned strips at the bottom of the detail pane (decision buttons
+  // inside WQEventPage, and the Ask/Escalate/… action bar below it) are both
+  // sticky at the same scroll container — the action bar needs to know its
+  // own height so the decision strip can reserve exactly that much space
+  // and stack above it instead of overlapping it.
+  const detailRef = useRef(null)
+  useEffect(() => {
+    const detailEl = detailRef.current
+    if (!detailEl) return
+    const actionsEl = detailEl.querySelector('.wq-inbox-detail-actions')
+    if (!actionsEl) {
+      detailEl.style.setProperty('--inbox-actions-h', '0px')
+      return
+    }
+    const ro = new ResizeObserver(() => {
+      detailEl.style.setProperty('--inbox-actions-h', `${actionsEl.offsetHeight}px`)
+    })
+    ro.observe(actionsEl)
+    return () => ro.disconnect()
+  }, [selectedId, mode])
 
   // Left column width — drag the handle between the list and the detail pane
   // to trade space between them; clamped so neither pane collapses to nothing.
@@ -568,8 +608,8 @@ function InboxView({
     const scoped = criticalFilter
       ? events.filter(e => (isCriticalEvent(e) ? 'critical' : 'normal') === criticalFilter)
       : events
-    return sortInboxEvents(scoped)
-  }, [events, criticalFilter])
+    return sortInboxEventsBy(scoped, sortField, sortDirection)
+  }, [events, criticalFilter, sortField, sortDirection])
   const selectedEvent = events.find(e => e.id === selectedId) || null
 
   return (
@@ -587,10 +627,6 @@ function InboxView({
             onClick={() => toggleCriticalFilter('critical')}
           >
             Critical <span className="wq-inbox-crit-chip-count">{criticalCount}</span>
-          </button>
-          <button className="wq-inbox-filters-btn" onClick={onOpenFilters}>
-            <Filter size={12} /> Filters
-            {filterCount > 0 && <span className="wq-inbox-filters-btn-count">{filterCount}</span>}
           </button>
         </div>
         <div className="wq-inbox-list" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
@@ -614,7 +650,7 @@ function InboxView({
         style={paneHeight ? { height: paneHeight } : undefined}
       />
 
-      <div className="wq-inbox-detail" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
+      <div className="wq-inbox-detail" ref={detailRef} style={paneHeight ? { maxHeight: paneHeight } : undefined}>
         {selectedEvent ? (
           <>
             <WQEventPage eventId={selectedId} />
@@ -1008,7 +1044,7 @@ function MultiSelect({ label, options, selected, onChange }) {
 
 // ─── Main Work Queues tab ─────────────────────────────────────────────────────
 export default function WQQueue() {
-  const { currentUser, commentThreads, addComment, notify, resolvedIds, escalatedIds, markEscalated, questionEvents, createQuestion } = useOutletContext()
+  const { currentUser, commentThreads, addComment, notify, resolvedIds, escalatedIds, markEscalated, questionEvents, createQuestion, showNotV1 } = useOutletContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
@@ -1043,12 +1079,18 @@ export default function WQQueue() {
   const [skippedIds,   setSkippedIds]   = useState(new Set())
   const [toast, setToast] = useState(null)
 
-  // Card view (today's list) vs Inbox view (in progress — empty state for now)
+  // Card view (today's list) vs Inbox view. Card view only exists in Full
+  // mode — when the header toggle is set to V1, only Inbox view is available.
   const [queueViewMode, setQueueViewMode] = useState('card')
+  useEffect(() => {
+    if (!showNotV1 && queueViewMode === 'card') setQueueViewMode('inbox')
+  }, [showNotV1, queueViewMode])
   // Inbox view — Team/Studio/Type/Due/Owner move into a slideout (DS Filters
   // pattern) instead of living in the horizontal bar, freeing that room for
   // the search input.
   const [inboxFiltersOpen, setInboxFiltersOpen] = useState(false)
+  const [inboxSortField, setInboxSortField] = useState('criticality')
+  const [inboxSortDirection, setInboxSortDirection] = useState('asc')
 
   // Local ownership overrides (Take it / Reassign) — never mutates workQueueData.js
   const [ownerOverrides, setOwnerOverrides] = useState({})
@@ -1295,75 +1337,128 @@ export default function WQQueue() {
     <div className="wq-queue">
 
       {/* ── Card view / Inbox view toggle — its own clearly-visible row, not
-          buried inside the filter bar. ─────────────────────────────────── */}
-      <div className="wq-queue-view-toggle">
+          buried inside the filter bar. The whole row only exists in Full
+          mode — V1 mode has only Inbox view, so there's nothing to switch. */}
+      {showNotV1 && (
+        <div className="wq-queue-view-toggle">
+          <button
+            className={`wq-queue-view-btn${queueViewMode === 'card' ? ' wq-queue-view-btn--active' : ''}`}
+            title="Card view"
+            onClick={() => setQueueViewMode('card')}
+          >
+            <LayoutGrid size={15} />
+          </button>
+          <button
+            className={`wq-queue-view-btn${queueViewMode === 'inbox' ? ' wq-queue-view-btn--active' : ''}`}
+            title="Inbox view"
+            onClick={() => setQueueViewMode('inbox')}
+          >
+            <Inbox size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* ── My Work / My Team toggle — its own row, same position in both
+          Card and Inbox view. */}
+      <div className="wq-view-toggle">
         <button
-          className={`wq-queue-view-btn${queueViewMode === 'card' ? ' wq-queue-view-btn--active' : ''}`}
-          title="Card view"
-          onClick={() => setQueueViewMode('card')}
+          className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
+          onClick={() => setSearchParams({ view: 'my-work' })}
         >
-          <LayoutGrid size={15} />
+          My Work
         </button>
         <button
-          className={`wq-queue-view-btn${queueViewMode === 'inbox' ? ' wq-queue-view-btn--active' : ''}`}
-          title="Inbox view"
-          onClick={() => setQueueViewMode('inbox')}
+          className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
+          onClick={() => setSearchParams({ view: 'my-team' })}
         >
-          <Inbox size={15} />
+          My Team
         </button>
       </div>
 
-      {/* ── Filter bar with My Work / My Team toggle — shared by Card and
-          Inbox view alike, same horizontal row in both. */}
-      <div className="wq-filter-bar">
-        {/* My Work / My Team toggle */}
-        <div className="wq-view-toggle">
-          <button
-            className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
-            onClick={() => setSearchParams({ view: 'my-work' })}
-          >
-            My Work
-          </button>
-          <button
-            className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
-            onClick={() => setSearchParams({ view: 'my-team' })}
-          >
-            My Team
-          </button>
-        </div>
-
-        <div className="wq-search-wrap wq-search-wrap--sm">
-          <Search size={13} className="wq-search-icon" />
-          <input
-            className="wq-search-input"
-            placeholder="Search events, specs, IDs…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-          {search && (
-            <button className="wq-search-clear" onClick={() => setSearch('')}>
-              <X size={12} />
+      {queueViewMode === 'inbox' ? (
+        /* ── Inbox filter bar — DS Filters anatomy: search, 3 quick filters
+            (Event Type / Due / Team), All filters (opens the slideout), and
+            a sort control (Criticality / Event Type / Studio). ──────────── */
+        <div className="wq-filter-bar">
+          <div className="wq-search-wrap wq-search-wrap--sm">
+            <Search size={13} className="wq-search-icon" />
+            <input
+              className="wq-search-input"
+              placeholder="Search events, specs, IDs…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="wq-search-clear" onClick={() => setSearch('')}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <MultiSelect label="Event Type" options={categoryOptions} selected={categoryFilter} onChange={setCategoryFilter} />
+          <MultiSelect label="Due"        options={DUE_OPTIONS}     selected={dueFilter}      onChange={setDueFilter} />
+          <MultiSelect label="Team"       options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter} />
+          {/* All filters + sort — one grouped cluster, pushed to the right
+              as a unit (not spread across the bar), matching the DS Filters
+              component. */}
+          <div className="wq-inbox-allfilters-sort-group">
+            <button className="wq-inbox-allfilters-btn" onClick={() => setInboxFiltersOpen(true)}>
+              All filters
+              {(teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length) > 0 && (
+                <span className="wq-inbox-filters-btn-count">
+                  {teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length}
+                </span>
+              )}
+              <SlidersHorizontal size={13} />
             </button>
+            <button
+              className={`wq-inbox-sort-dir${inboxSortDirection === 'desc' ? ' wq-inbox-sort-dir--desc' : ''}`}
+              title={inboxSortDirection === 'desc' ? 'Descending' : 'Ascending'}
+              onClick={() => setInboxSortDirection(d => d === 'asc' ? 'desc' : 'asc')}
+            >
+              <ArrowDown size={13} />
+            </button>
+            <select
+              className="wq-inbox-sort-field"
+              value={inboxSortField}
+              onChange={e => setInboxSortField(e.target.value)}
+            >
+              {INBOX_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
+        </div>
+      ) : (
+        <div className="wq-filter-bar">
+          <div className="wq-search-wrap wq-search-wrap--sm">
+            <Search size={13} className="wq-search-icon" />
+            <input
+              className="wq-search-input"
+              placeholder="Search events, specs, IDs…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="wq-search-clear" onClick={() => setSearch('')}>
+                <X size={12} />
+              </button>
+            )}
+          </div>
+          <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
+          <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
+          <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
+          <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
+          {mode === 'team' && (
+            <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
           )}
         </div>
-        {queueViewMode !== 'inbox' && (
-          <>
-            <MultiSelect label="Team"      options={teamOptions}     selected={teamFilter}         onChange={setTeamFilter}        />
-            <MultiSelect label="Studio"    options={studioOptions}   selected={studioFilter}       onChange={setStudioFilter}      />
-            <MultiSelect label="Type"      options={categoryOptions} selected={categoryFilter}     onChange={setCategoryFilter}    />
-            <MultiSelect label="Due"       options={DUE_OPTIONS}     selected={dueFilter}          onChange={setDueFilter}         />
-            {mode === 'team' && (
-              <MultiSelect label="Owner" options={ownerOptions} selected={ownerFilter} onChange={setOwnerFilter} />
-            )}
-          </>
-        )}
-      </div>
+      )}
 
       {queueViewMode === 'inbox' ? (
         <>
           <InboxView
             events={preSeverityFiltered}
             mode={mode}
+            sortField={inboxSortField}
+            sortDirection={inboxSortDirection}
             onSkip={handleSkip}
             onAsk={handleAsk}
             onEscalate={handleEscalateCard}
@@ -1371,8 +1466,6 @@ export default function WQQueue() {
             onTakeIt={handleTakeIt}
             onNudge={handleNudge}
             onReassign={handleReassignOpen}
-            onOpenFilters={() => setInboxFiltersOpen(true)}
-            filterCount={teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length}
           />
           <InboxFilterSlideout
             open={inboxFiltersOpen}

@@ -11,7 +11,7 @@ const TABS = [
   { label: 'Work Queues',  path: '/work-queue/work-queues'  },
   { label: 'Messages',     path: '/work-queue/messages',          notV1: true },
   { label: 'Messages',     path: '/work-queue/messages-proposal', proposal: true, notV1: true },
-  { label: 'Activity',     path: '/work-queue/activity'     },
+  { label: 'Activity log', path: '/work-queue/activity'     },
   { label: 'Attestations', path: '/work-queue/attestations',      notV1: true },
   { label: 'Task View',    path: '/work-queue/task-view',   proposal: true, notV1: true },
 ]
@@ -347,7 +347,7 @@ export default function WorkQueueLayout() {
               What's new
             </button>
             <label className="wq-notv1-toggle">
-              <span className="wq-notv1-toggle-label">Not for V1</span>
+              <span className="wq-notv1-toggle-label">{showNotV1 ? 'Full' : 'V1'}</span>
               <button
                 type="button"
                 role="switch"
@@ -378,6 +378,7 @@ export default function WorkQueueLayout() {
             currentUser, personaId, commentThreads, addComment, closeThread, reopenThread, notify,
             resolvedIds, markResolved, escalatedIds, markEscalated,
             questionEvents, createQuestion, markQuestionAnswered,
+            showNotV1,
           }} />
         </div>
       </div>

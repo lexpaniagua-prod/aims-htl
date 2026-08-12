@@ -1,66 +1,12 @@
 import { useState, Fragment } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import { ChevronDown, ChevronUp, Search } from 'lucide-react'
-import { TRANSFERS, AUDIT_LOG, PEOPLE } from '../data/workQueueData'
-
-const SUB_TABS = ['Transfers', 'Audit Ledger']
-
-function personName(id) {
-  return PEOPLE.find(p => p.id === id)?.name || id
-}
+import { Search } from 'lucide-react'
+import { AUDIT_LOG } from '../data/workQueueData'
 
 function fmtTs(iso) {
   return new Date(iso).toLocaleString('en-US', {
     month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-}
-
-// ─── Transfers ────────────────────────────────────────────────────────────────
-const MODE_LABELS = {
-  'ooo-auto': 'OOO Auto',
-  'manager-initiated': 'Manager',
-  'system-escalation': 'System Escalation',
-}
-
-function TransfersTab({ currentUser }) {
-  if (currentUser.scope === 'individual') {
-    return (
-      <div className="wq-empty wq-empty--access">
-        <span className="wq-empty-icon">🔒</span>
-        <div>You need manager access to view transfers.</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="wq-table-wrap">
-      <table className="wq-table">
-        <thead>
-          <tr>
-            <th>ID</th><th>From</th><th>To</th><th>Mode</th>
-            <th>Events</th><th>Blast Radius</th><th>Initiator</th><th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody>
-          {TRANSFERS.map(t => (
-            <tr key={t.id}>
-              <td className="wq-td-mono">{t.id}</td>
-              <td>{personName(t.from)}</td>
-              <td>{personName(t.to)}</td>
-              <td>
-                <span className={`wq-mode-tag wq-mode-tag--${t.mode}`}>{MODE_LABELS[t.mode]}</span>
-              </td>
-              <td>{t.eventCount}</td>
-              <td>{t.blastRadius}</td>
-              <td>{t.initiator}</td>
-              <td className="wq-td-muted">{fmtTs(t.timestamp)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
 }
 
 // ─── Audit Ledger ─────────────────────────────────────────────────────────────
@@ -168,26 +114,10 @@ function AuditTab() {
 
 // ─── Activity layout ──────────────────────────────────────────────────────────
 export default function WQActivity() {
-  const { currentUser } = useOutletContext()
-  const [tab, setTab] = useState('Transfers')
-
   return (
     <div className="wq-activity">
-      <div className="wq-sub-tabs">
-        {SUB_TABS.map(t => (
-          <button
-            key={t}
-            className={`wq-sub-tab${tab === t ? ' wq-sub-tab--active' : ''}`}
-            onClick={() => setTab(t)}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
       <div className="wq-sub-content">
-        {tab === 'Transfers'    && <TransfersTab currentUser={currentUser} />}
-        {tab === 'Audit Ledger' && <AuditTab />}
+        <AuditTab />
       </div>
     </div>
   )

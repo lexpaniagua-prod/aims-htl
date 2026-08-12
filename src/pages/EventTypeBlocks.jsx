@@ -481,6 +481,16 @@ function HandoffFull({ event, md, onDecide, onAsk, onEscalate, status, onStatusC
 function MessageFull({ event, thread, onAsk, onEscalate, onCloseThread, notify }) {
   const first = thread?.comments[0]
   const sender = first ? person(first.authorId) : null
+  const [declineOpen, setDeclineOpen] = useState(false)
+  const [declineReason, setDeclineReason] = useState('')
+
+  const confirmDecline = () => {
+    if (!declineReason.trim()) return
+    notify?.(`Declined — ${declineReason.trim()}`)
+    if (thread?.status === 'open') onCloseThread(event.id)
+    setDeclineOpen(false)
+    setDeclineReason('')
+  }
 
   return (
     <>
@@ -499,14 +509,39 @@ function MessageFull({ event, thread, onAsk, onEscalate, onCloseThread, notify }
       </div>
 
       <div className="evm-section evm-section--decision">
-        <div className="etb-action-row">
-          <button className="wq-btn wq-btn--primary" onClick={onAsk}>Reply</button>
-          <button className="wq-btn wq-btn--ghost" onClick={() => notify?.('Forward — recipient picker not yet wired in this prototype')}>Forward</button>
-          <button className="wq-btn wq-btn--ghost" onClick={() => notify?.('Marked as read')}>Mark as read</button>
-          {thread?.status === 'open' && (
-            <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onCloseThread(event.id)}>Close thread</button>
-          )}
-        </div>
+        {declineOpen ? (
+          <div className="etb-decline-panel">
+            <div className="etb-decline-label">Reason for declining <span className="etb-decline-required">(required)</span></div>
+            <textarea
+              className="etb-decline-textarea"
+              rows={3}
+              autoFocus
+              placeholder="Explain why you're declining this question…"
+              value={declineReason}
+              onChange={e => setDeclineReason(e.target.value)}
+            />
+            <div className="etb-action-row">
+              <button
+                className="wq-btn wq-btn--danger"
+                disabled={!declineReason.trim()}
+                onClick={confirmDecline}
+              >
+                Confirm decline
+              </button>
+              <button className="wq-btn wq-btn--ghost" onClick={() => { setDeclineOpen(false); setDeclineReason('') }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div className="etb-action-row">
+            <button className="wq-btn wq-btn--primary" onClick={onAsk}>Reply</button>
+            <button className="wq-btn wq-btn--ghost" onClick={() => notify?.('Forward — recipient picker not yet wired in this prototype')}>Forward</button>
+            <button className="wq-btn wq-btn--ghost" onClick={() => notify?.('Marked as read')}>Mark as read</button>
+            <button className="wq-btn wq-btn--ghost" onClick={() => setDeclineOpen(true)}>Decline</button>
+            {thread?.status === 'open' && (
+              <button className="wq-btn wq-btn--ghost wq-btn--escalate-text" onClick={() => onCloseThread(event.id)}>Close thread</button>
+            )}
+          </div>
+        )}
         <SecondaryLinks onAsk={onAsk} onEscalate={onEscalate} />
       </div>
     </>

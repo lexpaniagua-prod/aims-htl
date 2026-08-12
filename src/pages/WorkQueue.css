@@ -568,7 +568,77 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
+  margin-top: 10px;
 }
+
+/* All filters + sort — one grouped cluster (DS Filters anatomy), pushed to
+   the far right of the bar as a unit; the 3 pieces sit flush against each
+   other with a tight gap, not spread across the row. */
+.wq-inbox-allfilters-sort-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.wq-inbox-allfilters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 10px 0 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--field-border, var(--border));
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.wq-inbox-allfilters-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.wq-inbox-sort-dir {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--field-border, var(--border));
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+}
+.wq-inbox-sort-dir:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.wq-inbox-sort-dir svg {
+  transition: transform 0.15s;
+}
+.wq-inbox-sort-dir--desc svg {
+  transform: rotate(180deg);
+}
+.wq-inbox-sort-field {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--field-border, var(--border));
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.wq-inbox-sort-field:focus { outline: none; border-color: rgba(43,127,255,0.5); }
 
 .wq-search-wrap {
   position: relative;
@@ -5629,6 +5699,7 @@ body.evm-active .drawer {
 /* DS SwitchTab */
 .wq-view-toggle {
   display: flex;
+  width: fit-content;
   background: var(--st-bg);
   box-shadow: var(--st-shadow);
   border-radius: var(--radius-md);
@@ -5834,27 +5905,7 @@ body.evm-active .drawer {
   color: var(--tag-informative-fg);
 }
 
-/* Filters trigger — opens the DS Filters slideout (Team/Studio/Type/Due/Owner) */
-.wq-inbox-filters-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  height: 26px;
-  padding: 4px 11px;
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--text-secondary);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-.wq-inbox-filters-btn:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
+/* Count badge — used on the All filters trigger */
 .wq-inbox-filters-btn-count {
   display: inline-flex;
   align-items: center;
@@ -6238,15 +6289,25 @@ body.evm-active .drawer {
 }
 
 /* Beneath the decision buttons in the embedded detail pane — same actions
-   as Card view (Skip/Ask/Escalate/Trace), plus team actions in My Team. */
+   as Card view (Skip/Ask/Escalate/Trace), plus team actions in My Team.
+   Pinned to the bottom of the scrollable detail pane, same reasoning as the
+   decision buttons above it: these shouldn't require scrolling to reach
+   either. The decision section's own sticky offset (--inbox-actions-h,
+   measured in WQQueue.jsx) leaves exactly this bar's height of room so the
+   two pinned strips stack without overlapping. */
 .wq-inbox-detail-actions {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
   margin-top: 12px;
-  padding: 14px 4px 4px;
+  padding: 14px 4px;
+  background: var(--bg-card-elevated);
   border-top: 1px solid var(--border);
+  box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
 }
 
 .wq-inbox-detail-actions-sep {
@@ -9327,6 +9388,38 @@ body.evm-active .drawer {
   margin-top: 8px;
 }
 
+/* Decline reason panel — replaces the action row in place; Confirm stays
+   disabled until a reason is entered, so declining is never a single
+   accidental click. */
+.etb-decline-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.etb-decline-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.etb-decline-required {
+  font-weight: 500;
+  color: var(--accent-coral);
+}
+.etb-decline-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card-elevated);
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.etb-decline-textarea:focus { outline: none; border-color: rgba(43,127,255,0.5); }
+.etb-decline-textarea::placeholder { color: var(--text-muted); }
+
 /* Confirm bar — inline confirmation replacing a decision row */
 .etb-confirm-bar {
   padding: 12px 14px;
@@ -9377,21 +9470,19 @@ body.evm-active .drawer {
    fold, forcing a scroll to reach the one thing you came here to do. */
 .wqep-body--embedded .evm-section--decision {
   position: sticky;
-  bottom: 0;
+  bottom: var(--inbox-actions-h, 0px);
   z-index: 5;
   margin: 0 -20px -18px;
   padding: 16px 20px;
   background: var(--bg-card-elevated);
   border-top: 1px solid var(--border-strong);
-  border-radius: 0 0 9px 9px;
   box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
 }
 .wqep-footer--embedded {
   position: sticky;
-  bottom: 0;
+  bottom: var(--inbox-actions-h, 0px);
   z-index: 5;
   background: var(--bg-card-elevated);
-  border-radius: 0 0 9px 9px;
   box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
 }
 /* The main action gets more visual weight in the pinned bar — it's the one
