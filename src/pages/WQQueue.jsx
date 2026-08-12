@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
-  LayoutGrid, Inbox, SlidersHorizontal, ArrowDown, ClipboardList,
+  LayoutGrid, Inbox, SlidersHorizontal, ArrowDown,
   Workflow, ArrowRightLeft, MessageCircleQuestion, GraduationCap,
   ShieldCheck, ClipboardCheck, ShieldAlert, GitPullRequest, PhoneCall,
   CircleHelp, GitMerge, Reply, CircleCheckBig,
@@ -385,13 +385,11 @@ function InboxDetailActionBar({ event, teamMode, onSkip, onAsk, onEscalate, onTr
           title="General actions"
           onClick={() => setOpen(o => !o)}
         >
-          <ClipboardList size={15} />
+          <MoreVertical size={15} />
         </button>
         {open && (
           <div className="wq-card-menu wq-card-menu--up">
-            <button onClick={() => pick(onSkip)}>
-              <SkipForward size={12} /> Skip — resurfaces in 2h
-            </button>
+            <button title="Resurfaces in 2h" onClick={() => pick(onSkip)}>Skip</button>
             <button onClick={() => pick(onAsk)}>Ask</button>
             <button onClick={() => pick(onEscalate)}>Escalate</button>
             {event.sourceWorkflow && (
