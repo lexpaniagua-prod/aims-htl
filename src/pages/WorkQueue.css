@@ -6288,33 +6288,50 @@ body.evm-active .drawer {
   min-width: 0;
 }
 
-/* Beneath the decision buttons in the embedded detail pane — same actions
-   as Card view (Skip/Ask/Escalate/Trace), plus team actions in My Team.
-   Pinned to the bottom of the scrollable detail pane, same reasoning as the
-   decision buttons above it: these shouldn't require scrolling to reach
-   either. The decision section's own sticky offset (--inbox-actions-h,
-   measured in WQQueue.jsx) leaves exactly this bar's height of room so the
-   two pinned strips stack without overlapping. */
-.wq-inbox-detail-actions {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
+/* General actions (Skip/Ask/Escalate/Trace/Take it/Nudge/Reassign) — a
+   single menu button pinned to the bottom-right corner of the decision
+   sticky area, instead of their own always-visible bar. The wrapper is
+   sticky at the same bottom:0 offset as the decision area but has zero
+   height and ignores pointer events itself, so it doesn't take layout
+   space or block clicks on the decision buttons beneath it — only the
+   trigger button (positioned absolutely inside it) is interactive. */
+.wq-inbox-actions-corner {
   position: sticky;
   bottom: 0;
-  z-index: 6;
-  margin-top: 12px;
-  padding: 14px 4px;
-  background: var(--bg-card-elevated);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
+  height: 0;
+  pointer-events: none;
+  z-index: 7;
 }
-
-.wq-inbox-detail-actions-sep {
-  width: 1px;
-  align-self: stretch;
-  background: var(--border);
-  margin: 0 2px;
+.wq-inbox-actions-corner-wrap {
+  position: absolute;
+  bottom: 16px;
+  pointer-events: auto;
+}
+.wq-inbox-actions-corner-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: background 0.15s, color 0.15s;
+}
+.wq-inbox-actions-corner-btn:hover {
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+/* Opens upward — the trigger sits at the very bottom of the pane, where a
+   downward menu would run off the visible area. */
+.wq-card-menu--up {
+  top: auto;
+  bottom: calc(100% + 6px);
+  right: 0;
 }
 
 .wq-inbox-detail-empty {
@@ -9470,19 +9487,21 @@ body.evm-active .drawer {
    fold, forcing a scroll to reach the one thing you came here to do. */
 .wqep-body--embedded .evm-section--decision {
   position: sticky;
-  bottom: var(--inbox-actions-h, 0px);
+  bottom: 0;
   z-index: 5;
   margin: 0 -20px -18px;
   padding: 16px 20px;
   background: var(--bg-card-elevated);
   border-top: 1px solid var(--border-strong);
+  border-radius: 0 0 9px 9px;
   box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
 }
 .wqep-footer--embedded {
   position: sticky;
-  bottom: var(--inbox-actions-h, 0px);
+  bottom: 0;
   z-index: 5;
   background: var(--bg-card-elevated);
+  border-radius: 0 0 9px 9px;
   box-shadow: 0 -10px 20px -10px rgba(0,0,0,0.4);
 }
 /* The main action gets more visual weight in the pinned bar — it's the one

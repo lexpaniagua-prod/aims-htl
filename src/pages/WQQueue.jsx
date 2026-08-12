@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useOutletContext, useSearchParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Search, ChevronDown, X, GitBranch, AlertTriangle, MoreVertical, Check, MessageSquare, SkipForward,
-  LayoutGrid, Inbox, SlidersHorizontal, ArrowDown,
+  LayoutGrid, Inbox, SlidersHorizontal, ArrowDown, ClipboardList,
   Workflow, ArrowRightLeft, MessageCircleQuestion, GraduationCap,
   ShieldCheck, ClipboardCheck, ShieldAlert, GitPullRequest, PhoneCall,
   CircleHelp, GitMerge, Reply, CircleCheckBig,
@@ -331,35 +331,84 @@ function InboxMiniCard({ event, isSelected, onClick }) {
   )
 }
 
-// Beneath the decision buttons in the embedded detail pane — the same
-// per-card actions as Card view (Skip/Ask/Escalate/Trace), plus Take it /
-// Nudge / Reassign when viewing My Team, wired to the exact same handlers.
+// General actions (Skip/Ask/Escalate/Trace, plus Take it/Nudge/Reassign in
+// My Team) — same handlers as Card view, but tucked into a single menu
+// button pinned to the bottom-right corner of the decision sticky area
+// instead of their own always-visible bar. Cuts the pinned-button count
+// down to just the decision buttons + this one trigger, for any event type.
 function InboxDetailActionBar({ event, teamMode, onSkip, onAsk, onEscalate, onTrace, onTakeIt, onNudge, onReassign }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const cornerRef = useRef(null)
+  // The decision area only occupies the center column (.wqep-body) — the
+  // Thread/Attestation/Audit column sits to its right. Anchor the trigger
+  // to the center column's own right edge (measured live) rather than the
+  // whole pane's, or it lands out past the decision box, over the side
+  // column instead of inside the corner it's meant to sit in.
+  const [rightInset, setRightInset] = useState(16)
+
+  useEffect(() => {
+    const cornerEl = cornerRef.current
+    if (!cornerEl) return
+    const container = cornerEl.closest('.wq-inbox-detail')
+    const body = container?.querySelector('.wqep-body')
+    if (!container || !body) return
+    const measure = () => {
+      const containerRect = container.getBoundingClientRect()
+      const bodyRect = body.getBoundingClientRect()
+      setRightInset(Math.max(16, containerRect.right - bodyRect.right + 16))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(container)
+    ro.observe(body)
+    return () => ro.disconnect()
+  }, [event?.id])
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
   if (!event) return null
+  const pick = (fn) => { setOpen(false); fn(event) }
+
   return (
-    <div className="wq-inbox-detail-actions">
-      <button
-        className="wq-btn wq-btn--ghost wq-btn--icon"
-        title="Skip — resurfaces in 2h"
-        onClick={() => onSkip(event)}
-      >
-        <SkipForward size={13} />
-      </button>
-      <button className="wq-btn wq-btn--ghost" onClick={() => onAsk(event)}>Ask</button>
-      <button className="wq-btn wq-btn--ghost" onClick={() => onEscalate(event)}>Escalate</button>
-      {event.sourceWorkflow && (
-        <button className="wq-btn wq-btn--ghost" onClick={() => onTrace(event)}>
-          <GitBranch size={12} /> Trace
+    <div className="wq-inbox-actions-corner" ref={cornerRef}>
+      <div className="wq-inbox-actions-corner-wrap" ref={wrapRef} style={{ right: rightInset }}>
+        <button
+          className="wq-inbox-actions-corner-btn"
+          title="General actions"
+          onClick={() => setOpen(o => !o)}
+        >
+          <ClipboardList size={15} />
         </button>
-      )}
-      {teamMode && (
-        <>
-          <span className="wq-inbox-detail-actions-sep" />
-          <button className="wq-btn wq-btn--ghost" onClick={() => onTakeIt(event)}>Take it</button>
-          <button className="wq-btn wq-btn--ghost" onClick={() => onNudge(event)}>Nudge</button>
-          <button className="wq-btn wq-btn--ghost" onClick={() => onReassign(event)}>Reassign</button>
-        </>
-      )}
+        {open && (
+          <div className="wq-card-menu wq-card-menu--up">
+            <button onClick={() => pick(onSkip)}>
+              <SkipForward size={12} /> Skip — resurfaces in 2h
+            </button>
+            <button onClick={() => pick(onAsk)}>Ask</button>
+            <button onClick={() => pick(onEscalate)}>Escalate</button>
+            {event.sourceWorkflow && (
+              <button onClick={() => pick(onTrace)}>
+                <GitBranch size={12} /> Trace
+              </button>
+            )}
+            {teamMode && (
+              <>
+                <button onClick={() => pick(onTakeIt)}>Take it</button>
+                <button onClick={() => pick(onNudge)}>Nudge</button>
+                <button onClick={() => pick(onReassign)}>Reassign</button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -534,26 +583,6 @@ function InboxView({
   const toggleCriticalFilter = (val) => setCriticalFilter(prev => prev === val ? null : val)
   const containerRef = useRef(null)
   const [paneHeight, setPaneHeight] = useState(null)
-  // The two pinned strips at the bottom of the detail pane (decision buttons
-  // inside WQEventPage, and the Ask/Escalate/… action bar below it) are both
-  // sticky at the same scroll container — the action bar needs to know its
-  // own height so the decision strip can reserve exactly that much space
-  // and stack above it instead of overlapping it.
-  const detailRef = useRef(null)
-  useEffect(() => {
-    const detailEl = detailRef.current
-    if (!detailEl) return
-    const actionsEl = detailEl.querySelector('.wq-inbox-detail-actions')
-    if (!actionsEl) {
-      detailEl.style.setProperty('--inbox-actions-h', '0px')
-      return
-    }
-    const ro = new ResizeObserver(() => {
-      detailEl.style.setProperty('--inbox-actions-h', `${actionsEl.offsetHeight}px`)
-    })
-    ro.observe(actionsEl)
-    return () => ro.disconnect()
-  }, [selectedId, mode])
 
   // Left column width — drag the handle between the list and the detail pane
   // to trade space between them; clamped so neither pane collapses to nothing.
@@ -650,7 +679,7 @@ function InboxView({
         style={paneHeight ? { height: paneHeight } : undefined}
       />
 
-      <div className="wq-inbox-detail" ref={detailRef} style={paneHeight ? { maxHeight: paneHeight } : undefined}>
+      <div className="wq-inbox-detail" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
         {selectedEvent ? (
           <>
             <WQEventPage eventId={selectedId} />
@@ -1358,28 +1387,25 @@ export default function WQQueue() {
         </div>
       )}
 
-      {/* ── My Work / My Team toggle — its own row, same position in both
-          Card and Inbox view. */}
-      <div className="wq-view-toggle">
-        <button
-          className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
-          onClick={() => setSearchParams({ view: 'my-work' })}
-        >
-          My Work
-        </button>
-        <button
-          className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
-          onClick={() => setSearchParams({ view: 'my-team' })}
-        >
-          My Team
-        </button>
-      </div>
-
       {queueViewMode === 'inbox' ? (
-        /* ── Inbox filter bar — DS Filters anatomy: search, 3 quick filters
+        /* ── Inbox filter bar — My Work/My Team, search, 3 quick filters
             (Event Type / Due / Team), All filters (opens the slideout), and
-            a sort control (Criticality / Event Type / Studio). ──────────── */
+            a sort control (Criticality / Event Type / Studio), all one row. */
         <div className="wq-filter-bar">
+          <div className="wq-view-toggle">
+            <button
+              className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
+              onClick={() => setSearchParams({ view: 'my-work' })}
+            >
+              My Work
+            </button>
+            <button
+              className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
+              onClick={() => setSearchParams({ view: 'my-team' })}
+            >
+              My Team
+            </button>
+          </div>
           <div className="wq-search-wrap wq-search-wrap--sm">
             <Search size={13} className="wq-search-icon" />
             <input
@@ -1428,6 +1454,20 @@ export default function WQQueue() {
         </div>
       ) : (
         <div className="wq-filter-bar">
+          <div className="wq-view-toggle">
+            <button
+              className={`wq-view-btn${view !== 'my-team' ? ' wq-view-btn--active' : ''}`}
+              onClick={() => setSearchParams({ view: 'my-work' })}
+            >
+              My Work
+            </button>
+            <button
+              className={`wq-view-btn${view === 'my-team' ? ' wq-view-btn--active' : ''}`}
+              onClick={() => setSearchParams({ view: 'my-team' })}
+            >
+              My Team
+            </button>
+          </div>
           <div className="wq-search-wrap wq-search-wrap--sm">
             <Search size={13} className="wq-search-icon" />
             <input
