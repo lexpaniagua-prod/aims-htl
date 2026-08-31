@@ -109,8 +109,15 @@
   background: var(--bg-row-hover);
 }
 
+/* Card Container semantic pattern — tinted background, no left-accent-line;
+   the row already carries an Error status pill and the red sub-banner
+   below states the actual problem, so this is just an ambient highlight. */
 .ext-row--error {
-  border-left: 3px solid var(--accent-amber, #f59e0b);
+  background: var(--card-red-bg, rgba(224,82,82,0.08));
+}
+.ext-row--error:hover {
+  background: var(--card-red-bg, rgba(224,82,82,0.08));
+  filter: brightness(1.15);
 }
 
 .ext-row-inner {

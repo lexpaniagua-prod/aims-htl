@@ -439,15 +439,10 @@ export default function PackLibrary() {
         </div>
       )}
 
-      {/* ── Pack list ─────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 10,
-          overflow: 'hidden',
-        }}
-      >
+      {/* ── Pack list — DS Entity List: each row is its own Card Container
+          (size sm), not one continuously-bordered/divided list. ─────────── */}
+      <div className="pack-list">
+
         {filtered.length === 0 ? (
           <div className="pl-empty">
             <div className="pl-empty-icon">

@@ -206,6 +206,11 @@
   --card-purple-bg:      rgba(168,85,247,0.08);  --card-purple-border:      rgba(168,85,247,0.35);
   --card-lightblue-bg:   rgba(56,189,248,0.08);  --card-lightblue-border:   rgba(56,189,248,0.35);
   --card-lime-bg:        rgba(163,230,53,0.08);  --card-lime-border:        rgba(163,230,53,0.35);
+
+  /* DS Card Container Size-S "default" — the standard shell every Entity
+     List row wraps in (aims-os-design-system: --card-default-bg/border). */
+  --card-default-bg:     rgba(255,255,255,0.1);
+  --card-default-border: rgba(255,255,255,0.15);
 }
 
 [data-theme="light"] {
@@ -366,4 +371,9 @@
   --card-purple-bg:      rgba(147,51,234,0.06);  --card-purple-border:      rgba(147,51,234,0.3);
   --card-lightblue-bg:   rgba(2,132,199,0.06);   --card-lightblue-border:   rgba(2,132,199,0.3);
   --card-lime-bg:        rgba(101,163,13,0.06);  --card-lime-border:        rgba(101,163,13,0.3);
+
+  /* DS Card Container Size-S "default" — the standard shell every Entity
+     List row wraps in. */
+  --card-default-bg:     rgba(0,0,0,0.035);
+  --card-default-border: rgba(0,0,0,0.12);
 }

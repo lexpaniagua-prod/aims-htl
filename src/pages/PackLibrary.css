@@ -129,21 +129,33 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 
+/* DS Entity List: EntityList always wraps in a CardContainer size="sm" —
+   12px padding, 8px radius, 0.5px border, 12px gap between rows. */
+.pack-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .pack-row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 12px 14px;
+  background: var(--card-default-bg);
+  border: 0.5px solid var(--card-default-border);
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s, border-width 0.12s;
   position: relative;
   animation: packRowIn 0.22s ease both;
   animation-delay: var(--row-delay, 0ms);
 }
 
-.pack-row:last-child { border-bottom: none; }
-.pack-row:hover { background: var(--bg-row-hover); }
+.pack-row:hover {
+  border-width: 1px;
+  border-color: var(--border-strong);
+}
 .pack-row:hover .pack-row-actions { opacity: 1; pointer-events: all; }
 
 /* Status-based treatments */
@@ -172,8 +184,8 @@
 }
 
 .pack-row-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
   white-space: nowrap;
@@ -182,7 +194,8 @@
 }
 
 .pack-row-desc {
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
@@ -348,6 +361,9 @@
   padding: 64px 24px;
   gap: 10px;
   text-align: center;
+  background: var(--card-default-bg);
+  border: 0.5px solid var(--card-default-border);
+  border-radius: 8px;
 }
 
 .pl-empty-icon {
