@@ -177,12 +177,12 @@
   --st-item-radius: 4px;
 
   /* ── DS Table ────────────────────────────────────────────────────────── */
-  --table-bg:              rgba(255,255,255,0.10);
-  --table-header-bg:       rgba(255,255,255,0.10);
+  --table-bg:              transparent;
+  --table-header-bg:       transparent;
   --table-border:          rgba(255,255,255,0.08);
-  --table-header-text:     rgba(255,255,255,0.60);
-  --table-cell-text:       rgba(255,255,255,0.60);
-  --table-row-hover-bg:    rgba(255,255,255,0.08);
+  --table-header-text:     rgba(255,255,255,0.9);
+  --table-cell-text:       rgba(255,255,255,0.65);
+  --table-row-hover-bg:    rgba(255,255,255,0.05);
   --table-row-selected-bg: rgba(43,127,255,0.08);
 
   /* ── DS Card Container — "attention room" list-item card (Inbox view) ── */

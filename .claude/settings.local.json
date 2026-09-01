@@ -43,7 +43,23 @@
       "Bash(npx --yes esbuild src/pages/EventTypeBlocks.jsx --bundle=false --outfile=out1.js)",
       "Bash(npx --yes esbuild src/pages/WQQueue.jsx --bundle=false --outfile=out2.js)",
       "Bash(npx --yes esbuild src/pages/EventSlideout.jsx --bundle=false --outfile=out3.js)",
-      "Bash(powershell -Command \"Get-ChildItem -Path C:\\\\Users\\\\alexa -Directory -Filter '*aims-os-design-system*' -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object FullName\")"
+      "Bash(powershell -Command \"Get-ChildItem -Path C:\\\\Users\\\\alexa -Directory -Filter '*aims-os-design-system*' -Recurse -ErrorAction SilentlyContinue -Depth 4 | Select-Object FullName\")",
+      "Bash(python3 -c \"import fitz; print\\('pymupdf ok'\\)\")",
+      "Bash(python3 -c \"import pdfplumber; print\\('pdfplumber ok'\\)\")",
+      "Bash(python3 -c \"import pypdf; print\\('pypdf ok'\\)\")",
+      "Read(//c/Program Files/**)",
+      "Read(//c/Program Files \\\\\\(x86\\\\\\)/**)",
+      "Bash(where magick *)",
+      "Bash(where convert *)",
+      "Bash(where gswin64c *)",
+      "Bash(where gs *)",
+      "Bash(pdftotext -layout \"Work Queue - HTL Refinement - 31- 08 - 26.pdf\" -)",
+      "Bash(where npm *)",
+      "Bash(npm ls *)",
+      "Bash(mkdir -p \"/c/Users/alexa/AppData/Local/Temp/claude/C--Users-alexa-OneDrive-Desktop-Prototypes-HTL---DS/c9a7154b-d44c-4b7c-b11e-6d0f427dec0a/scratchpad/pdfconv\")",
+      "Read(//c/Users/alexa/AppData/Local/Temp/claude/C--Users-alexa-OneDrive-Desktop-Prototypes-HTL---DS/c9a7154b-d44c-4b7c-b11e-6d0f427dec0a/scratchpad/**)",
+      "Bash(npm init *)",
+      "Bash(pdfinfo \"Work Queue - HTL Refinement - 31- 08 - 26.pdf\")"
     ]
   }
 }

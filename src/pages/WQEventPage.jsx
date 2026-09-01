@@ -208,11 +208,13 @@ export default function WQEventPage({ eventId } = {}) {
             <span className="evm-header-sep">·</span>
             <span className="evm-header-spec">{event.spec}</span>
             <span className="evm-header-sep">·</span>
-            <span className="evm-header-kind">{event.kind}</span>
-            <span className="evm-header-type" style={{ color: etype.color }}>{etype.label.toUpperCase()}</span>
+            {event.kind && <span className="evm-header-kind">{event.kind}</span>}
+            {etype?.label && etype.label.toLowerCase() !== (event.kind || '').toLowerCase() && (
+              <span className="evm-header-type">{etype.label}</span>
+            )}
             {event.missionCritical && (
               <span className="wq-badge wq-badge--critical">
-                <AlertTriangle size={9} /> Mission Critical
+                <AlertTriangle size={9} /> Mission critical
               </span>
             )}
           </div>

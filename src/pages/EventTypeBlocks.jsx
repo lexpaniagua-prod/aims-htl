@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Check, MessageCircle, Contact, Phone, Mail } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Check, MessageCircle, Contact, Phone, Mail, MoreVertical } from 'lucide-react'
 import { PEOPLE, EVENT_MODAL_DATA } from '../data/workQueueData'
 import { fmtTs, TraceTimeline } from './EventModal'
 
@@ -39,13 +39,41 @@ function ConfirmBar({ text, children, onConfirm, onCancel, confirmLabel = 'Confi
   )
 }
 
-// Secondary Ask / Escalate links shown under every decision surface on the full page.
+// Trailing tertiary CTA + overflow menu, shown at the end of every decision
+// row on the full (non-embedded) page — DS Decision section spec: keep a
+// max of 3 CTAs on the left, put anything else in the "..." menu on the
+// right. Ask stays as the one always-visible tertiary action; Escalate
+// (non-critical here — a dedicated Escalate modal is one click away
+// regardless) moves into the menu. Hidden in the Inbox view's embedded
+// pane, which already has its own corner ⋮ menu covering both.
 function SecondaryLinks({ onAsk, onEscalate }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
   return (
     <div className="etb-secondary-links">
-      <button className="etb-secondary-link" onClick={onAsk}>Ask</button>
-      <span className="etb-secondary-sep">·</span>
-      <button className="etb-secondary-link etb-secondary-link--coral" onClick={onEscalate}>Escalate</button>
+      <button className="wq-btn wq-btn--tertiary" onClick={onAsk}>Ask</button>
+      <div className="wq-card-menu-wrap" ref={wrapRef}>
+        <button
+          className="wq-btn wq-btn--tertiary wq-btn--icon wq-card-menu-btn"
+          title="More actions"
+          onClick={() => setOpen(o => !o)}
+        >
+          <MoreVertical size={14} />
+        </button>
+        {open && (
+          <div className="wq-card-menu">
+            <button onClick={() => { setOpen(false); onEscalate() }}>Escalate</button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
-import { useState, Fragment } from 'react'
-import { Search } from 'lucide-react'
+import { useState, useRef, useEffect, Fragment } from 'react'
+import { Search, X } from 'lucide-react'
 import { AUDIT_LOG } from '../data/workQueueData'
 
 function fmtTs(iso) {
@@ -10,24 +10,68 @@ function fmtTs(iso) {
 }
 
 // ─── Audit Ledger ─────────────────────────────────────────────────────────────
+// A single "Modified" dropdown instead of a row of range pills — filtering
+// here is only ever by date, so a dropdown (DS Filters pattern) makes better
+// use of the horizontal space than a "24h/7d/30d/All" pill row.
 const DATE_RANGES = [
-  { label: '24h',  hours: 24  },
-  { label: '7d',   hours: 168 },
-  { label: '30d',  hours: 720 },
-  { label: 'All',  hours: null },
+  { value: 'today',     label: 'Today',        hours: 24  },
+  { value: 'yesterday', label: 'Yesterday',    hours: 48  },
+  { value: '7d',        label: 'Last 7 days',  hours: 168 },
+  { value: '30d',       label: 'Last 30 days', hours: 720 },
+  { value: 'all',       label: 'All time',     hours: null },
 ]
 
 const RISK_CLASS = { none: 'wq-risk--none', low: 'wq-risk--low', medium: 'wq-risk--medium', high: 'wq-risk--high', critical: 'wq-risk--critical' }
 
+function ModifiedFilter({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const wrapRef = useRef(null)
+  const current = DATE_RANGES.find(r => r.value === value)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div className="wq-modified-filter" ref={wrapRef}>
+      <button className="wq-multiselect-trigger" onClick={() => setOpen(o => !o)}>
+        <span>Modified{current && current.value !== 'all' ? `: ${current.label}` : ''}</span>
+      </button>
+      {open && (
+        <div className="wq-modified-filter-panel">
+          <div className="wq-modified-filter-header">
+            <span>Modified</span>
+            <button onClick={() => setOpen(false)}><X size={13} /></button>
+          </div>
+          {DATE_RANGES.map(r => (
+            <label key={r.value} className="wq-modified-filter-option">
+              <input
+                type="radio"
+                name="modified-range"
+                checked={value === r.value}
+                onChange={() => { onChange(r.value); setOpen(false) }}
+              />
+              <span>{r.label}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AuditTab() {
-  const [range, setRange] = useState('All')
+  const [range, setRange] = useState('all')
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState(null)
 
   const ref = new Date('2026-06-17T11:00:00Z')
   const filtered = AUDIT_LOG.filter(a => {
     const ts = new Date(a.timestamp)
-    const cfg = DATE_RANGES.find(r => r.label === range)
+    const cfg = DATE_RANGES.find(r => r.value === range)
     if (cfg.hours && (ref - ts) / 3600000 > cfg.hours) return false
     if (search) {
       const q = search.toLowerCase()
@@ -42,17 +86,6 @@ function AuditTab() {
   return (
     <div className="wq-audit">
       <div className="wq-audit-toolbar">
-        <div className="wq-range-pills">
-          {DATE_RANGES.map(r => (
-            <button
-              key={r.label}
-              className={`wq-range-pill${range === r.label ? ' wq-range-pill--active' : ''}`}
-              onClick={() => setRange(r.label)}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
         <div className="wq-search-wrap wq-search-wrap--sm">
           <Search size={12} className="wq-search-icon" />
           <input
@@ -62,6 +95,7 @@ function AuditTab() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+        <ModifiedFilter value={range} onChange={setRange} />
       </div>
 
       <div className="wq-table-wrap">

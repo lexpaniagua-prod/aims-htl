@@ -271,8 +271,7 @@ function InboxMiniCard({ event, isSelected, onClick }) {
             { key: 'status', node: (
               <span
                 key="status"
-                className={`wq-inbox-chip${group.key !== 'critical' ? ' wq-inbox-chip--neutral' : ''}`}
-                style={group.key === 'critical' ? { color: group.color, background: group.color + '1a' } : undefined}
+                className={`wq-inbox-chip${group.key === 'critical' ? ' wq-inbox-chip--danger' : ' wq-inbox-chip--neutral'}`}
               >
                 {group.label}
               </span>
@@ -677,7 +676,7 @@ function InboxView({
         style={paneHeight ? { height: paneHeight } : undefined}
       />
 
-      <div className="wq-inbox-detail" style={paneHeight ? { maxHeight: paneHeight } : undefined}>
+      <div className="wq-inbox-detail" style={paneHeight ? { height: paneHeight } : undefined}>
         {selectedEvent ? (
           <>
             <WQEventPage eventId={selectedId} />
@@ -695,7 +694,9 @@ function InboxView({
           </>
         ) : (
           <div className="wq-inbox-detail-empty">
-            <Inbox size={26} />
+            <span className="wq-highlight-icon">
+              <Inbox size={20} />
+            </span>
             <p>Select an item on the left to see the full details.</p>
           </div>
         )}
@@ -1020,6 +1021,10 @@ function MultiSelect({ label, options, selected, onChange }) {
   const toggle = (val) => {
     onChange(selected.includes(val) ? selected.filter(v => v !== val) : [...selected, val])
   }
+  const remove = (val, e) => {
+    e.stopPropagation()
+    onChange(selected.filter(v => v !== val))
+  }
 
   const openMenu = () => {
     if (triggerRef.current) {
@@ -1040,14 +1045,35 @@ function MultiSelect({ label, options, selected, onChange }) {
     return () => document.removeEventListener('mousedown', handler)
   }, [open])
 
+  // Selected values show as removable chips right in the trigger field —
+  // 2 visible + a "+n" overflow — instead of just a count, per DS Filters
+  // feedback pattern.
+  const selectedOpts = selected.map(v => options.find(o => o.value === v)).filter(Boolean)
+  const visibleOpts = selectedOpts.slice(0, 2)
+  const overflowOpts = selectedOpts.slice(2)
+
   return (
     <div className="wq-multiselect">
       <button
         ref={triggerRef}
-        className="wq-multiselect-trigger"
+        className={`wq-multiselect-trigger${selectedOpts.length ? ' wq-multiselect-trigger--filled' : ''}`}
         onClick={() => open ? setOpen(false) : openMenu()}
       >
-        <span>{label}{selected.length > 0 ? ` (${selected.length})` : ''}</span>
+        {selectedOpts.length === 0 ? (
+          <span>{label}</span>
+        ) : (
+          <span className="wq-multiselect-chiprow">
+            {visibleOpts.map(o => (
+              <span key={o.value} className="wq-multiselect-chip">
+                {o.label}
+                <X size={10} onClick={e => remove(o.value, e)} />
+              </span>
+            ))}
+            {overflowOpts.length > 0 && (
+              <span className="wq-multiselect-chip wq-multiselect-chip--overflow">+{overflowOpts.length}</span>
+            )}
+          </span>
+        )}
         <ChevronDown size={12} />
       </button>
       {open && (
@@ -1064,6 +1090,62 @@ function MultiSelect({ label, options, selected, onChange }) {
             </label>
           ))}
         </div>
+      )}
+    </div>
+  )
+}
+
+// Single-select dropdown — DS Menu/Dropdown component, size S (compact, no
+// icons needed), used wherever a plain browser <select> would otherwise
+// stand in for a real menu (e.g. the sort field).
+function MenuSelect({ value, options, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [menuStyle, setMenuStyle] = useState({})
+  const triggerRef = useRef(null)
+  const wrapRef = useRef(null)
+
+  const openMenu = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setMenuStyle({ top: r.bottom + 4, left: r.left, minWidth: r.width })
+    }
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => {
+      if (!wrapRef.current?.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const current = options.find(o => o.value === value)
+
+  return (
+    <div className="wq-menu-select" ref={wrapRef}>
+      <button
+        ref={triggerRef}
+        className="wq-menu-select-trigger"
+        onClick={() => open ? setOpen(false) : openMenu()}
+      >
+        <span>{current?.label ?? value}</span>
+        <ChevronDown size={12} />
+      </button>
+      {open && createPortal(
+        <div className="wq-menu-select-menu wq-menu-select-menu--s" style={menuStyle}>
+          {options.map(o => (
+            <button
+              key={o.value}
+              className={`wq-menu-select-item${o.value === value ? ' wq-menu-select-item--active' : ''}`}
+              onClick={() => { onChange(o.value); setOpen(false) }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -1423,15 +1505,15 @@ export default function WQQueue() {
           <MultiSelect label="Team"       options={teamOptions}     selected={teamFilter}     onChange={setTeamFilter} />
           {/* All filters + sort — one grouped cluster, pushed to the right
               as a unit (not spread across the bar), matching the DS Filters
-              component. */}
+              component. Selected-filter feedback lives in the fields
+              themselves (chips above) — the "All filters" trigger stays
+              plain, no count badge. */}
           <div className="wq-inbox-allfilters-sort-group">
+            {(teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length) > 0 && (
+              <button className="wq-btn--filter-clear" onClick={clearAll}>Clear filters</button>
+            )}
             <button className="wq-inbox-allfilters-btn" onClick={() => setInboxFiltersOpen(true)}>
               All filters
-              {(teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length) > 0 && (
-                <span className="wq-inbox-filters-btn-count">
-                  {teamFilter.length + studioFilter.length + categoryFilter.length + dueFilter.length + ownerFilter.length}
-                </span>
-              )}
               <SlidersHorizontal size={13} />
             </button>
             <button
@@ -1441,13 +1523,11 @@ export default function WQQueue() {
             >
               <ArrowDown size={13} />
             </button>
-            <select
-              className="wq-inbox-sort-field"
+            <MenuSelect
               value={inboxSortField}
-              onChange={e => setInboxSortField(e.target.value)}
-            >
-              {INBOX_SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+              options={INBOX_SORT_OPTIONS}
+              onChange={setInboxSortField}
+            />
           </div>
         </div>
       ) : (

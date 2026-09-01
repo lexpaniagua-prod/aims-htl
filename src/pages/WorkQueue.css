@@ -228,9 +228,9 @@
 
 .wq-table th {
   text-align: left;
-  padding: 10px 8px;
+  padding: 8px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--table-header-text);
   background: var(--table-header-bg);
   border-bottom: 1px solid var(--table-border);
@@ -245,7 +245,7 @@
 .wq-table tbody tr:hover { background: var(--table-row-hover-bg); }
 
 .wq-table td {
-  padding: 10px 8px;
+  padding: 8px;
   font-weight: 500;
   color: var(--table-cell-text);
   vertical-align: middle;
@@ -582,6 +582,24 @@
   margin-left: auto;
 }
 
+/* Clear filters — DS Button tertiary variant */
+.wq-btn--filter-clear {
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--btn-tertiary-fg);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+.wq-btn--filter-clear:hover {
+  background: var(--btn-tertiary-hover-bg);
+  color: var(--text-primary);
+}
+
 .wq-inbox-allfilters-btn {
   display: inline-flex;
   align-items: center;
@@ -639,6 +657,56 @@
   cursor: pointer;
 }
 .wq-inbox-sort-field:focus { outline: none; border-color: rgba(43,127,255,0.5); }
+
+/* DS Menu/Dropdown — size S compact, used for single-select fields like
+   sort, in place of a bare browser <select>. */
+.wq-menu-select { position: relative; }
+.wq-menu-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--field-border, var(--border));
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wq-menu-select-trigger:hover { border-color: var(--border-strong); color: var(--text-primary); }
+
+.wq-menu-select-menu {
+  position: fixed;
+  z-index: 9000;
+  background: var(--bg-card-elevated);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  padding: 4px;
+}
+.wq-menu-select-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wq-menu-select-item:hover { background: var(--bg-row-hover); color: var(--text-primary); }
+.wq-menu-select-item--active {
+  background: var(--accent-blue);
+  color: #fff;
+}
+.wq-menu-select-item--active:hover { background: var(--accent-blue); color: #fff; }
 
 .wq-search-wrap {
   position: relative;
@@ -702,6 +770,34 @@
   white-space: nowrap;
 }
 .wq-multiselect-trigger:hover { border-color: rgba(43,127,255,0.4); color: var(--text-primary); }
+.wq-multiselect-trigger--filled { padding: 4px 8px 4px 12px; }
+
+.wq-multiselect-chiprow {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.wq-multiselect-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--tag-informative-bg);
+  color: var(--tag-informative-fg);
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.wq-multiselect-chip svg {
+  cursor: pointer;
+  opacity: 0.7;
+}
+.wq-multiselect-chip svg:hover { opacity: 1; }
+.wq-multiselect-chip--overflow {
+  background: var(--bg-row-hover);
+  color: var(--text-secondary);
+}
 
 .wq-multiselect-menu {
   position: fixed;
@@ -766,14 +862,19 @@
 
 .wq-filter-clear-all {
   font-size: 11.5px;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: var(--btn-tertiary-fg);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 3px 6px;
-  text-decoration: underline;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
 }
-.wq-filter-clear-all:hover { color: var(--text-secondary); }
+.wq-filter-clear-all:hover {
+  background: var(--btn-tertiary-hover-bg);
+  color: var(--text-primary);
+}
 
 /* Severity groups */
 .wq-severity-group { display: flex; flex-direction: column; gap: 8px; }
@@ -1275,27 +1376,51 @@
   flex-wrap: wrap;
 }
 
-.wq-range-pills {
-  display: flex;
-  gap: 4px;
-}
-
-.wq-range-pill {
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
+/* Activity Log — "Modified" date filter dropdown */
+.wq-modified-filter { position: relative; }
+.wq-modified-filter-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  min-width: 180px;
   background: var(--bg-card-elevated);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  padding: 8px;
+}
+.wq-modified-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.wq-modified-filter-header button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+}
+.wq-modified-filter-header button:hover { color: var(--text-primary); }
+.wq-modified-filter-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  font-size: 12.5px;
   color: var(--text-secondary);
   cursor: pointer;
+  border-radius: 6px;
 }
-
-.wq-range-pill--active {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
-  color: #fff;
-}
+.wq-modified-filter-option:hover { background: var(--bg-row-hover); color: var(--text-primary); }
+.wq-modified-filter-option input { cursor: pointer; }
 
 .wq-audit-row { cursor: pointer; }
 
@@ -2749,32 +2874,23 @@
   margin-bottom: 6px;
 }
 
+/* DS Button — tertiary variant: text-label color, no inherent accent color;
+   a neutral surface tint on hover is what signals it's clickable. */
 .evm-footer-link {
   background: none;
   border: none;
   cursor: pointer;
   font-size: 12px;
-  color: var(--accent-blue);
-  padding: 0;
-  margin-top: 6px;
-  display: block;
-  transition: opacity 0.15s;
-}
-.evm-footer-link:hover { opacity: 0.75; }
-/* Inbox view — proper tertiary-button treatment: text-label color instead of
-   an accent-blue link, hover picks up a neutral surface tint instead of just
-   fading opacity (DS Button spec — tertiary variant). */
-.wqep-root--embedded .evm-footer-link {
   color: var(--btn-tertiary-fg);
   padding: 6px 8px;
   margin: 6px -8px 0;
+  display: block;
   border-radius: var(--radius-sm);
   transition: background 0.15s, color 0.15s;
 }
-.wqep-root--embedded .evm-footer-link:hover {
+.evm-footer-link:hover {
   background: var(--btn-tertiary-hover-bg);
   color: var(--text-primary);
-  opacity: 1;
 }
 
 /* Highlight boxes — Card Container Size-S semantic variants (full border +
@@ -5819,26 +5935,35 @@ body.evm-active .drawer {
   opacity: 1;
 }
 
-/* Each pane scrolls independently — subtle, thin scrollbars.
+/* The list pane scrolls itself — subtle, thin scrollbar.
    max-height is set inline via JS (measured against the real viewport space
    left below the container) once mounted; this is just the pre-measurement
    fallback so there's no flash of unconstrained height on first paint. */
-.wq-inbox-list,
-.wq-inbox-detail {
+.wq-inbox-list {
   max-height: 640px;
   min-height: 280px;
   overflow-y: auto;
 }
+/* The detail pane no longer scrolls itself — its two columns (decision
+   surface / Thread) each scroll independently so the Thread column and its
+   pinned composer stay put regardless of how long the decision content
+   runs, instead of both columns growing together inside one shared
+   scrollbar. height is set inline via JS the same way as the list. */
+.wq-inbox-detail {
+  height: 640px;
+  min-height: 280px;
+  overflow: hidden;
+}
 .wq-inbox-list::-webkit-scrollbar,
-.wq-inbox-detail::-webkit-scrollbar {
+.wq-inbox-detail *::-webkit-scrollbar {
   width: 5px;
 }
 .wq-inbox-list::-webkit-scrollbar-track,
-.wq-inbox-detail::-webkit-scrollbar-track {
+.wq-inbox-detail *::-webkit-scrollbar-track {
   background: transparent;
 }
 .wq-inbox-list::-webkit-scrollbar-thumb,
-.wq-inbox-detail::-webkit-scrollbar-thumb {
+.wq-inbox-detail *::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
 }
@@ -6071,7 +6196,10 @@ body.evm-active .drawer {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-right: 6px;
+  /* overflow-y:auto below forces overflow-x to clip too (per spec) — a
+     little breathing room on both sides keeps the hover-glow box-shadow
+     from being cut off against that clip boundary. */
+  padding: 2px 6px 2px 4px;
 }
 
 .wq-inbox-list-empty {
@@ -6096,10 +6224,9 @@ body.evm-active .drawer {
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  padding: 10px 12px 10px 10px;
+  padding: 10px 12px;
   background: var(--ibx-card-bg);
   border: 1px solid var(--ibx-card-border);
-  border-left: 4px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
   text-align: left;
@@ -6225,8 +6352,8 @@ body.evm-active .drawer {
   background: var(--bg-row-hover);
 }
 .wq-inbox-chip--danger {
-  color: var(--accent-coral);
-  background: var(--accent-coral-dim);
+  color: var(--tag-error-fg);
+  background: var(--tag-error-bg);
 }
 .wq-inbox-chip--accent {
   color: var(--accent-blue);
@@ -6339,13 +6466,27 @@ body.evm-active .drawer {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
   text-align: center;
   padding: 64px 24px;
   border: 1px dashed var(--border);
   border-radius: 12px;
   color: var(--text-muted);
   min-height: 320px;
+}
+
+/* DS Highlight Icon — size LG (40px box, 24px icon, 8px radius), Neutral
+   variant for a generic standalone context indicator like this. */
+.wq-highlight-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 @media (max-width: 900px) {
@@ -7933,16 +8074,23 @@ body.evm-active .drawer {
   background: var(--bg-card-elevated);
 }
 
+/* DS Button — tertiary variant: no inherent color, hover picks up a neutral
+   surface tint (not an underline) to signal it's clickable. */
 .evc-close-link, .evc-reopen-link {
   background: none;
   border: none;
-  padding: 0;
+  padding: 3px 6px;
+  margin: -3px -6px;
   font-size: 11.5px;
   font-weight: 500;
-  color: var(--accent-blue);
+  color: var(--btn-tertiary-fg);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
+}
+.evc-close-link:hover, .evc-reopen-link:hover {
+  background: var(--btn-tertiary-hover-bg);
+  color: var(--text-primary);
 }
 
 /* ── Thread list ──────────────────────────────────────────────────────────────── */
@@ -8339,6 +8487,41 @@ body.evm-active .drawer {
   flex-direction: column;
 }
 
+/* Inbox view's embedded detail pane — the decision surface and the Thread
+   column each scroll independently, both bounded to the pane's real height
+   (set via JS on .wq-inbox-detail), instead of growing together inside one
+   shared outer scrollbar. A scrollbar only shows up on hover, so it never
+   reads as a UI element competing with the content. */
+.wqep-root--embedded {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.wqep-root--embedded .wqep-sticky-header {
+  flex-shrink: 0;
+}
+.wqep-root--embedded .wqep-columns {
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+.wqep-root--embedded .wqep-detail {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-color: transparent transparent;
+}
+.wqep-root--embedded .wqep-detail:hover {
+  scrollbar-color: var(--border) transparent;
+}
+.wqep-root--embedded .wqep-detail::-webkit-scrollbar { width: 5px; }
+.wqep-root--embedded .wqep-detail::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; }
+.wqep-root--embedded .wqep-detail:hover::-webkit-scrollbar-thumb { background: var(--border); }
+.wqep-root--embedded .wqep-side {
+  height: 100%;
+  overflow: hidden;
+}
+
 .wqep-body {
   padding: 18px 20px;
   flex: 1;
@@ -8532,8 +8715,13 @@ body.evm-active .drawer {
 }
 .wqep-comments .evc-list {
   flex: 1;
+  min-height: 0;
   max-height: none;
+  scrollbar-color: transparent transparent;
 }
+.wqep-comments .evc-list:hover { scrollbar-color: var(--border) transparent; }
+.wqep-comments .evc-list::-webkit-scrollbar-thumb { background: transparent; }
+.wqep-comments .evc-list:hover::-webkit-scrollbar-thumb { background: var(--border); }
 
 .wqep-notfound {
   display: flex;
@@ -8990,12 +9178,15 @@ body.evm-active .drawer {
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #14b8a6;
-  padding: 2px 0;
-  margin-top: 2px;
+  color: var(--btn-tertiary-fg);
+  padding: 3px 6px;
+  margin: 2px -6px 0;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
 }
 .etb-cc-ucp-link:hover {
-  text-decoration: underline;
+  background: var(--btn-tertiary-hover-bg);
+  color: var(--text-primary);
 }
 
 /* ── Slideout type-context block ─────────────────────────────────────────────── */
@@ -9224,20 +9415,23 @@ body.evm-active .drawer {
   cursor: pointer;
 }
 .etb-claim-btn:hover { background: var(--bg-row-hover); }
+/* Approve = Positive (solid fill), Reject = Secondary (neutral — this isn't
+   destructive/critical), Correct = Tertiary (text-only, a complementary
+   extra option) — per DS Button variant guidance. */
 .etb-claim-btn--approve-on {
-  background: rgba(52,211,153,0.12);
-  border-color: rgba(52,211,153,0.4);
-  color: var(--accent-green);
+  background: var(--btn-positive-bg);
+  border-color: var(--btn-positive-bg);
+  color: #fff;
 }
 .etb-claim-btn--reject-on {
-  background: rgba(224,82,82,0.1);
-  border-color: rgba(224,82,82,0.4);
-  color: #e05252;
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-hover-bd);
+  color: var(--text-primary);
 }
 .etb-claim-btn--correct-on {
-  background: rgba(245,158,11,0.12);
-  border-color: rgba(245,158,11,0.4);
-  color: var(--accent-amber);
+  background: var(--btn-tertiary-hover-bg);
+  border-color: transparent;
+  color: var(--text-primary);
 }
 
 .evm-claim-header {
@@ -9459,11 +9653,13 @@ body.evm-active .drawer {
   gap: 8px;
 }
 
-/* Secondary Ask / Escalate links under every decision surface */
+/* Trailing tertiary CTA + overflow menu, right-aligned, under every decision
+   row (DS Decision section spec). */
 .etb-secondary-links {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 4px;
   margin-top: 12px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
@@ -9512,15 +9708,3 @@ body.evm-active .drawer {
   font-size: 13.5px;
   box-shadow: 0 0 0 1px var(--accent-blue-border), 0 4px 16px rgba(43,127,255,0.4);
 }
-.etb-secondary-link {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-.etb-secondary-link:hover { color: var(--text-primary); }
-.etb-secondary-link--coral { color: var(--accent-coral); }
-.etb-secondary-sep { color: var(--text-muted); }
