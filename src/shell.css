@@ -340,6 +340,25 @@
   color: white;
 }
 
+/* Signed-in person's own avatar — separate from the company/workspace pill */
+.profile-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-teal) 0%, var(--accent-blue) 100%);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #001a12;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+.profile-avatar:hover { box-shadow: 0 0 0 2px var(--accent-blue-border); }
+
 /* ── Main Area ───────────────────────────────────────────────────────────── */
 .main-area {
   flex: 1;
@@ -425,12 +444,24 @@
 
 .crumb-sep {
   color: var(--text-tertiary);
-  margin: 0 2px;
-  font-size: 11px;
+  flex-shrink: 0;
 }
 
-.crumb-muted { color: var(--text-tertiary); }
-.crumb-active { color: var(--text-primary); font-weight: 500; }
+/* Every ancestor is a real clickable control (DS Breadcrumb) — only the
+   current page renders as plain static text. */
+.crumb-muted {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+.crumb-muted:hover { color: var(--text-secondary); }
+.crumb-muted--static { cursor: default; }
+.crumb-muted--static:hover { color: var(--text-tertiary); }
+.crumb-active { color: var(--text-secondary); font-weight: 500; }
 
 /* CENTER zone — search trigger, 250×24px */
 .topbar-center {

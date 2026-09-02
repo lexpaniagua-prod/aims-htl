@@ -3,14 +3,68 @@ import { useNavigate } from 'react-router-dom'
 import {
   Plus, Search, GitFork, Pencil, Archive, MoreHorizontal,
   ArrowUpDown, Copy, Trash2, Eye, Shield, Workflow,
-  GitBranch, RefreshCw, Package2
+  GitBranch, RefreshCw, Package2, ChevronDown, ChevronLeft, ChevronRight,
 } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import KPICard from '../components/KPICard.jsx'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
-import { Input, Select } from '../components/FormFields.jsx'
+import { Input } from '../components/FormFields.jsx'
 import { packs } from '../data/mockData.js'
 import './PackLibrary.css'
+
+// Single-select dropdown — DS Menu/Dropdown, size S, used for filters and
+// sort in place of a bare browser <select>.
+function MenuSelect({ value, options, onChange, width }) {
+  const [open, setOpen] = useState(false)
+  const [menuStyle, setMenuStyle] = useState({})
+  const triggerRef = useRef(null)
+  const wrapRef = useRef(null)
+
+  const openMenu = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setMenuStyle({ top: r.bottom + 4, left: r.left, minWidth: r.width })
+    }
+    setOpen(true)
+  }
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e) => { if (!wrapRef.current?.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const current = options.find(o => o.value === value)
+
+  return (
+    <div className="pl-menu-select" ref={wrapRef} style={width ? { width } : undefined}>
+      <button
+        ref={triggerRef}
+        className="pl-menu-select-trigger"
+        onClick={() => open ? setOpen(false) : openMenu()}
+      >
+        <span>{current?.label ?? value}</span>
+        <ChevronDown size={12} />
+      </button>
+      {open && createPortal(
+        <div className="pl-menu-select-menu" style={menuStyle}>
+          {options.map(o => (
+            <button
+              key={o.value}
+              className={`pl-menu-select-item${o.value === value ? ' pl-menu-select-item--active' : ''}`}
+              onClick={() => { onChange(o.value); setOpen(false) }}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </div>
+  )
+}
 
 // ─── Relative time ────────────────────────────────────────────────────────────
 function relativeTime(iso) {
@@ -25,30 +79,44 @@ function relativeTime(iso) {
   return `${Math.floor(d / 7)}w ago`
 }
 
-// ─── Config maps ─────────────────────────────────────────────────────────────
-const PATTERN_CONFIG = {
-  Handoff:      { color: 'purple', variant: 'purple' },
-  Continuation: { color: 'teal',   variant: 'teal'   },
+// ─── Pagination — DS Pagination component ──────────────────────────────────
+function Pagination({ total, page, pageSize, onPageChange, onPageSizeChange }) {
+  const start = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const end = Math.min(page * pageSize, total)
+  const canPrev = page > 1
+  const canNext = end < total
+
+  return (
+    <div className="pl-pagination">
+      <div className="pl-pagination-size">
+        <span>Rows per page:</span>
+        <MenuSelect
+          value={String(pageSize)}
+          onChange={v => onPageSizeChange(Number(v))}
+          width={64}
+          options={[5, 10, 20, 50].map(n => ({ value: String(n), label: String(n) }))}
+        />
+      </div>
+      <div className="pl-pagination-nav">
+        <span>{start}–{end} of {total} items</span>
+        <button className="pl-pagination-arrow" disabled={!canPrev} onClick={() => onPageChange(page - 1)}>
+          <ChevronLeft size={14} />
+        </button>
+        <button className="pl-pagination-arrow" disabled={!canNext} onClick={() => onPageChange(page + 1)}>
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
+  )
 }
 
+// ─── Config maps ─────────────────────────────────────────────────────────────
+// Status is the one piece of metadata that stays color-coded (top-right
+// corner badge) — everything else in the row is plain/neutral context.
 const STATUS_CONFIG = {
   Active:     { variant: 'teal'  },
   Draft:      { variant: 'amber' },
   Deprecated: { variant: 'gray'  },
-}
-
-const DEST_CONFIG = {
-  Inbox:      { variant: 'blue'   },
-  Mixed:      { variant: 'purple' },
-  Lightweight:{ variant: 'green'  },
-  External:   { variant: 'amber'  },
-}
-
-const STUDIO_CONFIG = {
-  'Agentic Studio':           { bg: 'var(--accent-purple-dim)', border: 'var(--accent-purple-border)', color: 'var(--accent-purple)' },
-  'Helix Governance Studio':  { bg: 'var(--accent-teal-dim)',   border: 'var(--accent-teal-border)',   color: 'var(--accent-teal)'   },
-  'Helix Data Studio':        { bg: 'var(--accent-blue-dim)',   border: 'var(--accent-blue-border)',   color: 'var(--accent-blue)'   },
-  'All Studios':              { bg: 'var(--bg-card-elevated)',  border: 'var(--border)',               color: 'var(--text-tertiary)' },
 }
 
 // ─── Three-dot context menu — rendered at fixed position to escape stacking contexts ──
@@ -109,7 +177,6 @@ function PackMenu({ pack, pos, onClose, onEdit, onClone, onArchive }) {
 // ─── Individual pack row ──────────────────────────────────────────────────────
 function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
   const moreRef = useRef(null)
-  const patCfg  = PATTERN_CONFIG[pack.pattern]
   const PatIcon = pack.pattern === 'Handoff' ? GitBranch : RefreshCw
   const rowClass = [
     'pack-row',
@@ -117,16 +184,19 @@ function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
     pack.status === 'Deprecated' ? 'pack-row--deprecated' : '',
   ].filter(Boolean).join(' ')
 
-  const handleAction = e => { e.stopPropagation() }
-
   return (
     <div
       className={rowClass}
       style={{ '--row-delay': `${index * 40}ms` }}
       onClick={() => onNavigate(pack.id)}
     >
-      {/* Pattern icon */}
-      <div className={`pack-icon pack-icon--${pack.pattern.toLowerCase()}`}>
+      {/* Pattern icon — its color is the primary "what kind" signal, so the
+          tag below doesn't need to repeat it in color; meaning is one hover
+          away instead of a permanent legend line. */}
+      <div
+        className={`pack-icon pack-icon--${pack.pattern.toLowerCase()}`}
+        title={pack.pattern === 'Handoff' ? 'Handoff — AI hands off to a human immediately' : 'Continuation — AI stays in the loop, human reviews each step'}
+      >
         <PatIcon size={15} />
       </div>
 
@@ -136,7 +206,7 @@ function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
           <span className="pack-row-name">{pack.name}</span>
           <span className="pack-version">{pack.version}</span>
           {pack.sensitiveSignalEnabled && (
-            <span title="Sensitive signals enabled" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Mono', fontSize: 10, color: 'var(--accent-coral)', background: 'var(--accent-coral-dim)', border: '1px solid var(--accent-coral-border)', borderRadius: 4, padding: '1px 6px' }}>
+            <span title="Sensitive signal protection active" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'DM Mono', fontSize: 10, color: 'var(--accent-coral)', background: 'var(--accent-coral-dim)', border: '1px solid var(--accent-coral-border)', borderRadius: 4, padding: '1px 6px' }}>
               <Shield size={9} /> sensitive
             </span>
           )}
@@ -144,39 +214,14 @@ function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
 
         <div className="pack-row-desc">{pack.description}</div>
 
+        {/* Context only — plain/neutral, not color-coded (color is reserved
+            for states that need the user's attention, e.g. the sensitive
+            indicator above). Status carries the one semantic color that
+            matters here, and lives in its own corner instead. */}
         <div className="pack-row-meta">
-          <Badge
-            label={pack.pattern}
-            variant={patCfg.variant}
-            size="sm"
-          />
-          <Badge
-            label={pack.status}
-            variant={STATUS_CONFIG[pack.status]?.variant || 'gray'}
-            size="sm"
-          />
-          <Badge
-            label={pack.destination}
-            variant={DEST_CONFIG[pack.destination]?.variant || 'gray'}
-            size="sm"
-          />
-          {pack.studio && (() => {
-            const sc = STUDIO_CONFIG[pack.studio] || STUDIO_CONFIG['All Studios']
-            return (
-              <span style={{
-                fontFamily: 'DM Mono, monospace',
-                fontSize: 10,
-                padding: '2px 7px',
-                borderRadius: 4,
-                background: sc.bg,
-                border: `1px solid ${sc.border}`,
-                color: sc.color,
-                whiteSpace: 'nowrap',
-              }}>
-                {pack.studio}
-              </span>
-            )
-          })()}
+          <span className="pack-tag-neutral">{pack.pattern}</span>
+          <span className="pack-tag-neutral">{pack.destination}</span>
+          {pack.studio && <span className="pack-tag-neutral">{pack.studio}</span>}
           <span className="pack-meta-sep">·</span>
           <span className="pack-meta-chip">
             <Workflow size={10} />
@@ -193,50 +238,33 @@ function PackRow({ pack, index, onNavigate, onEdit, onOpenMenu, menuOpenId }) {
         </div>
       </div>
 
-      {/* Right */}
-      <div className="pack-row-right" onClick={handleAction}>
+      {/* Right — status (the one thing worth a color, top corner) + last
+          modified + overflow menu. Edit/Duplicate/Archive live in the menu
+          only now, not as separate hover icons. */}
+      <div className="pack-row-right">
+        <Badge
+          label={pack.status}
+          variant={STATUS_CONFIG[pack.status]?.variant || 'gray'}
+          size="sm"
+        />
         <span className="pack-modified">{relativeTime(pack.lastModified)}</span>
 
-        <div className="pack-row-actions">
+        <div className="pack-menu-wrap" ref={moreRef} onClick={e => e.stopPropagation()}>
           <button
             className="pack-action-btn"
-            title="Edit"
-            onClick={e => { e.stopPropagation(); onEdit(pack.id) }}
+            title="More"
+            onClick={e => {
+              e.stopPropagation()
+              if (menuOpenId === pack.id) { onOpenMenu(null, null); return }
+              const rect = moreRef.current.getBoundingClientRect()
+              onOpenMenu(pack.id, {
+                top:   rect.bottom + 4,
+                right: window.innerWidth - rect.right,
+              })
+            }}
           >
-            <Pencil size={13} />
+            <MoreHorizontal size={13} />
           </button>
-          <button
-            className="pack-action-btn"
-            title="Clone"
-            onClick={e => e.stopPropagation()}
-          >
-            <Copy size={13} />
-          </button>
-          <button
-            className="pack-action-btn pack-action-btn--danger"
-            title="Archive"
-            onClick={e => e.stopPropagation()}
-          >
-            <Archive size={13} />
-          </button>
-
-          <div className="pack-menu-wrap" ref={moreRef}>
-            <button
-              className="pack-action-btn"
-              title="More"
-              onClick={e => {
-                e.stopPropagation()
-                if (menuOpenId === pack.id) { onOpenMenu(null, null); return }
-                const rect = moreRef.current.getBoundingClientRect()
-                onOpenMenu(pack.id, {
-                  top:   rect.bottom + 4,
-                  right: window.innerWidth - rect.right,
-                })
-              }}
-            >
-              <MoreHorizontal size={13} />
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -255,6 +283,8 @@ export default function PackLibrary() {
   const [filterDest,    setFilterDest]    = useState('All')
   const [filterStudio,  setFilterStudio]  = useState('All')
   const [sortBy,        setSortBy]        = useState('modified')
+  const [page,          setPage]          = useState(1)
+  const [pageSize,      setPageSize]      = useState(5)
 
   // Derived filter options from actual data
   const destinations = useMemo(
@@ -294,6 +324,15 @@ export default function PackLibrary() {
     return list
   }, [search, filterPat, filterStatus, filterDest, filterStudio, sortBy])
 
+  // Reset to page 1 whenever the filtered set changes size — otherwise a
+  // narrower filter can leave the view stranded on a now-empty page.
+  useEffect(() => { setPage(1) }, [search, filterPat, filterStatus, filterDest, filterStudio])
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * pageSize
+    return filtered.slice(start, start + pageSize)
+  }, [filtered, page, pageSize])
+
   // KPI stats
   const totalPacks      = packs.length
   const activePacks     = packs.filter(p => p.status === 'Active').length
@@ -313,7 +352,7 @@ export default function PackLibrary() {
         <div className="page-actions">
           <Button variant="secondary" size="sm" icon={GitFork}>Import</Button>
           <Button
-            variant="primary"
+            variant="main"
             size="sm"
             icon={Plus}
             onClick={() => navigate('/configure/packs/new')}
@@ -323,29 +362,12 @@ export default function PackLibrary() {
         </div>
       </div>
 
-      {/* ── Stat strip ────────────────────────────────────────────────────── */}
-      <div className="pl-stat-bar">
-        <div className="pl-stat-cell">
-          <span className="pl-stat-icon pl-stat-icon--blue"><Package2 size={12}/></span>
-          <span className="pl-stat-label">Total Packs</span>
-          <span className="pl-stat-value">{totalPacks}</span>
-        </div>
-        <div className="pl-stat-cell">
-          <span className="pl-stat-icon pl-stat-icon--green"><GitBranch size={12}/></span>
-          <span className="pl-stat-label">Active Packs</span>
-          <span className="pl-stat-value">{activePacks}</span>
-          <span className="pl-stat-delta">↑ {activePacks} of {totalPacks} vs last 7d</span>
-        </div>
-        <div className="pl-stat-cell">
-          <span className="pl-stat-icon pl-stat-icon--coral"><Shield size={12}/></span>
-          <span className="pl-stat-label">Sensitive Signal</span>
-          <span className="pl-stat-value">{sensitivePacks}</span>
-        </div>
-        <div className="pl-stat-cell">
-          <span className="pl-stat-icon pl-stat-icon--purple"><Workflow size={12}/></span>
-          <span className="pl-stat-label">Attached Workflows</span>
-          <span className="pl-stat-value">{totalWorkflows}</span>
-        </div>
+      {/* ── Stat strip — DS Highlight Card, one per KPI ─────────────────────── */}
+      <div className="pl-kpi-grid">
+        <KPICard label="Total Packs" value={totalPacks} icon={Package2} tint="blue" />
+        <KPICard label="Active Packs" value={activePacks} icon={GitBranch} tint="green" delta={`${activePacks} of ${totalPacks}`} />
+        <KPICard label="Sensitive Signal" value={sensitivePacks} icon={Shield} tint="coral" />
+        <KPICard label="Attached Workflows" value={totalWorkflows} icon={Workflow} tint="purple" />
       </div>
 
       {/* ── Filter bar ────────────────────────────────────────────────────── */}
@@ -360,67 +382,61 @@ export default function PackLibrary() {
         </div>
 
         <div className="pl-filter-selects">
-          <div className="pl-filter-select">
-            <Select
-              value={filterPat}
-              onChange={e => setFilterPat(e.target.value)}
-              options={[
-                { value: 'All',          label: 'All Patterns' },
-                { value: 'Handoff',      label: 'Handoff' },
-                { value: 'Continuation', label: 'Continuation' },
-              ]}
-            />
-          </div>
+          <MenuSelect
+            value={filterPat}
+            onChange={setFilterPat}
+            width={148}
+            options={[
+              { value: 'All',          label: 'All Patterns' },
+              { value: 'Handoff',      label: 'Handoff' },
+              { value: 'Continuation', label: 'Continuation' },
+            ]}
+          />
 
-          <div className="pl-filter-select">
-            <Select
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-              options={[
-                { value: 'All',        label: 'All Statuses' },
-                { value: 'Active',     label: 'Active' },
-                { value: 'Draft',      label: 'Draft' },
-                { value: 'Deprecated', label: 'Deprecated' },
-              ]}
-            />
-          </div>
+          <MenuSelect
+            value={filterStatus}
+            onChange={setFilterStatus}
+            width={148}
+            options={[
+              { value: 'All',        label: 'All Statuses' },
+              { value: 'Active',     label: 'Active' },
+              { value: 'Draft',      label: 'Draft' },
+              { value: 'Deprecated', label: 'Deprecated' },
+            ]}
+          />
 
-          <div className="pl-filter-select">
-            <Select
-              value={filterDest}
-              onChange={e => setFilterDest(e.target.value)}
-              options={destinations.map(d => ({ value: d, label: d === 'All' ? 'All Destinations' : d }))}
-            />
-          </div>
+          <MenuSelect
+            value={filterDest}
+            onChange={setFilterDest}
+            width={148}
+            options={destinations.map(d => ({ value: d, label: d === 'All' ? 'All Destinations' : d }))}
+          />
 
-          <div className="pl-filter-select">
-            <Select
-              value={filterStudio}
-              onChange={e => setFilterStudio(e.target.value)}
-              options={[
-                { value: 'All',                      label: 'All Studios'              },
-                { value: 'Agentic Studio',           label: 'Agentic Studio'           },
-                { value: 'Helix Governance Studio',  label: 'Helix Governance Studio'  },
-                { value: 'Helix Data Studio',        label: 'Helix Data Studio'        },
-              ]}
-            />
-          </div>
+          <MenuSelect
+            value={filterStudio}
+            onChange={setFilterStudio}
+            width={148}
+            options={[
+              { value: 'All',                      label: 'All Studios'              },
+              { value: 'Agentic Studio',           label: 'Agentic Studio'           },
+              { value: 'Helix Governance Studio',  label: 'Helix Governance Studio'  },
+              { value: 'Helix Data Studio',        label: 'Helix Data Studio'        },
+            ]}
+          />
 
           <div className="pl-filter-sep" />
 
-          <span className="pl-sort-label">Sort:</span>
-          <div style={{ width: 148 }}>
-            <Select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-              options={[
-                { value: 'modified',  label: 'Last Modified' },
-                { value: 'name',      label: 'Name A–Z' },
-                { value: 'workflows', label: 'Most Workflows' },
-                { value: 'sla',       label: 'SLA (shortest)' },
-              ]}
-            />
-          </div>
+          <MenuSelect
+            value={sortBy}
+            onChange={setSortBy}
+            width={148}
+            options={[
+              { value: 'modified',  label: 'Last Modified' },
+              { value: 'name',      label: 'Name A–Z' },
+              { value: 'workflows', label: 'Most Workflows' },
+              { value: 'sla',       label: 'SLA (shortest)' },
+            ]}
+          />
 
           {isFiltered && (
             <button className="pl-filter-clear" onClick={clearFilters}>
@@ -457,7 +473,7 @@ export default function PackLibrary() {
             </button>
           </div>
         ) : (
-          filtered.map((pack, i) => (
+          paginated.map((pack, i) => (
             <PackRow
               key={pack.id}
               pack={pack}
@@ -471,17 +487,15 @@ export default function PackLibrary() {
         )}
       </div>
 
-      {/* ── Footer note ───────────────────────────────────────────────────── */}
+      {/* ── Pagination ────────────────────────────────────────────────────── */}
       {filtered.length > 0 && (
-        <div style={{ padding: '10px 4px 0', fontSize: 11, color: 'var(--text-tertiary)', display: 'flex', gap: 16 }}>
-          <span>
-            <span style={{ color: 'var(--accent-purple)', marginRight: 4 }}>■</span>Handoff — AI hands off to a human immediately
-          </span>
-          <span>
-            <span style={{ color: 'var(--accent-teal)', marginRight: 4 }}>■</span>Continuation — AI stays in loop, human reviews steps
-          </span>
-          <span style={{ color: 'var(--accent-coral)', marginRight: 4 }}>■</span>Sensitive signal protection active
-        </div>
+        <Pagination
+          total={filtered.length}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={n => { setPageSize(n); setPage(1) }}
+        />
       )}
 
       {/* ── Menu rendered at position:fixed — above all stacking contexts ── */}

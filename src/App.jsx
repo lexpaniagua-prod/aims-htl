@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import {
   SlidersHorizontal, Plug, Inbox, BarChart2, Settings,
@@ -87,11 +87,18 @@ const NAV = [
   },
 ]
 
+// DS Breadcrumb — every ancestor is clickable, only the current page is
+// static text. Each entry: { label, path } — path omitted (or null) marks
+// the current page, which renders as plain (non-interactive) text.
 function useBreadcrumb(path) {
   const parts = path.split('/').filter(Boolean)
   if (parts[0] === 'work-queue' && parts[1] === 'event' && parts[2]) {
     const evt = EVENTS.find(e => e.id === parts[2])
-    return ['HTL', 'Work Queue', 'Work Queues', evt ? evt.title : parts[2]]
+    return [
+      { label: 'Work Queue', path: '/work-queue/overview' },
+      { label: 'Work Queues', path: '/work-queue/work-queues' },
+      { label: evt ? evt.title : parts[2] },
+    ]
   }
   const labels = {
     configure: 'Configure', connect: 'Connect', inbox: 'Inbox',
@@ -105,7 +112,13 @@ function useBreadcrumb(path) {
     templates: 'Templates', ooo: 'OOO & Coverage', integrations: 'Integrations', audit: 'Audit',
     conditions: 'Conditions', teams: 'Teams & Queues',
   }
-  return ['HTL', ...parts.map(p => labels[p] || p)]
+  // These namespace segments group routes but have no page of their own —
+  // clicking one would land on a blank screen, so they stay static text.
+  const unroutable = new Set(['configure', 'connect', 'reports', 'settings', 'inbox'])
+  return parts.map((p, i) => ({
+    label: labels[p] || p,
+    path: (i === parts.length - 1 || unroutable.has(p)) ? undefined : '/' + parts.slice(0, i + 1).join('/'),
+  }))
 }
 
 // ─── Live simulation data ─────────────────────────────────────────────────────
@@ -137,6 +150,7 @@ export default function App() {
   }
   const toastTimer = useRef(null)
   const location = useLocation()
+  const navigate = useNavigate()
   const crumbs = useBreadcrumb(location.pathname)
 
   const toggleSidebar = () => {
@@ -181,14 +195,18 @@ export default function App() {
             <span className="workspace-name">HTL</span>
             <ChevronDown size={11} strokeWidth={1.75} className="workspace-chevron" />
           </div>
-          <span className="breadcrumb">
+          <nav className="breadcrumb">
             {crumbs.map((c, i) => (
               <span key={i} className="crumb-piece">
-                {i > 0 && <span className="crumb-sep">›</span>}
-                <span className={i === crumbs.length - 1 ? 'crumb-active' : 'crumb-muted'}>{c}</span>
+                {i > 0 && <ChevronRight size={11} strokeWidth={1.75} className="crumb-sep" />}
+                {c.path ? (
+                  <button className="crumb-muted" onClick={() => navigate(c.path)}>{c.label}</button>
+                ) : (
+                  <span className={i === crumbs.length - 1 ? 'crumb-active' : 'crumb-muted crumb-muted--static'}>{c.label}</span>
+                )}
               </span>
             ))}
-          </span>
+          </nav>
         </div>
 
         <div className="topbar-center">
@@ -219,6 +237,9 @@ export default function App() {
             <div className="user-avatar-sm" />
             <span>Northfield Partners</span>
           </div>
+          {/* Separate profile avatar — the workspace pill above identifies
+              the company; this one identifies the signed-in person. */}
+          <button className="profile-avatar" title="Alexa M.">AM</button>
         </div>
       </header>
 

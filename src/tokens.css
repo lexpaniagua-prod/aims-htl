@@ -211,6 +211,14 @@
      List row wraps in (aims-os-design-system: --card-default-bg/border). */
   --card-default-bg:     rgba(255,255,255,0.1);
   --card-default-border: rgba(255,255,255,0.15);
+
+  /* DS Widget Father — the one shell every dashboard widget (KPI, table,
+     activity feed, etc.) shares: same bg/border/radius/title/icon color
+     regardless of what's in the body slot. */
+  --widget-bg:     #131c2e;
+  --widget-border: rgba(255,255,255,0.12);
+  --widget-title:  rgba(255,255,255,0.8);
+  --widget-icon:   rgba(255,255,255,0.5);
 }
 
 [data-theme="light"] {
@@ -376,4 +384,10 @@
      List row wraps in. */
   --card-default-bg:     rgba(0,0,0,0.035);
   --card-default-border: rgba(0,0,0,0.12);
+
+  /* DS Widget Father */
+  --widget-bg:     #ffffff;
+  --widget-border: rgba(0,0,0,0.12);
+  --widget-title:  rgba(0,0,0,0.75);
+  --widget-icon:   rgba(0,0,0,0.45);
 }

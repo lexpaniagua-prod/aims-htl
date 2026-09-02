@@ -5,11 +5,12 @@ import {
   ChevronRight, Check, AlertTriangle, Info, Zap, Shield,
   Bell, Clock, Globe, ListChecks, ArrowRight,
   Save, CheckCircle, Lock, FileText, MessageSquare,
-  Navigation, ArrowUp, ArrowDown, Eye, X, Activity, Workflow,
+  Navigation, ArrowUp, ArrowDown, Eye, X, Activity,
 } from 'lucide-react'
 import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
+import Widget from '../components/Widget.jsx'
 import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues, availableWorkflows, availableAgents, triggerLibrary, instanceConfigOptions } from '../data/mockData.js'
 import './PackBuilder.css'
 
@@ -3882,13 +3883,6 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
     },
   ]
 
-  const TINT_STYLES = {
-    green:   'var(--accent-teal-dim)',
-    amber:   'var(--accent-amber-dim)',
-    coral:   'var(--accent-coral-dim)',
-    neutral: 'var(--bg-card)',
-  }
-
   const TINT_VALUE_COLORS = {
     green:   'var(--accent-teal)',
     amber:   'var(--accent-amber)',
@@ -3913,33 +3907,39 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
   return (
     <div className="pb-overview">
 
-      {/* A. Identity card */}
-      <div className="pb-ov-identity">
-        <div className="pb-ov-identity-left">
-          <div className={`pack-icon pack-icon--${(draft.pattern || 'handoff').toLowerCase()}`} style={{ width: 40, height: 40, borderRadius: 9, flexShrink: 0 }}>
-            {draft.pattern === 'Handoff' ? <GitBranch size={18} /> : <RefreshCw size={18} />}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Inter', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-              {draft.description || 'No description provided.'}
-            </div>
-          </div>
-        </div>
-        <div className="pb-ov-identity-right">
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-            What this Pack does
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: 12 }}>
-            {summary}
-          </div>
+      {/* A. Identity — Widget Father shell wrapping the two-column layout */}
+      <Widget
+        title="Pack overview"
+        footer={
           <Button variant="primary" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>
             Edit Pack
           </Button>
+        }
+      >
+        <div className="pb-ov-identity">
+          <div className="pb-ov-identity-left">
+            <div className={`pack-icon pack-icon--${(draft.pattern || 'handoff').toLowerCase()}`} style={{ width: 40, height: 40, borderRadius: 9, flexShrink: 0 }}>
+              {draft.pattern === 'Handoff' ? <GitBranch size={18} /> : <RefreshCw size={18} />}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'Inter', color: 'var(--text-primary)', marginBottom: 4 }}>{draft.name}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                {draft.description || 'No description provided.'}
+              </div>
+            </div>
+          </div>
+          <div className="pb-ov-identity-right">
+            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              What this Pack does
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+              {summary}
+            </div>
+          </div>
         </div>
-      </div>
+      </Widget>
 
-      {/* B. Attention banners */}
+      {/* B. Attention banners — same shell radius/border, semantic tint overlay */}
       {banners.map((b, i) => (
         <div key={i} className={`pb-ov-banner pb-ov-banner--${b.level}`}>
           <span className="pb-ov-banner-icon">{b.icon}</span>
@@ -3948,28 +3948,23 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
         </div>
       ))}
 
-      {/* C. Performance strip */}
+      {/* C. Performance strip — one KPI Widget per card */}
       <div className="pb-ov-perf">
         {perfCards.map(card => (
-          <div
-            key={card.label}
-            className="pb-ov-perf-card"
-            style={{ background: TINT_STYLES[card.tint] }}
-          >
-            <div className="pb-ov-perf-label">{card.label}</div>
+          <Widget key={card.label} title={card.label} className="pb-ov-perf-widget">
             <div className="pb-ov-perf-value" style={{ color: TINT_VALUE_COLORS[card.tint] }}>{card.value}</div>
             <div className="pb-ov-perf-delta">{card.delta}</div>
-          </div>
+          </Widget>
         ))}
       </div>
 
       {/* D. Activity feed */}
-      <div className="pb-ov-section">
-        <div className="pb-ov-section-hdr">
-          <span className="pb-ov-section-title">Recent activity</span>
-        </div>
+      <Widget
+        title="Recent activity"
+        footer={<button className="pb-ov-feed-link">View full activity log →</button>}
+      >
         {activity.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '16px 0' }}>No recent activity.</div>
+          <div style={{ fontSize: 13, color: 'var(--text-tertiary)', padding: '4px 0' }}>No recent activity.</div>
         ) : (
           activity.map((item, i) => (
             <div key={i} className={`pb-ov-feed-row${i % 2 === 1 ? ' pb-ov-feed-row--alt' : ''}`}>
@@ -3979,19 +3974,13 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
             </div>
           ))
         )}
-        <div style={{ paddingTop: 10 }}>
-          <button style={{ fontSize: 12, color: 'var(--accent-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            View full activity log →
-          </button>
-        </div>
-      </div>
+      </Widget>
 
       {/* E. Config summary */}
-      <div className="pb-ov-section">
-        <div className="pb-ov-section-hdr">
-          <span className="pb-ov-section-title">Configuration</span>
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>Edit</Button>
-        </div>
+      <Widget
+        title="Configuration"
+        headerRight={<Button variant="ghost" size="sm" onClick={() => navigate(`/configure/packs/${id}/edit`)}>Edit</Button>}
+      >
         <div className="pb-ov-config">
           {configRows.map(([k, v]) => (
             <div key={k} className="pb-ov-config-row">
@@ -4000,21 +3989,19 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
             </div>
           ))}
         </div>
-      </div>
+      </Widget>
 
       {/* F. Attached workflows */}
-      <div className="pb-ov-section">
-        <div className="pb-ov-section-hdr">
-          <span className="pb-ov-section-title">Attached workflows</span>
-          <button
-            style={{ fontSize: 12, color: 'var(--accent-blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-            onClick={() => navigate(`/configure/packs/${id}/workflows`)}
-          >
+      <Widget
+        title="Attached workflows"
+        headerRight={
+          <button className="pb-ov-section-edit" onClick={() => navigate(`/configure/packs/${id}/workflows`)}>
             See all {attachedCount} →
           </button>
-        </div>
+        }
+      >
         {attachedNets.length === 0 ? (
-          <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+          <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
             <div style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>No workflows are attached to this Pack yet.</div>
             <Button variant="secondary" size="sm" onClick={() => navigate(`/configure/packs/${id}/workflows`)}>
               Go to Node Connection
@@ -4032,7 +4019,7 @@ function OverviewTab({ draft, sourcePack, navigate, id }) {
             ))}
           </div>
         )}
-      </div>
+      </Widget>
 
     </div>
   )
@@ -4618,33 +4605,31 @@ export default function PackBuilder() {
 
   return (
     <div>
-      {/* ── Top bar ───────────────────────────────────────────────────────── */}
+      {/* ── Top bar — DS Header: the one semantic state (Status) sits left,
+          next to the title; everything else is plain metadata text in the
+          description line, dot-separated. ──────────────────────────────── */}
       <div className="pb-topbar">
         <div className="pb-name-wrap">
-          <input
-            className="pb-name-input"
-            value={draft.name}
-            onChange={e => update('name', e.target.value)}
-            placeholder="Pack name…"
-          />
+          <div className="pb-name-row">
+            <input
+              className="pb-name-input"
+              value={draft.name}
+              onChange={e => update('name', e.target.value)}
+              placeholder="Pack name…"
+              style={{ width: `${Math.max((draft.name || '').length, 4) + 1}ch` }}
+            />
+            <Badge
+              label={draft.status}
+              variant={draft.status === 'Active' ? 'teal' : 'amber'}
+              size="sm"
+            />
+          </div>
+          <div className="pb-topbar-desc">
+            {draft.pattern} · {draft.version} · {sourcePack?.attachedWorkflows ?? 0} workflow{(sourcePack?.attachedWorkflows ?? 0) !== 1 ? 's' : ''}
+          </div>
         </div>
-        <div className="pb-topbar-meta">
-          <Badge
-            label={draft.pattern}
-            variant={draft.pattern === 'Handoff' ? 'purple' : 'teal'}
-            size="sm"
-          />
-          <Badge
-            label={draft.status}
-            variant={draft.status === 'Active' ? 'teal' : 'amber'}
-            size="sm"
-          />
-          <span className="pb-version">{draft.version}</span>
-          <span className="pb-workflows-link">
-            <Workflow size={12} />
-            {sourcePack?.attachedWorkflows ?? 0} workflow{(sourcePack?.attachedWorkflows ?? 0) !== 1 ? 's' : ''}
-          </span>
-          <Button variant="secondary" size="sm" icon={Save} onClick={saveDraft}>
+        <div className="pb-topbar-actions">
+          <Button variant="main" size="sm" icon={Save} onClick={saveDraft}>
             Save Draft
           </Button>
         </div>

@@ -14,8 +14,20 @@
 .pb-name-wrap {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
+.pb-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Sized to its own text (width set inline, character-based) so the status
+   badge sits right after the title instead of being pushed to the far
+   edge of the row — DS Header spec: status lives next to the title. */
 .pb-name-input {
   font-family: 'Inter', sans-serif;
   font-size: 20px;
@@ -24,7 +36,9 @@
   background: transparent;
   border: none;
   outline: none;
-  width: 100%;
+  flex: 0 1 auto;
+  min-width: 60px;
+  max-width: 100%;
   padding: 0;
   border-radius: 4px;
   transition: background 0.12s, padding 0.12s;
@@ -44,33 +58,19 @@
   box-shadow: 0 0 0 3px var(--accent-blue-dim);
 }
 
-.pb-topbar-meta {
+/* Plain metadata line — pattern/version/workflow count, dot-separated, no
+   badges (DS Header spec: only Status stays a colored chip). */
+.pb-topbar-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.pb-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
-
-.pb-version {
-  font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  background: var(--bg-card-elevated);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 2px 7px;
-}
-
-.pb-workflows-link {
-  font-size: 12px;
-  color: var(--accent-blue);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  transition: opacity 0.12s;
-}
-.pb-workflows-link:hover { opacity: 0.75; }
 
 /* ── Tab bar ─────────────────────────────────────────────────────────────── */
 .pb-tab-bar {
@@ -2832,59 +2832,73 @@
 }
 .pb-wf-detach:hover { background: var(--accent-coral-dim); }
 
-/* ── Pack Overview redesign ──────────────────────────────────────────────── */
-.pb-ov-identity { display:flex; gap:24px; padding:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; margin-bottom:16px; align-items:flex-start; flex-wrap:wrap; }
+/* ── Pack Overview redesign — Widget Father: every block on this tab shares
+   the same corner radius, border, and background so they read as one
+   family of widgets, not a mix of unrelated card styles. ────────────────── */
+/* Body-slot layout only — the shell (bg/border/radius/padding/title) now
+   comes from the shared Widget Father component (Widget.jsx/.css). */
+.pb-overview { display:flex; flex-direction:column; gap:16px; }
+
+.pb-ov-identity { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
 .pb-ov-identity-left  { display:flex; gap:14px; flex:1; min-width:240px; }
-.pb-ov-identity-right { flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px; padding-left:24px; border-left:1px solid var(--border); }
-.pb-ov-summary-label  { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); }
-.pb-ov-summary-text   { font-size:12px; color:var(--text-secondary); line-height:1.65; flex:1; }
-.pb-ov-banner { display:flex; align-items:center; gap:10px; padding:12px 16px; border-radius:9px; margin-bottom:10px; border:1px solid; }
-.pb-ov-banner--coral { background:var(--accent-coral-dim); border-color:var(--accent-coral-border); border-left:3px solid var(--accent-coral); }
-.pb-ov-banner--amber { background:var(--accent-amber-dim); border-color:var(--accent-amber-border); border-left:3px solid var(--accent-amber); }
+.pb-ov-identity-right { flex:1; min-width:200px; display:flex; flex-direction:column; gap:8px; padding-left:24px; border-left:1px solid var(--widget-border); }
+
+/* Attention banners keep their own semantic tint but match the Widget
+   Father's radius/border weight so every container on the tab reads as one
+   family. */
+.pb-ov-banner { display:flex; align-items:center; gap:10px; padding:14px 20px; border-radius:16px; border:1px solid; }
+.pb-ov-banner--coral { background:var(--accent-coral-dim); border-color:var(--accent-coral-border); }
+.pb-ov-banner--amber { background:var(--accent-amber-dim); border-color:var(--accent-amber-border); }
 .pb-ov-banner-icon { font-size:15px; flex-shrink:0; }
 .pb-ov-banner-text { flex:1; font-size:13px; color:var(--text-secondary); line-height:1.5; }
-.pb-ov-banner-cta  { flex-shrink:0; font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; white-space:nowrap; padding:5px 11px; border-radius:6px; border:1px solid var(--border-strong); background:var(--bg-card); color:var(--text-primary); transition:background 0.12s; }
+.pb-ov-banner-cta  { flex-shrink:0; font-size:12px; font-weight:500; font-family:inherit; cursor:pointer; white-space:nowrap; padding:5px 11px; border-radius:6px; border:1px solid var(--border-strong); background:var(--widget-bg); color:var(--text-primary); transition:background 0.12s; }
 .pb-ov-banner-cta:hover { background:var(--bg-row-hover); }
-.pb-ov-perf { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
-.pb-ov-perf-card  { padding:14px; border:1px solid; border-radius:10px; display:flex; flex-direction:column; gap:5px; transition:border-color 0.15s; }
-.pb-ov-perf-label { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-tertiary); font-family:'DM Mono',monospace; }
+
+/* Performance strip — each card is its own Widget; this grid just lays them out. */
+.pb-ov-perf { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; }
+.pb-ov-perf-widget { padding:16px; }
 .pb-ov-perf-value { font-family:'Inter',sans-serif; font-size:22px; font-weight:700; line-height:1.1; }
-.pb-ov-perf-delta { font-size:11px; color:var(--text-tertiary); font-family:'DM Mono',monospace; }
-.pb-ov-section { background:var(--bg-card); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:16px; }
-.pb-ov-section-hdr { display:flex; align-items:center; justify-content:space-between; padding:12px 16px 10px; border-bottom:1px solid var(--border); background:var(--bg-card-elevated); }
-.pb-ov-section-title { font-family:'Inter',sans-serif; font-size:13px; font-weight:700; color:var(--text-primary); }
-.pb-ov-section-edit  { font-size:12px; color:var(--accent-blue); font-family:inherit; cursor:pointer; background:transparent; border:none; transition:opacity 0.12s; }
-.pb-ov-section-edit:hover { opacity:0.75; }
-.pb-ov-feed { display:flex; flex-direction:column; }
-.pb-ov-feed-row     { display:flex; align-items:center; gap:10px; padding:9px 16px; }
-.pb-ov-feed-row--alt { background:var(--bg-card-elevated); }
+.pb-ov-perf-delta { font-size:11px; color:var(--text-tertiary); font-family:'DM Mono',monospace; margin-top:4px; }
+
+.pb-ov-section-edit  { font-size:12px; font-weight:500; color:var(--btn-tertiary-fg); font-family:inherit; cursor:pointer; background:transparent; border:none; padding:4px 8px; margin:-4px -8px; border-radius:var(--radius-sm); transition:background 0.15s, color 0.15s; }
+.pb-ov-section-edit:hover { background:var(--btn-tertiary-hover-bg); color:var(--text-primary); }
+
+.pb-ov-feed-row     { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--widget-border); }
+.pb-ov-feed-row:last-child { border-bottom:none; }
 .pb-ov-feed-icon { font-size:15px; flex-shrink:0; width:22px; text-align:center; }
 .pb-ov-feed-text { flex:1; font-size:12px; color:var(--text-secondary); line-height:1.4; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
 .pb-ov-feed-time { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-tertiary); flex-shrink:0; }
-.pb-ov-feed-link { padding:10px 16px; font-size:12px; color:var(--accent-blue); cursor:pointer; border-top:1px solid var(--border); text-align:right; }
+.pb-ov-feed-link {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--btn-tertiary-fg);
+  cursor: pointer;
+  text-align: right;
+  transition: color 0.15s;
+}
+.pb-ov-feed-link:hover { color: var(--text-primary); }
+
 .pb-ov-config { display:flex; flex-direction:column; }
-.pb-ov-config-row { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border); }
+.pb-ov-config-row { display:grid; grid-template-columns:1fr 1fr; padding:9px 0; border-bottom:1px solid var(--widget-border); }
 .pb-ov-config-row:last-child { border-bottom:none; }
-.pb-ov-config-cell { display:flex; flex-direction:column; gap:2px; padding:9px 16px; }
-.pb-ov-config-cell + .pb-ov-config-cell { border-left:1px solid var(--border); }
 .pb-ov-config-key { font-family:'DM Mono',monospace; font-size:10px; font-weight:600; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; }
 .pb-ov-config-val { font-size:13px; color:var(--text-primary); }
+
 .pb-ov-wf-list { display:flex; flex-direction:column; }
-.pb-ov-wf-row { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.pb-ov-wf-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--widget-border); transition:background 0.1s; }
 .pb-ov-wf-row:last-child { border-bottom:none; }
-.pb-ov-wf-row:hover { background:var(--bg-row-hover); }
 .pb-ov-wf-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .pb-ov-wf-dot--green { background:var(--accent-teal); }
 .pb-ov-wf-dot--amber { background:var(--accent-amber); }
 .pb-ov-wf-dot--gray  { background:var(--text-tertiary); }
 .pb-ov-wf-name { font-size:13px; font-weight:500; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.pb-ov-wf-meta { font-size:11px; color:var(--text-tertiary); margin-top:1px; }
-.pb-ov-wf-stat { display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; }
-.pb-ov-wf-stat-val { font-family:'DM Mono',monospace; font-size:12px; font-weight:600; color:var(--text-primary); }
-.pb-ov-wf-stat-lbl { font-size:10px; color:var(--text-tertiary); }
-.pb-ov-wf-empty { padding:32px 24px; display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; }
-.pb-ov-wf-empty-title { font-size:13px; font-weight:500; color:var(--text-secondary); }
-.pb-ov-wf-empty-sub   { font-size:12px; color:var(--text-tertiary); max-width:300px; }
+.pb-ov-wf-studio { font-size:11px; color:var(--text-tertiary); }
+.pb-ov-wf-stats { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-tertiary); flex-shrink:0; margin-left:auto; }
 
 /* ── Workflows & Agents tab ──────────────────────────────────────────────────── */
 .wt-root { display: flex; flex-direction: column; gap: 0; padding-top: 20px; }

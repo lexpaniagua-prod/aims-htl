@@ -1,63 +1,46 @@
 ﻿/* ─── Pack Library ─────────────────────────────────────────────────────────── */
 
-/* Compact stat strip — 2 × 2 grid replacing the tall KPI cards */
-.pl-stat-bar {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg-card);
-  overflow: hidden;
-  margin-bottom: 16px;
+/* DS Pagination */
+.pl-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
 }
-.pl-stat-cell {
+.pl-pagination-size {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 14px;
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
 }
-.pl-stat-cell:nth-child(2),
-.pl-stat-cell:nth-child(4) { border-right: none; }
-.pl-stat-cell:nth-child(3),
-.pl-stat-cell:nth-child(4) { border-bottom: none; }
-
-.pl-stat-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 5px;
+.pl-pagination-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pl-pagination-arrow {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-.pl-stat-icon--blue   { background: var(--accent-blue-dim);   color: var(--accent-blue);   }
-.pl-stat-icon--green  { background: var(--accent-green-dim);  color: var(--accent-green);  }
-.pl-stat-icon--coral  { background: var(--accent-coral-dim);  color: var(--accent-coral);  }
-.pl-stat-icon--purple { background: var(--accent-purple-dim); color: var(--accent-purple); }
+.pl-pagination-arrow:hover:not(:disabled) { background: var(--bg-row-hover); color: var(--text-primary); }
+.pl-pagination-arrow:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.pl-stat-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex: 1;
-  white-space: nowrap;
-}
-.pl-stat-value {
-  font-family: 'Inter', sans-serif;
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text-primary);
-  line-height: 1;
-  flex-shrink: 0;
-}
-.pl-stat-delta {
-  font-size: 10px;
-  color: var(--accent-teal);
-  flex-shrink: 0;
-  margin-left: 2px;
+/* Stat strip — DS Highlight Card, 4 across */
+.pl-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 /* Filter bar */
@@ -86,10 +69,6 @@
   flex-wrap: wrap;
 }
 
-.pl-filter-select {
-  width: 148px;
-}
-
 .pl-filter-sep {
   width: 1px;
   height: 20px;
@@ -97,24 +76,75 @@
   flex-shrink: 0;
 }
 
-.pl-sort-label {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
+/* DS Button tertiary variant — no inherent color, neutral hover bg */
 .pl-filter-clear {
-  font-size: 12px;
-  color: var(--accent-blue);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--btn-tertiary-fg);
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
-  transition: background 0.12s;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
+  background: none;
+  border: none;
 }
-.pl-filter-clear:hover { background: var(--accent-blue-dim); }
+.pl-filter-clear:hover { background: var(--btn-tertiary-hover-bg); color: var(--text-primary); }
+
+/* DS Menu/Dropdown, size S — used for filters + sort in place of a bare
+   browser <select>. */
+.pl-menu-select { position: relative; width: 148px; flex-shrink: 0; }
+.pl-menu-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--field-border, var(--border));
+  background: var(--bg-card-elevated);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-menu-select-trigger:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.pl-menu-select-trigger svg { flex-shrink: 0; }
+
+.pl-menu-select-menu {
+  position: fixed;
+  z-index: 9000;
+  background: var(--bg-card-elevated);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.6);
+  padding: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.pl-menu-select-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pl-menu-select-item:hover { background: var(--bg-row-hover); color: var(--text-primary); }
+.pl-menu-select-item--active { background: var(--accent-blue); color: #fff; }
+.pl-menu-select-item--active:hover { background: var(--accent-blue); color: #fff; }
 
 /* Results count */
 .pl-results-count {
@@ -156,7 +186,6 @@
   border-width: 1px;
   border-color: var(--border-strong);
 }
-.pack-row:hover .pack-row-actions { opacity: 1; pointer-events: all; }
 
 /* Status-based treatments */
 .pack-row--draft   { opacity: 0.82; }
@@ -252,11 +281,11 @@
   padding: 1px 5px;
 }
 
-/* Right side */
+/* Right side — status badge, timestamp, overflow menu */
 .pack-row-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -265,16 +294,6 @@
   font-size: 11px;
   color: var(--text-tertiary);
   white-space: nowrap;
-}
-
-/* Hover actions */
-.pack-row-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.15s;
 }
 
 .pack-action-btn {
@@ -294,9 +313,17 @@
   color: var(--text-primary);
 }
 
-.pack-action-btn--danger:hover {
-  background: var(--accent-coral-dim);
-  color: var(--accent-coral);
+/* Context-only metadata tags — plain/neutral, no semantic color (that's
+   reserved for the status badge + sensitive indicator). */
+.pack-tag-neutral {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg-card-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 /* Three-dot menu */
@@ -393,8 +420,12 @@
 
 .pl-empty-link {
   font-size: 13px;
-  color: var(--accent-blue);
+  font-weight: 500;
+  color: var(--btn-tertiary-fg);
   cursor: pointer;
   margin-top: 2px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s, color 0.15s;
 }
-.pl-empty-link:hover { text-decoration: underline; }
+.pl-empty-link:hover { background: var(--btn-tertiary-hover-bg); color: var(--text-primary); }

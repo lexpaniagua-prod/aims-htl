@@ -1,0 +1,87 @@
+/* ─── DS Widget Father ────────────────────────────────────────────────────
+   Every widget on a dashboard shares this exact shell — same bg, border,
+   radius, title style, icon color. Only the body slot is contextual. */
+.widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--widget-bg);
+  border: 1px solid var(--widget-border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.widget-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 28px;
+  flex-shrink: 0;
+}
+
+.widget-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.widget-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--widget-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-description {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+.widget-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Header actions are lightweight/global only (refresh, menu, info, pin) —
+   never the primary way to complete a task. Max 2 per widget. */
+.widget-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--widget-icon);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.widget-icon-btn:hover { background: var(--bg-row-hover); color: var(--text-primary); }
+
+.widget-body {
+  min-width: 0;
+}
+
+.widget-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A widget's body content (lists, tables, KPI values) fills the body slot
+   edge-to-edge — negative margin cancels the 24px shell padding for rows
+   that want their own full-bleed dividers. */
+.widget-body--bleed {
+  margin: 0 -24px;
+}
