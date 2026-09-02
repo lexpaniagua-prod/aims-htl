@@ -5,7 +5,7 @@ import './Widget.css'
 // activity feed, etc.) is composed inside. The Father handles title,
 // header actions, and optional footer CTAs; the body slot is contextual.
 // Reference: aims-os-design-system.vercel.app/?page=widget-father
-export default function Widget({ title, description, onRefresh, headerRight, footer, children, className = '' }) {
+export default function Widget({ title, description, onRefresh, headerRight, footer, children, className = '', bodyClassName = '' }) {
   return (
     <div className={`widget ${className}`}>
       <div className="widget-header">
@@ -24,7 +24,7 @@ export default function Widget({ title, description, onRefresh, headerRight, foo
           </div>
         )}
       </div>
-      <div className="widget-body">
+      <div className={`widget-body ${bodyClassName}`}>
         {children}
       </div>
       {footer && <div className="widget-footer">{footer}</div>}

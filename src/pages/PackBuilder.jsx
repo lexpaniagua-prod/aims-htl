@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+﻿import { useState, useRef, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   GitBranch, RefreshCw, Plus, ChevronDown, ChevronUp,
@@ -199,10 +199,7 @@ function Step1Pattern({ draft, update }) {
               className={`pattern-card pattern-card--${key}${sel ? ` pattern-card--selected-${key}` : ''}`}
               onClick={() => update('pattern', id)}
             >
-              <div className="pattern-card-check">
-                {sel && <Check size={11} color="#fff" strokeWidth={3} />}
-              </div>
-              <div className="pattern-card-icon"><Icon size={20} /></div>
+              <div className="pattern-card-icon"><Icon size={18} /></div>
               <div className="pattern-card-name">{id}</div>
               <div className="pattern-card-tagline">{tagline}</div>
               <div className="pattern-card-desc">{desc}</div>
@@ -216,67 +213,41 @@ function Step1Pattern({ draft, update }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {flowNodes[draft.pattern].map((node, i, arr) => (
             <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                padding: '4px 10px', borderRadius: 6,
-                background: 'var(--bg-app)', border: '1px solid var(--border)',
-                fontSize: 12,
-                color: i >= 3
-                  ? (draft.pattern === 'Handoff' ? 'var(--accent-purple)' : 'var(--accent-teal)')
-                  : 'var(--text-secondary)',
-                fontWeight: i >= 3 ? 500 : 400,
-              }}>{node}</span>
+              <Badge label={node} variant={i >= 3 ? (draft.pattern === 'Handoff' ? 'purple' : 'teal') : 'gray'} size="md" />
               {i < arr.length - 1 && <ChevronRight size={12} color="var(--text-tertiary)" />}
             </span>
           ))}
         </div>
       </div>
 
-      {/* ── Studio selector ───────────────────────────────── */}
+      {/* ── Studio selector — Card Container S, tinted per studio; radio stays
+           primary/blue regardless of studio color (DS: radio only ships in
+           the primary variant for now). ────────────────────────────────── */}
       <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
           Which studio will use this Pack?
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[
-            { label: 'All Studios',             accent: 'var(--text-secondary)' },
-            { label: 'Agentic Studio',          accent: 'var(--accent-purple)'  },
-            { label: 'Helix Governance Studio', accent: 'var(--accent-teal)'    },
-            { label: 'Helix Data Studio',       accent: 'var(--accent-blue)'    },
-          ].map(({ label, accent }) => {
+            { label: 'All Studios',             tint: 'default'   },
+            { label: 'Agentic Studio',          tint: 'purple'    },
+            { label: 'Helix Governance Studio', tint: 'green'     },
+            { label: 'Helix Data Studio',       tint: 'lightblue' },
+          ].map(({ label, tint }) => {
             const sel = (draft.studio || 'All Studios') === label
             return (
               <label
                 key={label}
                 onClick={() => update('studio', label)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  cursor: 'pointer',
-                  padding: '8px 12px',
-                  borderRadius: 7,
-                  border: `1px solid ${sel ? accent : 'var(--border)'}`,
-                  background: sel ? 'var(--bg-card-elevated)' : 'transparent',
-                  transition: 'all 0.12s',
-                }}
+                className={`studio-card studio-card--${tint}${sel ? ' studio-card--selected' : ''}`}
               >
-                <span style={{
-                  width: 16, height: 16, borderRadius: '50%', flexShrink: 0,
-                  border: `2px solid ${sel ? accent : 'var(--border-strong)'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'border-color 0.12s',
-                }}>
-                  {sel && (
-                    <span style={{
-                      width: 8, height: 8, borderRadius: '50%',
-                      background: accent,
-                    }} />
-                  )}
+                <span className={`studio-card-radio${sel ? ' studio-card-radio--selected' : ''}`}>
+                  {sel && <span className="studio-card-radio-dot" />}
                 </span>
                 <span style={{
                   fontSize: 12.5,
                   fontWeight: sel ? 600 : 400,
-                  color: sel ? accent : 'var(--text-secondary)',
+                  color: sel ? 'var(--text-primary)' : 'var(--text-secondary)',
                   transition: 'color 0.12s',
                 }}>
                   {label}
@@ -430,16 +401,14 @@ function TriggerCatalogModal({ draft, onAdd, onClose }) {
             onChange={e => setSearch(e.target.value)}
             autoFocus
           />
-          <div className="trig-modal-filter-row">
-            <select className="trig-sel" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
-              <option value="All">All Studios</option>
-              {CATALOG_STUDIOS.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select className="trig-sel" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
-              <option value="All">All Types</option>
-              {CATALOG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
+          <select className="trig-sel" value={studioFilter} onChange={e => setStudioFilter(e.target.value)}>
+            <option value="All">All Studios</option>
+            {CATALOG_STUDIOS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <select className="trig-sel" value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+            <option value="All">All Types</option>
+            {CATALOG_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
 
         {/* Results — scrollable */}
@@ -686,9 +655,9 @@ function Step2Triggers({ draft, update }) {
                   </span>
                 </div>
                 <div className="cg-group-actions">
-                  <button className="cg-add-cond-btn" onClick={() => setShowCatalog(group.id)}>
-                    <Plus size={12} /> Add condition
-                  </button>
+                  <Button variant="primary" size="sm" icon={Plus} onClick={() => setShowCatalog(group.id)}>
+                    Add condition
+                  </Button>
                   {groups.length > 1 && (
                     <button className="cg-remove-group-btn" onClick={() => removeGroup(group.id)} title="Remove group">
                       <X size={12} />
@@ -709,7 +678,6 @@ function Step2Triggers({ draft, update }) {
               ) : (
                 <div className="cg-cond-list">
                   {group.conditions.map((cond, ci) => {
-                    const sc        = TRIG_STUDIO_CFG[cond.studio || 'All Studios'] || TRIG_STUDIO_CFG['All Studios']
                     const badgeVar  = TRIG_TYPE_BADGE[cond.type] || 'blue'
                     const icon      = TRIG_TYPE_ICON[cond.type]  || '⚡'
                     const isPopOpen = popover?.condId === cond.id && popover?.groupId === group.id
@@ -721,9 +689,7 @@ function Step2Triggers({ draft, update }) {
                             <div className="trig2-row-top">
                               <span className="trig2-row-name">{cond.label || cond.value}</span>
                               {cond.studio && (
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color, borderRadius: 4, padding: '2px 6px' }}>
-                                  {cond.studio}
-                                </span>
+                                <Badge label={cond.studio} variant={cond.studio === 'All Studios' ? 'gray' : TRIG_TYPE_BADGE[cond.type] === 'purple' ? 'purple' : 'blue'} size="sm" />
                               )}
                               <Badge label={cond.type || 'trigger'} variant={badgeVar} size="sm" />
                             </div>
@@ -743,9 +709,7 @@ function Step2Triggers({ draft, update }) {
                               )}
                             </div>
                           </div>
-                          <button className="trig2-remove-btn cg-remove-always" onClick={() => removeCondition(group.id, cond.id)}>
-                            <X size={12} />
-                          </button>
+                          <Button variant="ghost" size="sm" icon={X} className="trig2-remove-btn" onClick={() => removeCondition(group.id, cond.id)} />
                         </div>
                         {ci < group.conditions.length - 1 && (
                           <div className="trig-connector-wrap">
@@ -1397,9 +1361,9 @@ function RecipientSelector({ value, onChange, customValue, onCustomChange, other
           )}
         </div>
       ) : (
-        <button className="rcp-sel-empty" onClick={open}>
-          + Select a team or queue
-        </button>
+        <Button variant="secondary" size="sm" icon={Plus} onClick={open}>
+          Select a team or queue
+        </Button>
       )}
       {showModal && (
         <TeamCatalogModal
@@ -4243,9 +4207,7 @@ function WorkflowsTab({ sourcePack }) {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{net.studio}</div>
           </div>
           <div>
-            <code style={{ fontSize: 11, background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--accent-purple)', fontFamily: 'DM Mono' }}>
-              {net.bindingNode}
-            </code>
+            <Badge label={net.bindingNode} variant="gray" size="sm" />
           </div>
           <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
             {sourcePack?.version ?? '—'}
@@ -4260,12 +4222,12 @@ function WorkflowsTab({ sourcePack }) {
             <Toggle on={!!pinned[net.id]} onChange={v => setPinned(p => ({ ...p, [net.id]: v }))} />
           </div>
           <div>
-            <button className="wt-detach-btn" onClick={() => {
+            <Button variant="ghost" size="sm" onClick={() => {
               setConnectedWorkflows(s => { const n = new Set(s); n.delete(net.id); return n })
               setExtraWorkflows(prev => prev.filter(w => w.id !== net.id))
             }}>
               Detach
-            </button>
+            </Button>
           </div>
         </div>
       ),
@@ -4285,9 +4247,7 @@ function WorkflowsTab({ sourcePack }) {
             <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{agent.studio}</div>
           </div>
           <div>
-            <code style={{ fontSize: 11, background: 'var(--bg-app)', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 6px', color: 'var(--accent-blue)', fontFamily: 'DM Mono' }}>
-              {agent.model}
-            </code>
+            <Badge label={agent.model} variant="gray" size="sm" />
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{agent.owner}</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>
@@ -4298,18 +4258,16 @@ function WorkflowsTab({ sourcePack }) {
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
             {(agent.capabilities ?? []).map(cap => (
-              <span key={cap} style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-purple)', background: 'var(--accent-purple-dim)', border: '1px solid var(--accent-purple-border)', borderRadius: 10, padding: '1px 7px' }}>
-                {cap}
-              </span>
+              <Badge key={cap} label={cap} variant="purple" size="sm" />
             ))}
           </div>
           <div>
-            <button className="wt-detach-btn" onClick={() => {
+            <Button variant="ghost" size="sm" onClick={() => {
               setConnectedAgents(s => { const next = new Set(s); next.delete(agent.id); return next })
               setExtraAgents(prev => prev.filter(a => a.id !== agent.id))
             }}>
               Disconnect
-            </button>
+            </Button>
           </div>
         </div>
       ),
@@ -4317,20 +4275,19 @@ function WorkflowsTab({ sourcePack }) {
   ]
 
   return (
-    <div>
+    <div className="pb-overview">
       {/* ── Tab header ─────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
           Workflows & Agents
         </span>
-        <button className="wt-attach-btn" onClick={() => setShowAttachModal(true)}>
-          <Plus size={13} />
+        <Button variant="primary" size="sm" icon={Plus} onClick={() => setShowAttachModal(true)}>
           Attach to workflow or agent
-        </button>
+        </Button>
       </div>
 
       {visibleWorkflows.length > 0 && (
-        <div className="pb-banner pb-banner--warning" style={{ marginBottom: 20 }}>
+        <div className="pb-banner pb-banner--warning" style={{ marginBottom: 0 }}>
           <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
             <strong>Blast radius:</strong> {visibleWorkflows.length} active workflow{visibleWorkflows.length !== 1 ? 's' : ''} use this pack.
@@ -4340,13 +4297,7 @@ function WorkflowsTab({ sourcePack }) {
       )}
 
       {sections.map(sec => (
-        <div key={sec.key} className="wt-section">
-          <div className="wt-section-hdr">
-            <div>
-              <div className="wt-section-title">{sec.title}</div>
-              <div className="wt-section-sub">{sec.sub}</div>
-            </div>
-          </div>
+        <Widget key={sec.key} title={sec.title} description={sec.sub} bodyClassName={sec.rows.length ? 'widget-body--bleed' : ''}>
           {sec.rows.length === 0 ? (
             <div className="wt-empty">{sec.emptyText}</div>
           ) : (
@@ -4357,7 +4308,7 @@ function WorkflowsTab({ sourcePack }) {
               {sec.rows.map(row => sec.renderRow(row))}
             </>
           )}
-        </div>
+        </Widget>
       ))}
 
       {/* ── Attach modal ───────────────────────────────────────────────── */}
@@ -4393,68 +4344,57 @@ function VersionsTab({ draft }) {
     { ver: 'v2.0',        date: '2 months ago', author: 'Ben C.',   note: 'Major rewrite — new pattern',    status: 'Deprecated' },
   ]
 
+  const VER_COLS = '100px 1fr 100px 90px 90px 90px'
+
   return (
-    <div>
-      <div className="pb-step-header">
+    <div className="pb-overview">
+      <div className="pb-step-header" style={{ marginBottom: 0 }}>
         <div className="pb-step-title">Version History</div>
         <div className="pb-step-desc">All published versions of this pack. Restore any previous version to make it the live version.</div>
       </div>
 
       {restoredVer && (
-        <div className="pb-banner pb-banner--success" style={{ marginBottom: 16 }}>
+        <div className="pb-banner pb-banner--success" style={{ marginBottom: 0 }}>
           <CheckCircle size={14} style={{ flexShrink: 0 }} />
-          <span><strong>{restoredVer}</strong> has been restored as the current live version. A new publish will go out shortly.</span>
-          <button style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-tertiary)', cursor: 'pointer', background: 'none', border: 'none' }} onClick={() => setRestoredVer(null)}>✕</button>
+          <span style={{ flex: 1 }}><strong>{restoredVer}</strong> has been restored as the current live version. A new publish will go out shortly.</span>
+          <Button variant="ghost" size="sm" icon={X} onClick={() => setRestoredVer(null)} />
         </div>
       )}
 
-      <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+      <Widget title="Published versions" bodyClassName="widget-body--bleed">
+        <div className="wt-table-hdr" style={{ gridTemplateColumns: VER_COLS }}>
+          <span>Version</span><span>Note</span><span>Date</span><span>Author</span><span>Status</span><span></span>
+        </div>
         {rows.map((v, i) => {
           const isCurrent = i === 0
           return (
-            <div key={v.ver} style={{
-              display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
-              borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none',
-              background: isCurrent ? 'var(--accent-teal-dim)' : 'transparent',
-              borderLeft: isCurrent ? '3px solid var(--accent-teal)' : '3px solid transparent',
-              transition: 'background 0.1s',
-            }}>
+            <div key={v.ver} className={`wt-row${isCurrent ? ' ver-row--current' : ''}`} style={{ gridTemplateColumns: VER_COLS }}>
               {/* Version + live indicator */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 100 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{v.ver}</span>
                 {isCurrent && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--accent-teal)', background: 'var(--accent-teal-dim)', border: '1px solid var(--accent-teal-border)', borderRadius: 10, padding: '1px 7px', fontFamily: 'DM Mono', letterSpacing: '0.04em' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-teal)', flexShrink: 0, animation: 'ep-pulse 2s ease-in-out infinite' }} />
+                  <span className="ver-live-chip">
+                    <span className="ver-live-dot" />
                     LIVE
                   </span>
                 )}
               </div>
 
-              {/* Note */}
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>{v.note}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{v.note}</span>
+              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)' }}>{v.date}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{v.author}</span>
 
-              {/* Date + author */}
-              <span style={{ fontFamily: 'DM Mono', fontSize: 11, color: 'var(--text-tertiary)', minWidth: 90, textAlign: 'right' }}>{v.date}</span>
-              <span style={{ fontSize: 12, color: 'var(--text-tertiary)', minWidth: 72 }}>{v.author}</span>
-
-              {/* Status badge */}
               <Badge
                 label={v.status}
                 variant={v.status === 'Active' ? 'teal' : v.status === 'Archived' ? 'gray' : 'amber'}
                 size="sm"
               />
 
-              {/* Action */}
-              <div style={{ minWidth: 80, display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 {isCurrent ? (
                   <span style={{ fontSize: 11, color: 'var(--accent-teal)', fontWeight: 600, fontFamily: 'DM Mono' }}>Current</span>
                 ) : (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setRestoredVer(v.ver)}
-                    style={{ fontSize: 12 }}
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setRestoredVer(v.ver)}>
                     Restore
                   </Button>
                 )}
@@ -4462,7 +4402,7 @@ function VersionsTab({ draft }) {
             </div>
           )
         })}
-      </div>
+      </Widget>
     </div>
   )
 }
@@ -4472,6 +4412,37 @@ const VISIBLE_STEPS = STEPS.filter(s => !s.hidden)
 
 function StepNav({ current, visited, onGoto, steps, showOptional, optionalCount, onToggleOptional }) {
   const navSteps = steps ?? VISIBLE_STEPS
+  const trackRef = useRef(null)
+  const activeRef = useRef(null)
+  const drag = useRef(null)  // { startX, scrollLeft, moved }
+
+  // Click-and-drag panning — lets a mouse user drag the strip like a scrollbar
+  // when the steps overflow the header width, instead of only supporting
+  // native trackpad/shift-wheel scroll.
+  const onMouseDown = e => {
+    const el = trackRef.current
+    if (!el) return
+    drag.current = { startX: e.pageX, scrollLeft: el.scrollLeft, moved: false }
+  }
+  const onMouseMove = e => {
+    if (!drag.current) return
+    const el = trackRef.current
+    const dx = e.pageX - drag.current.startX
+    if (Math.abs(dx) > 3) drag.current.moved = true
+    el.scrollLeft = drag.current.scrollLeft - dx
+  }
+  const endDrag = () => { drag.current = null }
+  // Suppress the click that fires right after a drag so dragging never
+  // accidentally jumps to a step under the cursor.
+  const onClickCapture = e => {
+    if (drag.current?.moved) { e.preventDefault(); e.stopPropagation() }
+  }
+
+  // Keep the active step scrolled into view when it changes (Back/Next/jump).
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+  }, [current])
+
   return (
     <div className="pb-nav">
       {/* Optional toggle */}
@@ -4487,24 +4458,36 @@ function StepNav({ current, visited, onGoto, steps, showOptional, optionalCount,
         </span>
       </button>
 
-      {navSteps.map((s, idx) => {
-        const isActive   = current === s.id
-        const isComplete = visited.has(s.id) && !isActive
-        let cls = 'pb-nav-item'
-        if (isActive)   cls += ' pb-nav-item--active'
-        if (isComplete) cls += ' pb-nav-item--complete'
-        return (
-          <div key={s.id} className={cls} onClick={() => onGoto(s.id)}>
-            <div className="pb-nav-node">
-              {isComplete ? <Check size={10} strokeWidth={3} /> : idx + 1}
-            </div>
-            <div className="pb-nav-label-wrap">
-              <span className="pb-nav-label">{s.label}</span>
-              {s.note && <span className="pb-nav-note">{s.note}</span>}
-            </div>
-          </div>
-        )
-      })}
+      {/* DS Stepper — horizontal, not a sidebar. Scrolls (and drags) sideways
+          when the step count overflows the available width. */}
+      <div
+        className="pb-stepper"
+        ref={trackRef}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+        onClickCapture={onClickCapture}
+      >
+        {navSteps.map((s, idx) => {
+          const isActive   = current === s.id
+          const isComplete = visited.has(s.id) && !isActive
+          let cls = 'pb-step-pill'
+          if (isActive)   cls += ' pb-step-pill--active'
+          if (isComplete) cls += ' pb-step-pill--complete'
+          return (
+            <span key={s.id} ref={isActive ? activeRef : null} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+              <button className={cls} onClick={() => onGoto(s.id)}>
+                <span className="pb-step-pill-node">
+                  {isComplete ? <Check size={10} strokeWidth={3} /> : idx + 1}
+                </span>
+                <span className="pb-step-pill-label">{s.label}</span>
+              </button>
+              {idx < navSteps.length - 1 && <ChevronRight size={13} className="pb-step-pill-sep" />}
+            </span>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -4664,7 +4647,7 @@ export default function PackBuilder() {
           />
 
           <div className="pb-content">
-            {renderStep()}
+            <div className="pb-step-body">{renderStep()}</div>
 
             <div className="pb-footer">
               <Button variant="secondary" size="sm" onClick={() => navigate('/configure/packs')}>
