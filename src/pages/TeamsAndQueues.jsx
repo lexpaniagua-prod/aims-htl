@@ -1,18 +1,25 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, X, Users } from 'lucide-react'
+import {
+  Plus, Pencil, X, Users, ListTodo, UserCog, Repeat,
+  Building2, Moon, Calendar, Settings,
+} from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import { teamsAndQueues } from '../data/mockData.js'
+import './Triggers.css'
 import './TeamsAndQueues.css'
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Config — DS Highlight Icon variants + lucide glyphs, not emoji ──────────
 const TYPE_CFG = {
-  queue:    { label: 'Queue',    variant: 'blue',   emoji: '🗂' },
-  roster:   { label: 'Roster',   variant: 'purple', emoji: '👥' },
-  role:     { label: 'Role',     variant: 'amber',  emoji: '👤' },
-  rotation: { label: 'Rotation', variant: 'teal',   emoji: '🔄' },
+  queue:    { label: 'Queue',    variant: 'blue',   hi: 'informative', icon: ListTodo },
+  roster:   { label: 'Roster',   variant: 'purple', hi: 'purple',      icon: Users    },
+  role:     { label: 'Role',     variant: 'amber',  hi: 'alert',       icon: UserCog  },
+  rotation: { label: 'Rotation', variant: 'teal',   hi: 'success',     icon: Repeat   },
 }
+
+const SLOT_ICONS = { office: Building2, after: Moon, weekend: Calendar, custom: Settings }
 
 const STATUS_DOT = {
   online:  'tq-dot--green',
@@ -106,9 +113,9 @@ function TeamDrawer({ team, onSave, onClose }) {
     <>
       <div className="tq-overlay" onClick={onClose} />
       <div className="tq-drawer">
-        <div className="tq-drawer-hdr">
+        <div className="tq-drawer-hdr" style={{ alignItems: 'center' }}>
           <span className="tq-drawer-title">{team ? 'Edit Team' : 'New Team'}</span>
-          <button className="tq-drawer-close" onClick={onClose}><X size={16} /></button>
+          <Button variant="ghost" size="sm" icon={X} title="Close" onClick={onClose} />
         </div>
 
         <div className="tq-drawer-body">
@@ -127,7 +134,7 @@ function TeamDrawer({ team, onSave, onClose }) {
                 const sel = type === t
                 return (
                   <button key={t} className={`tq-type-btn${sel ? ' tq-type-btn--sel' : ''}`} onClick={() => setType(t)}>
-                    <span>{cfg.emoji}</span><span>{cfg.label}</span>
+                    <cfg.icon size={14} /><span>{cfg.label}</span>
                   </button>
                 )
               })}
@@ -242,7 +249,7 @@ function TeamDrawer({ team, onSave, onClose }) {
                           <div className="tq-slot-knob" />
                         </div>
                       </div>
-                      <span className="tq-slot-emoji">{slot.emoji}</span>
+                      <HighlightIcon icon={SLOT_ICONS[slot.id] || Calendar} variant="neutral" size={28} className="tq-slot-emoji" />
                       <div className="tq-slot-info">
                         <div className="tq-slot-label">{slot.label}</div>
                         <div className="tq-slot-hours">{slot.hours}</div>
@@ -411,8 +418,8 @@ function TeamDrawer({ team, onSave, onClose }) {
         </div>
 
         <div className="tq-drawer-foot">
-          <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={handleSave} disabled={!name.trim()}>Save Team</Button>
+          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" onClick={handleSave} disabled={!name.trim()}>Save Team</Button>
         </div>
       </div>
     </>
@@ -456,21 +463,28 @@ function TeamPreview({ team, onClose }) {
       <div className="tq-overlay" onClick={onClose} />
       <div className="tq-drawer">
         <div className="tq-drawer-hdr">
-          <span className="tq-drawer-title">{cfg.emoji} {team.name}</span>
-          <button className="tq-drawer-close" onClick={onClose}><X size={16} /></button>
+          <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={36} className="tl-drawer-hdr-icon" />
+          <div className="tl-drawer-hdr-titles">
+            <div className="tl-drawer-hdr-title-row">
+              <span className="tl-drawer-title">{team.name}</span>
+              <Badge label={cfg.label} variant={cfg.variant} size="sm" />
+              <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
+            </div>
+            {team.description && <div className="tl-drawer-hdr-desc">{team.description}</div>}
+          </div>
+          <div className="tl-drawer-hdr-actions">
+            <Button variant="ghost" size="sm" icon={X} title="Close" onClick={onClose} />
+          </div>
         </div>
 
         <div className="tq-drawer-body">
           {/* Hero */}
           <div className="tqp-hero">
-            <div className="tqp-meta">
-              <Badge label={cfg.label} variant={cfg.variant} size="sm" />
-              <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
-              {team.coverageHours && (
+            {team.coverageHours && (
+              <div className="tqp-meta">
                 <span className="tqp-coverage">{team.coverageHours} · {team.timezone}</span>
-              )}
-            </div>
-            {team.description && <div className="tqp-desc">{team.description}</div>}
+              </div>
+            )}
           </div>
 
           {/* Blast radius */}
@@ -589,10 +603,10 @@ function TeamPreview({ team, onClose }) {
 
         <div className="tq-drawer-foot tqp-foot">
           <div style={{ display: 'flex', gap: 6 }}>
-            <Button variant="secondary" size="sm">Duplicate</Button>
-            <Button variant="secondary" size="sm">Archive</Button>
+            <Button variant="secondary" size="md">Duplicate</Button>
+            <Button variant="secondary" size="md">Archive</Button>
           </div>
-          <Button variant="primary" size="sm" onClick={goDetail}>Go to full detail →</Button>
+          <Button variant="primary" size="md" onClick={goDetail}>Go to full detail →</Button>
         </div>
       </div>
     </>
@@ -610,62 +624,46 @@ function TeamCard({ team, onEdit, onNavigate }) {
 
   return (
     <div className="tq-row" onClick={() => onEdit(team.id)}>
-      {/* Left icon */}
-      <div className={`tq-row-icon tq-row-icon--${team.type}`}>
-        <span>{cfg.emoji}</span>
+      {/* Top row — icon, title, status dot, right: avatars + actions + menu */}
+      <div className="el-top">
+        <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={24} />
+        <span className="el-title">{team.name}</span>
+        <div className={`tq-status-dot ${dotCls}`} style={{ width: 7, height: 7, flexShrink: 0 }} />
+        <div className="el-top-right">
+          <div className="tq-avatars-sm">
+            {visible.map(m => (
+              <div key={m.name} className={`tq-avatar tq-avatar--${m.status}`} title={`${m.name} — ${m.status}`} style={{ width: 22, height: 22, fontSize: 9 }}>
+                {initials(m.name)}
+              </div>
+            ))}
+            {extra > 0 && <div className="tq-avatar tq-avatar--more" style={{ width: 22, height: 22, fontSize: 9 }}>+{extra}</div>}
+          </div>
+          <span className="el-divider" />
+          <Button variant="ghost" size="sm" icon={Pencil} title="Preview" onClick={e => { e.stopPropagation(); onEdit(team.id) }} />
+          <Button variant="ghost" size="sm" icon={Users} title="Open detail" onClick={e => { e.stopPropagation(); onNavigate(team.id) }} />
+        </div>
       </div>
 
-      {/* Body */}
-      <div className="tq-row-body">
-        <div className="tq-row-name">
-          {team.name}
-          <div className={`tq-status-dot ${dotCls}`} style={{ width: 7, height: 7, display: 'inline-block', marginLeft: 8, verticalAlign: 'middle' }} />
-        </div>
-        {team.description && (
-          <div className="tq-row-desc">{team.description}</div>
-        )}
-        <div className="tq-row-meta">
-          <Badge label={cfg.label} variant={cfg.variant} size="sm" />
-          <span className="tq-meta-chip">{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
-          <span className="tq-meta-sep">·</span>
-          <span className="tq-meta-chip">{team.activeItems} active</span>
-          <span className="tq-meta-sep">·</span>
-          <span className="tq-meta-chip">{team.usedInPacks} pack{team.usedInPacks !== 1 ? 's' : ''}</span>
+      {/* Body — description */}
+      {team.description && <div className="el-desc">{team.description}</div>}
+
+      {/* Bottom row — left: meta pairs, right: type tag */}
+      <div className="el-bottom">
+        <div className="el-meta">
+          <span className="el-meta-pair"><Users size={13} className="el-meta-icon" />{team.members.length} member{team.members.length !== 1 ? 's' : ''}</span>
+          <span className="el-bullet">•</span>
+          <span className="el-meta-pair">{team.activeItems} active</span>
+          <span className="el-bullet">•</span>
+          <span className="el-meta-pair">{team.usedInPacks} pack{team.usedInPacks !== 1 ? 's' : ''}</span>
           {team.coverageHours && (
             <>
-              <span className="tq-meta-sep">·</span>
-              <span className="tq-meta-chip">🕐 {team.coverageHours}</span>
+              <span className="el-bullet">•</span>
+              <span className="el-meta-pair">{team.coverageHours}</span>
             </>
           )}
         </div>
-      </div>
-
-      {/* Right: avatars + hover actions */}
-      <div className="tq-row-right">
-        <div className="tq-avatars-sm">
-          {visible.map(m => (
-            <div key={m.name} className={`tq-avatar tq-avatar--${m.status}`} title={`${m.name} — ${m.status}`} style={{ width: 24, height: 24, fontSize: 9 }}>
-              {initials(m.name)}
-            </div>
-          ))}
-          {extra > 0 && <div className="tq-avatar tq-avatar--more" style={{ width: 24, height: 24, fontSize: 9 }}>+{extra}</div>}
-        </div>
-
-        <div className="tq-row-actions">
-          <button
-            className="tq-row-action-btn"
-            title="Preview"
-            onClick={e => { e.stopPropagation(); onEdit(team.id) }}
-          >
-            <Pencil size={13} />
-          </button>
-          <button
-            className="tq-row-action-btn"
-            title="Open detail"
-            onClick={e => { e.stopPropagation(); onNavigate(team.id) }}
-          >
-            <Users size={13} />
-          </button>
+        <div className="el-tags">
+          <Badge label={cfg.label} variant={cfg.variant} size="sm" />
         </div>
       </div>
     </div>

@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Pencil, Plus, X } from 'lucide-react'
+import { Pencil, Plus, X, ListTodo, Users, UserCog, Repeat, Building2, Moon, Calendar, Settings } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import { teamsAndQueues } from '../data/mockData.js'
 import './TeamsAndQueues.css'
 import './TeamDetail.css'
 
 const TYPE_CFG = {
-  queue:    { label: 'Queue',    variant: 'blue',   emoji: '🗂' },
-  roster:   { label: 'Roster',   variant: 'purple', emoji: '👥' },
-  role:     { label: 'Role',     variant: 'amber',  emoji: '👤' },
-  rotation: { label: 'Rotation', variant: 'teal',   emoji: '🔄' },
+  queue:    { label: 'Queue',    variant: 'blue',   hi: 'informative', icon: ListTodo },
+  roster:   { label: 'Roster',   variant: 'purple', hi: 'purple',      icon: Users    },
+  role:     { label: 'Role',     variant: 'amber',  hi: 'alert',       icon: UserCog  },
+  rotation: { label: 'Rotation', variant: 'teal',   hi: 'success',     icon: Repeat   },
 }
+
+const SLOT_ICONS = { office: Building2, after: Moon, weekend: Calendar, custom: Settings }
 
 const STATUS_DOT = {
   online:  'tq-dot--green',
@@ -388,7 +391,7 @@ function SettingsTab({ team, isNew }) {
                   const c = TYPE_CFG[t]
                   return (
                     <button key={t} className={`tq-type-btn${type === t ? ' tq-type-btn--sel' : ''}`} onClick={() => setType(t)}>
-                      <span>{c.emoji}</span><span>{c.label}</span>
+                      <c.icon size={14} /><span>{c.label}</span>
                     </button>
                   )
                 })}
@@ -402,7 +405,7 @@ function SettingsTab({ team, isNew }) {
             </>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 20 }}>{cfg.emoji}</span>
+              <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={28} />
               <Badge label={cfg.label} variant={cfg.variant} size="sm" />
               <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontStyle: 'italic' }}>
                 Type cannot be changed after creation.
@@ -508,7 +511,7 @@ function SettingsTab({ team, isNew }) {
                         <div className="tq-slot-knob" />
                       </div>
                     </div>
-                    <span className="tq-slot-emoji">{slot.emoji}</span>
+                    <HighlightIcon icon={SLOT_ICONS[slot.id] || Calendar} variant="neutral" size={28} className="tq-slot-emoji" />
                     <div className="tq-slot-info">
                       <div className="tq-slot-label">{slot.label}</div>
                       <div className="tq-slot-hours">{slot.hours}</div>
@@ -733,7 +736,7 @@ export default function TeamDetail() {
 
           {!isNew && (
             <div className="td-badges">
-              <span style={{ fontSize: 18 }}>{cfg.emoji}</span>
+              <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={24} />
               <Badge label={cfg.label} variant={cfg.variant} size="sm" />
               <div className={`tq-status-dot ${dotCls}`} style={{ width: 8, height: 8 }} />
               <span className="td-active-chip">{team.activeItems} active</span>

@@ -1,0 +1,17 @@
+.hi-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.hi-icon--alert       { background: var(--hi-alert-bg);       color: var(--hi-alert-icon); }
+.hi-icon--error       { background: var(--hi-error-bg);       color: var(--hi-error-icon); }
+.hi-icon--informative { background: var(--hi-informative-bg); color: var(--hi-informative-icon); }
+.hi-icon--lightblue    { background: var(--hi-lightblue-bg);    color: var(--hi-lightblue-icon); }
+.hi-icon--lime         { background: var(--hi-lime-bg);         color: var(--hi-lime-icon); }
+.hi-icon--neutral      { background: var(--hi-neutral-bg);      color: var(--hi-neutral-icon); }
+.hi-icon--purple       { background: var(--hi-purple-bg);       color: var(--hi-purple-icon); }
+.hi-icon--success      { background: var(--hi-success-bg);      color: var(--hi-success-icon); }
+.hi-icon--yellow       { background: var(--hi-yellow-bg);       color: var(--hi-yellow-icon); }

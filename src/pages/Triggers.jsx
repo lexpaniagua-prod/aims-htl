@@ -1,25 +1,29 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, MoreHorizontal, Search, Check, X } from 'lucide-react'
+import {
+  Plus, Pencil, MoreHorizontal, Search, Check, X, User,
+  MessageSquare, Bot, Gauge, Zap, FileText, RefreshCw, Tag, Settings,
+} from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import { triggerLibrary } from '../data/mockData.js'
 import './Triggers.css'
 
-// ─── Config ──────────────────────────────────────────────────────────────────
+// ─── Config — DS Highlight Icon variants + lucide glyphs, not emoji ──────────
 const TYPE_CFG = {
-  'Customer behavior': { variant: 'blue',   icon: '💬' },
-  'AI confidence':     { variant: 'purple', icon: '🤖' },
-  'Score threshold':   { variant: 'amber',  icon: '📊' },
-  'Specific event':    { variant: 'teal',   icon: '⚡' },
+  'Customer behavior': { variant: 'blue',   hi: 'informative', icon: MessageSquare },
+  'AI confidence':     { variant: 'purple', hi: 'purple',      icon: Bot           },
+  'Score threshold':   { variant: 'amber',  hi: 'alert',       icon: Gauge         },
+  'Specific event':    { variant: 'teal',   hi: 'success',     icon: Zap           },
 }
 const TYPE_TABS = ['Customer behavior', 'AI confidence', 'Score threshold', 'Specific event']
 
 const TYPE_LIST = [
-  { id: 'Customer behavior', icon: '💬', name: 'Customer behavior', desc: 'Detects intent or language patterns in customer messages' },
-  { id: 'AI confidence',     icon: '🤖', name: 'AI confidence',     desc: "Fires when the AI's certainty drops below a threshold"   },
-  { id: 'Score threshold',   icon: '📊', name: 'Score threshold',   desc: 'Triggers when a numeric score crosses a defined value'   },
-  { id: 'Specific event',    icon: '⚡', name: 'Specific event',    desc: 'Activates when a concrete system event occurs'           },
+  { id: 'Customer behavior', icon: MessageSquare, hi: 'informative', name: 'Customer behavior', desc: 'Detects intent or language patterns in customer messages' },
+  { id: 'AI confidence',     icon: Bot,           hi: 'purple',      name: 'AI confidence',     desc: "Fires when the AI's certainty drops below a threshold"   },
+  { id: 'Score threshold',   icon: Gauge,         hi: 'alert',       name: 'Score threshold',   desc: 'Triggers when a numeric score crosses a defined value'   },
+  { id: 'Specific event',    icon: Zap,           hi: 'success',     name: 'Specific event',    desc: 'Activates when a concrete system event occurs'           },
 ]
 
 const STUDIOS = ['Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio', 'All Studios']
@@ -152,9 +156,9 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
       <div className="tl-overlay" onClick={onClose} />
       <div className="tl-drawer">
         {/* Header */}
-        <div className="tl-drawer-hdr">
+        <div className="tl-drawer-hdr" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
           <span className="tl-drawer-title">{trigger ? 'Edit Condition' : 'New Condition'}</span>
-          <button className="tl-drawer-close" onClick={onClose}><X size={16} /></button>
+          <Button variant="ghost" size="sm" icon={X} title="Close" onClick={onClose} />
         </div>
 
         {/* Body */}
@@ -218,7 +222,7 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
                           className={`tl-type-opt${sel ? ' tl-type-opt--sel' : ''}`}
                           onClick={() => setType(t.id)}
                         >
-                          <span className="tl-type-opt-icon">{t.icon}</span>
+                          <HighlightIcon icon={t.icon} variant={t.hi} size={32} className="tl-type-opt-icon" />
                           <div className="tl-type-opt-body">
                             <div className="tl-type-opt-name">{t.name}</div>
                             <div className="tl-type-opt-desc">{t.desc}</div>
@@ -421,13 +425,13 @@ The customer may be angry, disappointed, or simply making an administrative requ
                 <label className="tl-label">Event type</label>
                 <div className="tl-type-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                   {[
-                    { id: 'form_submit',   label: 'Form submitted',  emoji: '📋' },
-                    { id: 'status_change', label: 'Status changes',  emoji: '🔄' },
-                    { id: 'tag_applied',   label: 'Tag applied',     emoji: '🏷' },
-                    { id: 'custom',        label: 'Custom event',    emoji: '⚙️' },
+                    { id: 'form_submit',   label: 'Form submitted', icon: FileText  },
+                    { id: 'status_change', label: 'Status changes', icon: RefreshCw },
+                    { id: 'tag_applied',   label: 'Tag applied',    icon: Tag       },
+                    { id: 'custom',        label: 'Custom event',   icon: Settings  },
                   ].map(ev => (
                     <button key={ev.id} className={`tl-type-btn${eventType === ev.id ? ' tl-type-btn--sel' : ''}`} onClick={() => setEventType(ev.id)}>
-                      <span>{ev.emoji}</span><span>{ev.label}</span>
+                      <ev.icon size={14} /><span>{ev.label}</span>
                     </button>
                   ))}
                 </div>
@@ -599,8 +603,8 @@ The customer may be angry, disappointed, or simply making an administrative requ
 
         {/* Footer */}
         <div className="tl-drawer-foot">
-          <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={handleSave} disabled={!name.trim()}>
+          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" onClick={handleSave} disabled={!name.trim()}>
             Save Condition
           </Button>
         </div>
@@ -639,18 +643,31 @@ function TriggerPreview({ trigger, onClose }) {
     <>
       <div className="tl-overlay" onClick={onClose} />
       <div className="tl-drawer">
-        {/* Header */}
+        {/* Header — DS Slide Out anatomy: icon + title/status row + description,
+            top-right tertiary action buttons (edit, close). */}
         <div className="tl-drawer-hdr">
-          <span className="tl-drawer-title">Condition Preview</span>
-          <button className="tl-drawer-close" onClick={onClose}><X size={16} /></button>
+          <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={36} className="tl-drawer-hdr-icon" />
+          <div className="tl-drawer-hdr-titles">
+            <div className="tl-drawer-hdr-title-row">
+              <span className="tl-drawer-title">{trigger.name}</span>
+              <Badge
+                label={trigger.status === 'active' ? 'Active' : 'Draft'}
+                variant={trigger.status === 'active' ? 'teal' : 'amber'}
+                size="sm"
+              />
+            </div>
+            <div className="tl-drawer-hdr-desc">{detectText()}</div>
+          </div>
+          <div className="tl-drawer-hdr-actions">
+            <Button variant="ghost" size="sm" icon={X} title="Close" onClick={onClose} />
+          </div>
         </div>
 
         {/* Body */}
         <div className="tl-drawer-body">
 
-          {/* Name + badges + meta */}
+          {/* Type + studio + usage meta */}
           <div className="tlp-hero">
-            <div className="tlp-name">{trigger.name}</div>
             <div className="tlp-badges">
               <Badge label={trigger.type} variant={cfg.variant} size="sm" />
               <StudioBadge studio={trigger.studio} />
@@ -712,10 +729,10 @@ function TriggerPreview({ trigger, onClose }) {
         {/* Footer */}
         <div className="tl-drawer-foot tlp-foot">
           <div style={{ display: 'flex', gap: 6 }}>
-            <Button variant="secondary" size="sm">Duplicate</Button>
-            <Button variant="secondary" size="sm">Archive</Button>
+            <Button variant="secondary" size="md">Duplicate</Button>
+            <Button variant="secondary" size="md">Archive</Button>
           </div>
-          <Button variant="primary" size="sm" onClick={goEdit}>Edit condition →</Button>
+          <Button variant="primary" size="md" onClick={goEdit}>Edit condition →</Button>
         </div>
       </div>
     </>
@@ -801,23 +818,40 @@ export default function Triggers() {
           const cfg = TYPE_CFG[t.type] || TYPE_CFG['Customer behavior']
           return (
             <div key={t.id} className="tl-row">
-              {/* Type icon */}
-              <div className="tl-row-icon">{cfg.icon}</div>
+              {/* Top row — icon highlight, title, right: actions | state tag | timestamp | menu */}
+              <div className="el-top">
+                <HighlightIcon icon={cfg.icon} variant={cfg.hi} size={24} />
+                <span className="el-title">{t.name}</span>
+                <div className="el-top-right">
+                  <Button variant="secondary" size="sm" icon={Pencil} onClick={() => openEdit(t.id)}>
+                    Edit
+                  </Button>
+                  <span className="el-divider" />
+                  <Badge
+                    label={t.status === 'active' ? 'Active' : 'Draft'}
+                    variant={t.status === 'active' ? 'teal' : 'amber'}
+                    size="sm"
+                  />
+                  <span className="el-timestamp">{t.lastModified}</span>
+                  <Button variant="ghost" size="sm" icon={MoreHorizontal} title="More" />
+                </div>
+              </div>
 
-              {/* Body */}
-              <div className="tl-row-body">
-                <div className="tl-row-name">{t.name}</div>
-                {t.description && (
-                  <div className="tl-row-desc">{t.description}</div>
-                )}
-                <div className="tl-row-meta">
-                  <Badge label={t.type} variant={cfg.variant} size="sm" />
-                  {t.studio && <StudioBadge studio={t.studio} />}
-                  <div
-                    className="tl-packs-chip"
+              {/* Body — description */}
+              {t.description && <div className="el-desc">{t.description}</div>}
+
+              {/* Bottom row — left: icon+label meta pairs, right: tag cluster */}
+              <div className="el-bottom">
+                <div className="el-meta">
+                  <span className="el-meta-pair"><User size={13} className="el-meta-icon" />{t.createdBy}</span>
+                  <span className="el-bullet">•</span>
+                  <span
+                    className="el-meta-pair el-meta-pair--hover"
                     onMouseEnter={() => setHoveredPacks(t.id)}
                     onMouseLeave={() => setHoveredPacks(null)}
+                    style={{ position: 'relative' }}
                   >
+                    <FileText size={13} className="el-meta-icon" />
                     Used in {t.usedInPacks} pack{t.usedInPacks !== 1 ? 's' : ''}
                     {hoveredPacks === t.id && t.usedInPackNames?.length > 0 && (
                       <div className="tl-packs-pop">
@@ -826,27 +860,12 @@ export default function Triggers() {
                         ))}
                       </div>
                     )}
-                  </div>
-                  <span className="tl-meta-sep">·</span>
-                  <span className="tl-meta-by">{t.createdBy}</span>
-                  <span className="tl-meta-sep">·</span>
-                  <span className="tl-meta-time">{t.lastModified}</span>
+                  </span>
                 </div>
-              </div>
-
-              {/* Right */}
-              <div className="tl-row-right">
-                <Badge
-                  label={t.status === 'active' ? 'Active' : 'Draft'}
-                  variant={t.status === 'active' ? 'teal' : 'amber'}
-                  size="sm"
-                />
-                <button className="tl-edit-btn" onClick={() => openEdit(t.id)}>
-                  <Pencil size={12} /> Edit
-                </button>
-                <button className="tl-icon-btn" title="More">
-                  <MoreHorizontal size={14} />
-                </button>
+                <div className="el-tags">
+                  <Badge label={t.type} variant={cfg.variant} size="sm" />
+                  {t.studio && <StudioBadge studio={t.studio} />}
+                </div>
               </div>
             </div>
           )

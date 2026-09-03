@@ -219,6 +219,24 @@
   --widget-border: rgba(255,255,255,0.12);
   --widget-title:  rgba(255,255,255,0.8);
   --widget-icon:   rgba(255,255,255,0.5);
+
+  /* DS Highlight Icon — small tinted icon chip used wherever a list row or
+     card needs a type/category glyph. 9 semantic color variants. */
+  --hi-alert-bg:             rgba(217,119,6,0.14);   --hi-alert-icon:             #ffc070;
+  --hi-error-bg:             rgba(220,38,38,0.14);   --hi-error-icon:             #ff9898;
+  --hi-informative-bg:       rgba(33,115,255,0.14);  --hi-informative-icon:       #a8c8ff;
+  --hi-lightblue-bg:         rgba(2,132,199,0.14);   --hi-lightblue-icon:         #80dcff;
+  --hi-lime-bg:              rgba(101,163,13,0.14);  --hi-lime-icon:              #c4f060;
+  --hi-neutral-bg:           rgba(255,255,255,0.08); --hi-neutral-icon:           rgba(255,255,255,0.7);
+  --hi-purple-bg:            rgba(124,58,237,0.14);  --hi-purple-icon:            #d4a0ff;
+  --hi-success-bg:           rgba(0,169,127,0.14);   --hi-success-icon:           #70edd8;
+  --hi-yellow-bg:            rgba(202,138,4,0.14);   --hi-yellow-icon:            #ffe070;
+
+  /* DS Slide Out — frosted-glass overlay panel from the right.
+     Size S: 420px / 16px radius. Size M: 635px / 24px radius (left corners only). */
+  --slide-out-bg:     #101628eb;
+  --slide-out-border: rgba(255,255,255,0.1);
+  --slide-out-shadow: -24px -24px 60px 0px rgba(0,0,0,0.14);
 }
 
 [data-theme="light"] {
@@ -390,4 +408,23 @@
   --widget-border: rgba(0,0,0,0.12);
   --widget-title:  rgba(0,0,0,0.75);
   --widget-icon:   rgba(0,0,0,0.45);
+
+  /* DS Highlight Icon — darker/more-saturated icon color for legibility on
+     a light tinted chip. */
+  --hi-alert-bg:             rgba(217,119,6,0.12);   --hi-alert-icon:             #b45309;
+  --hi-error-bg:             rgba(220,38,38,0.1);    --hi-error-icon:             #dc2626;
+  --hi-informative-bg:       rgba(33,115,255,0.1);   --hi-informative-icon:       #2173ff;
+  --hi-lightblue-bg:         rgba(2,132,199,0.1);    --hi-lightblue-icon:         #0284c7;
+  --hi-lime-bg:              rgba(101,163,13,0.12);  --hi-lime-icon:              #65a30d;
+  --hi-neutral-bg:           rgba(0,0,0,0.055);      --hi-neutral-icon:           rgba(0,0,0,0.6);
+  --hi-purple-bg:            rgba(124,58,237,0.1);   --hi-purple-icon:            #7c3aed;
+  --hi-success-bg:           rgba(0,169,127,0.12);   --hi-success-icon:           #00a97f;
+  --hi-yellow-bg:            rgba(202,138,4,0.12);   --hi-yellow-icon:            #ca8a04;
+
+  /* DS Slide Out — the live site keeps this panel dark-surfaced even in
+     light mode (frosted glass over content); softened here to the app's
+     light elevated-surface tone instead of a jarring dark panel. */
+  --slide-out-bg:     rgba(255,255,255,0.92);
+  --slide-out-border: rgba(0,0,0,0.1);
+  --slide-out-shadow: -24px -24px 60px 0px rgba(0,0,0,0.08);
 }

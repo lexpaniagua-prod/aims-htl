@@ -1,25 +1,30 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { Pencil, Search, X, Check, ChevronRight } from 'lucide-react'
+import {
+  Pencil, Search, X, Check, ChevronRight,
+  MessageSquare, Bot, Gauge, Zap, FileText, RefreshCw, Tag, Settings,
+} from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
+import Widget from '../components/Widget.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import { triggerLibrary } from '../data/mockData.js'
 import './ConditionDetail.css'
 import './Triggers.css'
 
 // ── Constants (mirrored from Triggers.jsx) ────────────────────────────────────
 const TYPE_CFG = {
-  'Customer behavior': { variant: 'blue',   icon: '💬' },
-  'AI confidence':     { variant: 'purple', icon: '🤖' },
-  'Score threshold':   { variant: 'amber',  icon: '📊' },
-  'Specific event':    { variant: 'teal',   icon: '⚡' },
+  'Customer behavior': { variant: 'blue',   hi: 'informative', icon: MessageSquare },
+  'AI confidence':     { variant: 'purple', hi: 'purple',      icon: Bot           },
+  'Score threshold':   { variant: 'amber',  hi: 'alert',       icon: Gauge         },
+  'Specific event':    { variant: 'teal',   hi: 'success',     icon: Zap           },
 }
 
 const TYPE_LIST = [
-  { id: 'Customer behavior', icon: '💬', name: 'Customer behavior', desc: 'Detects intent or language patterns in customer messages' },
-  { id: 'AI confidence',     icon: '🤖', name: 'AI confidence',     desc: "Fires when the AI's certainty drops below a threshold"   },
-  { id: 'Score threshold',   icon: '📊', name: 'Score threshold',   desc: 'Triggers when a numeric score crosses a defined value'   },
-  { id: 'Specific event',    icon: '⚡', name: 'Specific event',    desc: 'Activates when a concrete system event occurs'           },
+  { id: 'Customer behavior', icon: MessageSquare, hi: 'informative', name: 'Customer behavior', desc: 'Detects intent or language patterns in customer messages' },
+  { id: 'AI confidence',     icon: Bot,           hi: 'purple',      name: 'AI confidence',     desc: "Fires when the AI's certainty drops below a threshold"   },
+  { id: 'Score threshold',   icon: Gauge,         hi: 'alert',       name: 'Score threshold',   desc: 'Triggers when a numeric score crosses a defined value'   },
+  { id: 'Specific event',    icon: Zap,           hi: 'success',     name: 'Specific event',    desc: 'Activates when a concrete system event occurs'           },
 ]
 
 const STUDIOS = ['Agentic Studio', 'Helix Governance Studio', 'Helix Data Studio', 'All Studios']
@@ -185,7 +190,7 @@ function ConfigTab({ initial }) {
             const sel = type === t.id
             return (
               <div key={t.id} className={`tl-type-opt${sel ? ' tl-type-opt--sel' : ''}`} onClick={() => setType(t.id)}>
-                <span className="tl-type-opt-icon">{t.icon}</span>
+                <HighlightIcon icon={t.icon} variant={t.hi} size={32} className="tl-type-opt-icon" />
                 <div className="tl-type-opt-body">
                   <div className="tl-type-opt-name">{t.name}</div>
                   <div className="tl-type-opt-desc">{t.desc}</div>
@@ -319,13 +324,13 @@ function ConfigTab({ initial }) {
           <label className="tl-label">Event type</label>
           <div className="tl-type-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
             {[
-              { id: 'form_submit',   label: 'Form submitted', emoji: '📋' },
-              { id: 'status_change', label: 'Status changes',  emoji: '🔄' },
-              { id: 'tag_applied',   label: 'Tag applied',     emoji: '🏷' },
-              { id: 'custom',        label: 'Custom event',    emoji: '⚙️' },
+              { id: 'form_submit',   label: 'Form submitted', icon: FileText  },
+              { id: 'status_change', label: 'Status changes', icon: RefreshCw },
+              { id: 'tag_applied',   label: 'Tag applied',    icon: Tag       },
+              { id: 'custom',        label: 'Custom event',   icon: Settings  },
             ].map(ev => (
               <button key={ev.id} className={`tl-type-btn${eventType === ev.id ? ' tl-type-btn--sel' : ''}`} onClick={() => setEventType(ev.id)}>
-                <span>{ev.emoji}</span><span>{ev.label}</span>
+                <ev.icon size={14} /><span>{ev.label}</span>
               </button>
             ))}
           </div>
@@ -452,39 +457,40 @@ function ConfigTab({ initial }) {
 // ── Tab 2: Packs ──────────────────────────────────────────────────────────────
 function PacksTab({ condition }) {
   const packs = condition.usedInPackNames || []
-  if (packs.length === 0) {
-    return <div className="cd-empty">No packs are using this condition yet.</div>
-  }
   return (
-    <div className="cd-table-wrap">
-      <table className="cd-table">
-        <thead>
-          <tr>
-            <th className="cd-th">Pack name</th>
-            <th className="cd-th">Studio</th>
-            <th className="cd-th">Pattern</th>
-            <th className="cd-th">Status</th>
-            <th className="cd-th">Last triggered</th>
-          </tr>
-        </thead>
-        <tbody>
-          {packs.map(p => {
-            const info = MOCK_PACK_INFO[p] || { studio: 'Agentic Studio', pattern: 'Handoff', status: 'Active', lastTriggered: '—' }
-            return (
-              <tr key={p} className="cd-tr">
-                <td className="cd-td"><span className="cd-pack-link">{p}</span></td>
-                <td className="cd-td cd-td--mono">{info.studio}</td>
-                <td className="cd-td cd-td--mono">{info.pattern}</td>
-                <td className="cd-td">
-                  <Badge label={info.status} variant="teal" size="sm" />
-                </td>
-                <td className="cd-td cd-td--mono">{info.lastTriggered}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Widget title="Packs using this condition" bodyClassName={packs.length ? 'widget-body--bleed' : ''}>
+      {packs.length === 0 ? (
+        <div className="cd-empty">No packs are using this condition yet.</div>
+      ) : (
+        <table className="cd-table">
+          <thead>
+            <tr>
+              <th className="cd-th">Pack name</th>
+              <th className="cd-th">Studio</th>
+              <th className="cd-th">Pattern</th>
+              <th className="cd-th">Status</th>
+              <th className="cd-th">Last triggered</th>
+            </tr>
+          </thead>
+          <tbody>
+            {packs.map(p => {
+              const info = MOCK_PACK_INFO[p] || { studio: 'Agentic Studio', pattern: 'Handoff', status: 'Active', lastTriggered: '—' }
+              return (
+                <tr key={p} className="cd-tr">
+                  <td className="cd-td"><span className="cd-pack-link">{p}</span></td>
+                  <td className="cd-td cd-td--mono">{info.studio}</td>
+                  <td className="cd-td cd-td--mono">{info.pattern}</td>
+                  <td className="cd-td">
+                    <Badge label={info.status} variant="teal" size="sm" />
+                  </td>
+                  <td className="cd-td cd-td--mono">{info.lastTriggered}</td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )}
+    </Widget>
   )
 }
 
@@ -493,42 +499,46 @@ function HistoryTab() {
   const [expanded, setExpanded] = useState({})
   const toggle = v => setExpanded(e => ({ ...e, [v]: !e[v] }))
   return (
-    <div className="cd-hist-list">
-      {VERSION_HISTORY.map(v => (
-        <div key={v.version} className="cd-hist-row">
-          <div className="cd-hist-hdr" onClick={() => toggle(v.version)}>
-            <span className="cd-hist-version">{v.version}</span>
-            <div className="cd-hist-summary">{v.summary}</div>
-            <div className="cd-hist-meta">{v.changedBy} · {v.date}</div>
-            <ChevronRight size={14} className={`cd-hist-chevron${expanded[v.version] ? ' cd-hist-chevron--open' : ''}`} />
+    <Widget title="Version history" bodyClassName="widget-body--bleed">
+      <div className="cd-hist-list">
+        {VERSION_HISTORY.map(v => (
+          <div key={v.version} className="cd-hist-row">
+            <div className="cd-hist-hdr" onClick={() => toggle(v.version)}>
+              <span className="cd-hist-version">{v.version}</span>
+              <div className="cd-hist-summary">{v.summary}</div>
+              <div className="cd-hist-meta">{v.changedBy} · {v.date}</div>
+              <ChevronRight size={14} className={`cd-hist-chevron${expanded[v.version] ? ' cd-hist-chevron--open' : ''}`} />
+            </div>
+            {expanded[v.version] && (
+              <div className="cd-hist-body">Configuration updated</div>
+            )}
           </div>
-          {expanded[v.version] && (
-            <div className="cd-hist-body">Configuration updated</div>
-          )}
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Widget>
   )
 }
 
 // ── Tab 4: Activity ───────────────────────────────────────────────────────────
 function ActivityTab() {
   return (
-    <div className="cd-activity-list">
-      {ACTIVITY_LOG.map((a, i) => (
-        <div key={i} className="cd-activity-row">
-          <div className="cd-activity-icon">{a.icon}</div>
-          <div className="cd-activity-body">
-            <div>
-              <span className="cd-activity-actor">{a.actor}</span>
-              {' '}
-              <span className="cd-activity-action">{a.action}</span>
+    <Widget title="Activity">
+      <div className="cd-activity-list">
+        {ACTIVITY_LOG.map((a, i) => (
+          <div key={i} className="cd-activity-row">
+            <div className="cd-activity-icon">{a.icon}</div>
+            <div className="cd-activity-body">
+              <div>
+                <span className="cd-activity-actor">{a.actor}</span>
+                {' '}
+                <span className="cd-activity-action">{a.action}</span>
+              </div>
+              <div className="cd-activity-time">{a.time}</div>
             </div>
-            <div className="cd-activity-time">{a.time}</div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </Widget>
   )
 }
 

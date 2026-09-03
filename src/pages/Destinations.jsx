@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
 import Button from '../components/Button.jsx'
 import Badge from '../components/Badge.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import { Drawer } from '../components/Modal.jsx'
-import { Plus, CheckCircle, AlertTriangle, Send, FileText, Zap, Sliders, MoreHorizontal, Search } from 'lucide-react'
+import {
+  Plus, CheckCircle, AlertTriangle, Send, FileText, Zap, Sliders, MoreHorizontal, Search,
+  Building2, Ticket, Database, MessageSquare, Link2, Smartphone, Mail, Users,
+} from 'lucide-react'
 import './Destinations.css'
+
+const TYPE_ICON = { CRM: Building2, Ticketing: Ticket, ERP: Database, Messaging: MessageSquare, Custom: Link2 }
 
 const EXTERNAL_SYSTEMS = [
   {
@@ -84,26 +90,27 @@ function defaultEnabled(systemId) {
 }
 
 const CHANNELS = [
-  { id: 'slack', name: 'Slack',  detail: 'AIMS Team workspace · #htl-escalations', status: 'Connected', icon: '💬', template: 'New item: {{pack_name}} · SLA {{sla_minutes}}m · Assigned to {{agent_name}}' },
-  { id: 'teams', name: 'Teams',  detail: 'Acme Corp tenant',                        status: 'Connected', icon: '📋', template: '🔔 HTL Alert: {{item_subject}} — {{pack_name}} ({{priority}})' },
-  { id: 'sms',   name: 'SMS',    detail: '3 numbers configured',                    status: 'Active',    icon: '📱', template: 'HTL: New {{priority}} item. Login to review: {{item_url}}' },
-  { id: 'email', name: 'Email',  detail: 'escalations@company.com',                 status: 'Active',    icon: '✉️', template: 'Subject: [HTL] {{item_subject}}\n\nPack: {{pack_name}}\nSLA: {{sla_minutes}} min\nAssigned: {{agent_name}}\n\n{{ai_summary}}' },
+  { id: 'slack', name: 'Slack',  detail: 'AIMS Team workspace · #htl-escalations', status: 'Connected', icon: MessageSquare, hi: 'purple',      template: 'New item: {{pack_name}} · SLA {{sla_minutes}}m · Assigned to {{agent_name}}' },
+  { id: 'teams', name: 'Teams',  detail: 'Acme Corp tenant',                        status: 'Connected', icon: Users,         hi: 'informative', template: '🔔 HTL Alert: {{item_subject}} — {{pack_name}} ({{priority}})' },
+  { id: 'sms',   name: 'SMS',    detail: '3 numbers configured',                    status: 'Active',    icon: Smartphone,    hi: 'success',     template: 'HTL: New {{priority}} item. Login to review: {{item_url}}' },
+  { id: 'email', name: 'Email',  detail: 'escalations@company.com',                 status: 'Active',    icon: Mail,          hi: 'alert',       template: 'Subject: [HTL] {{item_subject}}\n\nPack: {{pack_name}}\nSLA: {{sla_minutes}} min\nAssigned: {{agent_name}}\n\n{{ai_summary}}' },
 ]
 
 const CONNECTOR_TYPES = [
-  { id: 'salesforce', name: 'Salesforce', type: 'CRM',       icon: '☁️' },
-  { id: 'hubspot',    name: 'HubSpot',    type: 'CRM',       icon: '🟠' },
-  { id: 'zendesk',    name: 'Zendesk',    type: 'Ticketing', icon: '🎫' },
-  { id: 'jira',       name: 'Jira',       type: 'Ticketing', icon: '🔵' },
-  { id: 'linear',     name: 'Linear',     type: 'Ticketing', icon: '🟣' },
-  { id: 'netsuite',   name: 'NetSuite',   type: 'ERP',       icon: '🟤' },
-  { id: 'sap',        name: 'SAP',        type: 'ERP',       icon: '🔷' },
-  { id: 'slack',      name: 'Slack',      type: 'Messaging', icon: '💬' },
-  { id: 'teams',      name: 'Teams',      type: 'Messaging', icon: '📋' },
-  { id: 'webhook',    name: 'Webhook',    type: 'Custom',    icon: '🔗' },
+  { id: 'salesforce', name: 'Salesforce', type: 'CRM'        },
+  { id: 'hubspot',    name: 'HubSpot',    type: 'CRM'        },
+  { id: 'zendesk',    name: 'Zendesk',    type: 'Ticketing'  },
+  { id: 'jira',       name: 'Jira',       type: 'Ticketing'  },
+  { id: 'linear',     name: 'Linear',     type: 'Ticketing'  },
+  { id: 'netsuite',   name: 'NetSuite',   type: 'ERP'        },
+  { id: 'sap',        name: 'SAP',        type: 'ERP'        },
+  { id: 'slack',      name: 'Slack',      type: 'Messaging'  },
+  { id: 'teams',      name: 'Teams',      type: 'Messaging'  },
+  { id: 'webhook',    name: 'Webhook',    type: 'Custom'     },
 ]
 
 const typeVariant   = { CRM: 'blue', Ticketing: 'purple', ERP: 'amber', Messaging: 'teal', Custom: 'gray' }
+const typeHi        = { CRM: 'informative', Ticketing: 'purple', ERP: 'alert', Messaging: 'success', Custom: 'neutral' }
 const statusVariant = { Connected: 'teal', Active: 'blue', Error: 'coral' }
 
 const VARIABLE_LABELS = {
@@ -502,9 +509,7 @@ export default function Destinations() {
                       <Button variant="secondary" size="sm" icon={Sliders} onClick={() => openActionsDrawer(system)}>
                         Actions
                       </Button>
-                      <button className="ext-kebab" title="More options">
-                        <MoreHorizontal size={15} />
-                      </button>
+                      <Button variant="ghost" size="sm" icon={MoreHorizontal} title="More options" />
                     </div>
                   </div>
                   {isError && (
@@ -528,7 +533,7 @@ export default function Destinations() {
           <div className="channels-list">
             {channels.map(channel => (
               <div key={channel.id} className="channel-row">
-                <div className="channel-icon">{channel.icon}</div>
+                <HighlightIcon icon={channel.icon} variant={channel.hi} size={32} className="channel-icon" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="channel-name">{channel.name}</div>
                   <div className="channel-detail">{channel.detail}</div>
@@ -547,7 +552,7 @@ export default function Destinations() {
           <div className="template-preview-panel">
             <div className="template-preview-header">Message Template Preview</div>
             <div className="template-preview-channel">
-              <div className="channel-icon" style={{ width: 32, height: 32, fontSize: 16 }}>{previewChannel.icon}</div>
+              <HighlightIcon icon={previewChannel.icon} variant={previewChannel.hi} size={32} className="channel-icon" />
               <div>
                 <div className="channel-name">{previewChannel.name}</div>
                 <div className="channel-detail">{previewChannel.detail}</div>
@@ -623,7 +628,7 @@ export default function Destinations() {
                       cursor: 'pointer', transition: 'background 0.12s, border-color 0.12s',
                     }}
                   >
-                    <span style={{ fontSize: 20 }}>{connector.icon}</span>
+                    <HighlightIcon icon={TYPE_ICON[connector.type] || Link2} variant={typeHi[connector.type] || 'neutral'} size={28} />
                     <span style={{ flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{connector.name}</span>
                     <Badge label={connector.type} variant={typeVariant[connector.type] ?? 'gray'} size="sm" />
                   </div>

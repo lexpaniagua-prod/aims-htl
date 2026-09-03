@@ -2,19 +2,25 @@ import { useState } from 'react'
 import { rosters, customSignalClasses } from '../data/mockData.js'
 import Button from '../components/Button.jsx'
 import Badge from '../components/Badge.jsx'
+import HighlightIcon from '../components/HighlightIcon.jsx'
 import {
-  Shield, AlertTriangle, Check, ChevronDown, ChevronUp,
-  Plus, X, Lock, Users, FileText, ArrowRight, CheckCircle, MoreHorizontal
+  AlertTriangle, Check, ChevronDown, ChevronUp,
+  Plus, X, Lock, Users, ArrowRight, CheckCircle, MoreHorizontal,
+  LifeBuoy, Scale, ShieldAlert, Megaphone, Flag,
 } from 'lucide-react'
 import './SensitiveSignals.css'
 
-const COLOR_MAP = {
-  safety:       'coral',
-  legal:        'amber',
-  hr:           'purple',
-  security:     'blue',
-  whistleblower:'teal',
+// DS Highlight Icon variants + a lucide glyph specific to what each signal
+// class actually detects, not one generic Shield icon repeated everywhere.
+const SIGNAL_CFG = {
+  safety:        { hi: 'error',       icon: LifeBuoy     },
+  legal:         { hi: 'alert',       icon: Scale        },
+  hr:            { hi: 'purple',      icon: Users        },
+  security:      { hi: 'informative', icon: ShieldAlert  },
+  whistleblower: { hi: 'success',     icon: Megaphone    },
 }
+
+const CUSTOM_HI = { Standard: 'neutral', High: 'alert', Critical: 'error' }
 
 function initMembers(roster) {
   return roster.members.map((m, i) => {
@@ -41,8 +47,6 @@ const PRIORITY_CFG = {
   High:     { variant: 'amber', hint: 'Surfaced at the top of the Inbox, amber indicator.' },
   Critical: { variant: 'coral', hint: 'Immediately bypasses queue, coral indicator, mandatory ack.' },
 }
-
-const CUSTOM_COLOR = { Standard: 'blue', High: 'amber', Critical: 'coral' }
 
 // ─── New Signal Class Drawer ──────────────────────────────────────────────────
 function NewSignalDrawer({ initial, onSave, onClose }) {
@@ -71,7 +75,7 @@ function NewSignalDrawer({ initial, onSave, onClose }) {
       <div className="sc-drawer">
         <div className="sc-drawer-hdr">
           <span className="sc-drawer-title">{initial ? 'Edit Signal Class' : 'New Signal Class'}</span>
-          <button className="sc-drawer-close" onClick={onClose}><X size={16} /></button>
+          <Button variant="ghost" size="sm" icon={X} title="Close" onClick={onClose} />
         </div>
 
         <div className="sc-drawer-body">
@@ -149,8 +153,8 @@ function NewSignalDrawer({ initial, onSave, onClose }) {
         </div>
 
         <div className="sc-drawer-foot">
-          <Button variant="secondary" size="sm" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" size="sm" onClick={handleSave} disabled={!name.trim() || !desc.trim()}>
+          <Button variant="secondary" size="md" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" size="md" onClick={handleSave} disabled={!name.trim() || !desc.trim()}>
             Save Signal Class
           </Button>
         </div>
@@ -273,7 +277,7 @@ export default function SensitiveSignals() {
       {/* Signal class cards */}
       {rosters.map(roster => {
         const cls     = roster.signalClass
-        const color   = COLOR_MAP[cls]
+        const sigCfg  = SIGNAL_CFG[cls] || SIGNAL_CFG.security
         const state   = rosterState[cls]
         const complete = isComplete(cls)
         const isOpen  = !!expanded[cls]
@@ -283,9 +287,7 @@ export default function SensitiveSignals() {
             {/* Card header — click to expand */}
             <div className="ss-card-header" onClick={() => toggle(cls)}>
               <div className="ss-card-header-left">
-                <div className={`ss-signal-icon ss-signal-icon--${color}`}>
-                  <Shield size={14} />
-                </div>
+                <HighlightIcon icon={sigCfg.icon} variant={sigCfg.hi} size={34} className="ss-signal-icon" />
                 <div>
                   <div className="ss-card-title">{roster.label}</div>
                   <div className="ss-card-desc">{roster.description}</div>
@@ -332,12 +334,7 @@ export default function SensitiveSignals() {
                       <span className="ss-member-role">{m.role}</span>
                       <span className="ss-member-email">{m.email}</span>
                       <span className="ss-member-date">{m.addedDate}</span>
-                      <button
-                        className="ss-remove-btn"
-                        onClick={e => { e.stopPropagation(); removeMember(cls, i) }}
-                      >
-                        <X size={12} />
-                      </button>
+                      <Button variant="ghost" size="sm" icon={X} className="ss-remove-btn" onClick={e => { e.stopPropagation(); removeMember(cls, i) }} />
                     </div>
                   ))}
                 </div>
@@ -425,16 +422,13 @@ export default function SensitiveSignals() {
       {customClasses.map(cc => {
         const complete  = cc.members.length >= cc.minRequired
         const isOpen    = !!customExpanded[cc.id]
-        const color     = CUSTOM_COLOR[cc.priority] || 'blue'
-        const [menuOpen, setMenuOpen] = [false, () => {}] // simple inline menu
+        const hi        = CUSTOM_HI[cc.priority] || 'neutral'
 
         return (
           <div key={cc.id} className={`ss-card ss-card--${complete ? 'complete' : 'incomplete'}`} style={{ position: 'relative' }}>
             <div className="ss-card-header" onClick={() => setCustomExpanded(p => ({ ...p, [cc.id]: !p[cc.id] }))}>
               <div className="ss-card-header-left">
-                <div className={`ss-signal-icon ss-signal-icon--${color}`}>
-                  <Shield size={14} />
-                </div>
+                <HighlightIcon icon={Flag} variant={hi} size={34} className="ss-signal-icon" />
                 <div>
                   <div className="ss-card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {cc.name}
@@ -453,12 +447,10 @@ export default function SensitiveSignals() {
                 </div>
                 {/* Three-dot menu */}
                 <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                  <button className="sc-menu-btn" onClick={e => {
+                  <Button variant="ghost" size="sm" icon={MoreHorizontal} title="More" onClick={e => {
                     e.stopPropagation()
                     setCustomExpanded(p => ({ ...p, [cc.id + '_menu']: !p[cc.id + '_menu'] }))
-                  }}>
-                    <MoreHorizontal size={14} />
-                  </button>
+                  }} />
                   {customExpanded[cc.id + '_menu'] && (
                     <div className="sc-menu-drop">
                       <button className="sc-menu-item" onClick={() => {
@@ -497,7 +489,7 @@ export default function SensitiveSignals() {
                       <span className="ss-member-role">{m.role}</span>
                       <span className="ss-member-email">{m.email}</span>
                       <span className="ss-member-date">{m.addedDate}</span>
-                      <button className="ss-remove-btn" onClick={e => { e.stopPropagation(); removeCustomMember(cc.id, i) }}><X size={12} /></button>
+                      <Button variant="ghost" size="sm" icon={X} className="ss-remove-btn" onClick={e => { e.stopPropagation(); removeCustomMember(cc.id, i) }} />
                     </div>
                   ))}
                 </div>

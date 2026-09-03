@@ -85,28 +85,24 @@
   cursor: pointer;
 }
 
-/* External systems list */
+/* External systems list — DS Entity List: each row its own Card Container S,
+   not one bordered box with divided rows. */
 .ext-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
+  gap: 8px;
   margin-bottom: 24px;
 }
 
 .ext-row {
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-card);
-  transition: background 0.12s;
-}
-
-.ext-row:last-child {
-  border-bottom: none;
+  background: var(--card-default-bg);
+  border: 1px solid var(--card-default-border);
+  border-radius: 8px;
+  transition: border-color 0.12s;
 }
 
 .ext-row:hover {
-  background: var(--bg-row-hover);
+  border-color: var(--border-strong);
 }
 
 /* Card Container semantic pattern — tinted background, no left-accent-line;
@@ -114,9 +110,9 @@
    below states the actual problem, so this is just an ambient highlight. */
 .ext-row--error {
   background: var(--card-red-bg, rgba(224,82,82,0.08));
+  border-color: var(--card-red-border, rgba(224,82,82,0.35));
 }
 .ext-row--error:hover {
-  background: var(--card-red-bg, rgba(224,82,82,0.08));
   filter: brightness(1.15);
 }
 
@@ -124,13 +120,13 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 18px;
+  padding: 12px;
 }
 
 .ext-logo {
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,26 +213,6 @@
   flex-shrink: 0;
 }
 
-.ext-kebab {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--bg-input);
-  color: var(--text-tertiary);
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
-  padding: 0;
-}
-
-.ext-kebab:hover {
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
 .ext-error-sub {
   display: flex;
   align-items: center;
@@ -275,29 +251,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  transition: background 0.12s;
+  padding: 12px;
+  background: var(--card-default-bg);
+  border: 1px solid var(--card-default-border);
+  border-radius: 8px;
+  transition: border-color 0.12s;
 }
 
 .channel-row:hover {
-  background: var(--bg-row-hover);
+  border-color: var(--border-strong);
 }
 
-.channel-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: var(--bg-card-elevated);
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
-}
+.channel-icon { flex-shrink: 0; }
 
 .channel-name {
   font-size: 13px;
