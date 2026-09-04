@@ -5,11 +5,28 @@ import HighlightIcon from '../components/HighlightIcon.jsx'
 import { Drawer } from '../components/Modal.jsx'
 import {
   Plus, CheckCircle, AlertTriangle, Send, FileText, Zap, Sliders, MoreHorizontal, Search,
-  Building2, Ticket, Database, MessageSquare, Link2, Smartphone, Mail, Users,
+  Building2, Ticket, Database, MessageSquare, Link2,
 } from 'lucide-react'
 import './Destinations.css'
 
 const TYPE_ICON = { CRM: Building2, Ticketing: Ticket, ERP: Database, Messaging: MessageSquare, Custom: Link2 }
+
+// Entity List Avatar variable — text-initials fallback when there's no logo image.
+function ChannelAvatar({ channel, size = 32 }) {
+  return (
+    <div
+      className="channel-icon"
+      style={{
+        width: size, height: size, borderRadius: '50%', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: channel.color + '33', color: channel.color,
+        fontFamily: 'DM Mono, monospace', fontSize: size * 0.4, fontWeight: 700,
+      }}
+    >
+      {channel.name.slice(0, 2).toUpperCase()}
+    </div>
+  )
+}
 
 const EXTERNAL_SYSTEMS = [
   {
@@ -90,10 +107,10 @@ function defaultEnabled(systemId) {
 }
 
 const CHANNELS = [
-  { id: 'slack', name: 'Slack',  detail: 'AIMS Team workspace · #htl-escalations', status: 'Connected', icon: MessageSquare, hi: 'purple',      template: 'New item: {{pack_name}} · SLA {{sla_minutes}}m · Assigned to {{agent_name}}' },
-  { id: 'teams', name: 'Teams',  detail: 'Acme Corp tenant',                        status: 'Connected', icon: Users,         hi: 'informative', template: '🔔 HTL Alert: {{item_subject}} — {{pack_name}} ({{priority}})' },
-  { id: 'sms',   name: 'SMS',    detail: '3 numbers configured',                    status: 'Active',    icon: Smartphone,    hi: 'success',     template: 'HTL: New {{priority}} item. Login to review: {{item_url}}' },
-  { id: 'email', name: 'Email',  detail: 'escalations@company.com',                 status: 'Active',    icon: Mail,          hi: 'alert',       template: 'Subject: [HTL] {{item_subject}}\n\nPack: {{pack_name}}\nSLA: {{sla_minutes}} min\nAssigned: {{agent_name}}\n\n{{ai_summary}}' },
+  { id: 'slack', name: 'Slack',  detail: 'AIMS Team workspace · #htl-escalations', status: 'Connected', color: '#611f69', template: 'New item: {{pack_name}} · SLA {{sla_minutes}}m · Assigned to {{agent_name}}' },
+  { id: 'teams', name: 'Teams',  detail: 'Acme Corp tenant',                        status: 'Connected', color: '#5b5fc7', template: '🔔 HTL Alert: {{item_subject}} — {{pack_name}} ({{priority}})' },
+  { id: 'sms',   name: 'SMS',    detail: '3 numbers configured',                    status: 'Active',    color: '#0284c7', template: 'HTL: New {{priority}} item. Login to review: {{item_url}}' },
+  { id: 'email', name: 'Email',  detail: 'escalations@company.com',                 status: 'Active',    color: '#ca8a04', template: 'Subject: [HTL] {{item_subject}}\n\nPack: {{pack_name}}\nSLA: {{sla_minutes}} min\nAssigned: {{agent_name}}\n\n{{ai_summary}}' },
 ]
 
 const CONNECTOR_TYPES = [
@@ -533,7 +550,7 @@ export default function Destinations() {
           <div className="channels-list">
             {channels.map(channel => (
               <div key={channel.id} className="channel-row">
-                <HighlightIcon icon={channel.icon} variant={channel.hi} size={32} className="channel-icon" />
+                <ChannelAvatar channel={channel} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="channel-name">{channel.name}</div>
                   <div className="channel-detail">{channel.detail}</div>
@@ -552,7 +569,7 @@ export default function Destinations() {
           <div className="template-preview-panel">
             <div className="template-preview-header">Message Template Preview</div>
             <div className="template-preview-channel">
-              <HighlightIcon icon={previewChannel.icon} variant={previewChannel.hi} size={32} className="channel-icon" />
+              <ChannelAvatar channel={previewChannel} />
               <div>
                 <div className="channel-name">{previewChannel.name}</div>
                 <div className="channel-detail">{previewChannel.detail}</div>

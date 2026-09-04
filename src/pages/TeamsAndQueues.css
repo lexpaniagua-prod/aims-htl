@@ -4,8 +4,9 @@
 .tq-filter-bar {
   display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;
 }
+/* DS Input default width — a search field isn't meant to flood the row. */
 .tq-search {
-  flex: 1; min-width: 200px; height: 32px; padding: 0 12px;
+  width: 260px; height: 32px; padding: 0 12px;
   border: 1px solid var(--border); border-radius: 7px;
   background: var(--bg-input); color: var(--text-primary);
   font-size: 13px; font-family: inherit; outline: none;
@@ -18,7 +19,7 @@
   background: var(--bg-input); color: var(--text-primary);
   font-size: 13px; font-family: inherit; outline: none; cursor: pointer;
 }
-.tq-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-tertiary); flex-shrink: 0; }
+.tq-count { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-tertiary); flex-shrink: 0; margin-left: auto; }
 .tq-empty { padding: 48px; text-align: center; font-size: 13px; color: var(--text-tertiary); }
 
 /* Team list — DS Entity List: each row its own Card Container S, not one
@@ -139,15 +140,23 @@
 @media (min-width: 900px) {
   .tq-type-grid { grid-template-columns: repeat(4, 1fr); }
 }
+/* Card Container + Highlight Icon + radio — a type is a selection, not a plain button */
 .tq-type-btn {
   display: flex; align-items: center; gap: 8px; padding: 10px 12px;
-  border: 1.5px solid var(--border); border-radius: 8px;
-  background: var(--bg-card); color: var(--text-secondary);
+  border: 1px solid var(--card-default-border); border-radius: 8px;
+  background: var(--card-default-bg); color: var(--text-secondary);
   font-size: 12px; font-family: inherit; cursor: pointer; text-align: left;
   transition: border-color 0.12s, background 0.12s;
 }
 .tq-type-btn:hover  { border-color: var(--border-strong); color: var(--text-primary); }
-.tq-type-btn--sel   { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--accent-blue); font-weight: 500; }
+.tq-type-btn--sel   { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--text-primary); font-weight: 500; }
+.tq-type-btn-radio {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-left: auto;
+  border: 2px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.tq-type-btn--sel .tq-type-btn-radio { border-color: var(--accent-blue); }
+.tq-type-btn-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue); }
 .tq-type-hint       { font-size: 11px; color: var(--text-tertiary); font-style: italic; line-height: 1.4; }
 
 /* Members */
@@ -213,15 +222,18 @@
 }
 .tq-role-btn--sel .tq-role-count { background: var(--accent-amber-dim); border-color: var(--accent-amber-border); color: var(--accent-amber); }
 
-/* Rotation slot cards */
+/* Rotation slot cards — Card Container: one consistent background for the
+   whole card, header and body alike (a different bg per section isn't a
+   pattern our DS defines). */
 .tq-slot-card {
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--card-default-border);
+  background: var(--card-default-bg);
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 8px;
   transition: border-color 0.15s;
 }
-.tq-slot-card--on { border-color: var(--accent-teal-border); }
+.tq-slot-card--on { border-color: var(--accent-blue-border); }
 
 .tq-slot-hdr {
   display: flex;
@@ -229,7 +241,6 @@
   gap: 10px;
   padding: 11px 14px;
   cursor: pointer;
-  background: var(--bg-card-elevated);
   user-select: none;
   transition: background 0.1s;
 }
@@ -241,7 +252,7 @@
   background: var(--border-strong); position: relative;
   transition: background 0.2s; flex-shrink: 0;
 }
-.tq-slot-toggle--on { background: var(--accent-teal); }
+.tq-slot-toggle--on { background: var(--accent-blue); }
 .tq-slot-knob {
   position: absolute; top: 2px; left: 2px;
   width: 12px; height: 12px; border-radius: 50%; background: #fff;
@@ -253,12 +264,11 @@
 .tq-slot-info  { flex: 1; }
 .tq-slot-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .tq-slot-hours { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; font-family: 'DM Mono', monospace; }
-.tq-slot-count { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--accent-teal); background: var(--accent-teal-dim); border: 1px solid var(--accent-teal-border); border-radius: 10px; padding: 1px 8px; flex-shrink: 0; }
+.tq-slot-count { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--accent-blue); background: var(--accent-blue-dim); border: 1px solid var(--accent-blue-border); border-radius: 10px; padding: 1px 8px; flex-shrink: 0; }
 
 .tq-slot-body {
   padding: 12px 14px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-card);
+  border-top: 1px solid var(--card-default-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -281,15 +291,24 @@
 .tq-role-person:hover   { border-color: var(--border-strong); background: var(--bg-row-hover); }
 .tq-role-person--sel    { border-color: var(--accent-teal); background: var(--accent-teal-dim); }
 
-/* Assignment */
+/* Assignment — Card Container + radio, emphasizes this is a selection */
 .tq-assign-row { display: flex; gap: 8px; }
 .tq-assign-btn {
-  flex: 1; padding: 7px; border: 1.5px solid var(--border); border-radius: 7px;
+  flex: 1; display: flex; align-items: center; gap: 7px;
+  padding: 7px 10px; border: 1px solid var(--card-default-border); border-radius: 7px;
   font-size: 12px; font-family: inherit;
-  background: var(--bg-card); color: var(--text-secondary);
+  background: var(--card-default-bg); color: var(--text-secondary);
   cursor: pointer; transition: all 0.12s;
 }
-.tq-assign-btn--sel { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--accent-blue); font-weight: 500; }
+.tq-assign-btn--sel { border-color: var(--accent-blue); background: var(--accent-blue-dim); color: var(--text-primary); font-weight: 500; }
+
+.td-assign-radio {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.tq-assign-btn--sel .td-assign-radio { border-color: var(--accent-blue); }
+.td-assign-radio-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-blue); }
 
 /* Coverage */
 .tq-coverage-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -298,6 +317,9 @@
   background: var(--bg-input); color: var(--text-primary);
   font-size: 13px; font-family: 'DM Mono', monospace; outline: none;
 }
+/* Native time-input clock glyph defaults to a washed-out gray — match the
+   Input component's icon contrast instead. */
+.tq-time::-webkit-calendar-picker-indicator { filter: invert(1) opacity(0.6); cursor: pointer; }
 
 /* ── Preview slideout ────────────────────────────────────────────────────────*/
 .tqp-hero { display: flex; flex-direction: column; gap: 8px; }
@@ -379,17 +401,6 @@
 }
 .tqp-confirm-text { font-size: 12px; color: var(--text-secondary); }
 .tqp-confirm-btns { display: flex; gap: 6px; }
-.tqp-confirm-yes {
-  padding: 5px 12px; border: 1px solid var(--accent-amber-border); border-radius: 6px;
-  background: var(--accent-amber); color: #fff;
-  font-size: 12px; font-family: inherit; cursor: pointer; font-weight: 600;
-}
-.tqp-confirm-no {
-  padding: 5px 12px; border: 1px solid var(--border); border-radius: 6px;
-  background: var(--bg-card); color: var(--text-secondary);
-  font-size: 12px; font-family: inherit; cursor: pointer;
-}
-
 .tqp-paused {
   padding: 8px 12px; background: var(--bg-card-elevated); border: 1px solid var(--border);
   border-radius: 7px; font-size: 12px; color: var(--text-secondary);

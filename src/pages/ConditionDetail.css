@@ -87,6 +87,24 @@
   white-space: nowrap;
 }
 
+/* Stepper Nav Footer — sticky to the viewport bottom during the creation
+   flow, always in the same position regardless of form content height. */
+.cd-create-foot {
+  position: sticky;
+  bottom: 0;
+  background: var(--bg-sidebar);
+  border-top: 1px solid var(--border);
+  padding: 14px 0;
+  margin: 24px calc(-1 * var(--page-pad, 24px)) -24px;
+  padding-left: var(--page-pad, 24px);
+  padding-right: var(--page-pad, 24px);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  z-index: 20;
+}
+
 /* Tabs */
 .cd-tabs {
   display: flex;

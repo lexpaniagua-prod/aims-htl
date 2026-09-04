@@ -7,6 +7,7 @@ import {
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import HighlightIcon from '../components/HighlightIcon.jsx'
+import Checkbox from '../components/Checkbox.jsx'
 import { triggerLibrary } from '../data/mockData.js'
 import './Triggers.css'
 
@@ -179,15 +180,18 @@ function TriggerDrawer({ trigger, onSave, onClose }) {
           <div className="tl-field">
             <label className="tl-label">Studio</label>
             <div className="tl-assign-row">
-              {STUDIOS.map(s => (
+              {STUDIOS.map(s => {
+                const sel = studio === s
+                return (
                 <button
                   key={s}
-                  className={`tl-assign-btn${studio === s ? ' tl-assign-btn--sel' : ''}`}
+                  className={`tl-assign-btn${sel ? ' tl-assign-btn--sel' : ''}`}
                   onClick={() => setStudio(s)}
                 >
+                  <span className="tl-assign-radio">{sel && <span className="tl-assign-radio-dot" />}</span>
                   {s}
                 </button>
-              ))}
+              )})}
             </div>
           </div>
 
@@ -594,6 +598,7 @@ The customer may be angry, disappointed, or simply making an administrative requ
                   className={`tl-status-btn${status === s.id ? ' tl-status-btn--sel' : ''}`}
                   onClick={() => setStatus(s.id)}
                 >
+                  <Checkbox checked={status === s.id} onChange={() => setStatus(s.id)} />
                   {s.label}
                 </button>
               ))}

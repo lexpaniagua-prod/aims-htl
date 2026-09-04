@@ -11,6 +11,7 @@ import Button from '../components/Button.jsx'
 import { Input, Select, Textarea } from '../components/FormFields.jsx'
 import Badge from '../components/Badge.jsx'
 import Widget from '../components/Widget.jsx'
+import Checkbox from '../components/Checkbox.jsx'
 import { packs, networks, agents, packAgentBindings, packWorkflowBindings, integrations, lightweightChannels, teamsAndQueues, availableWorkflows, availableAgents, triggerLibrary, instanceConfigOptions } from '../data/mockData.js'
 import './PackBuilder.css'
 
@@ -433,7 +434,7 @@ function TriggerCatalogModal({ draft, onAdd, onClose }) {
                       className={`trig-modal-row${isActive ? ' trig-modal-row--disabled' : ''}${sel ? ' trig-modal-row--sel' : ''}`}
                       onClick={() => !isActive && toggle(t.id)}
                     >
-                      <input type="checkbox" className="wt-modal-cb" checked={sel || isActive} disabled={isActive} readOnly />
+                      <Checkbox checked={sel || isActive} disabled={isActive} onChange={() => !isActive && toggle(t.id)} className="wt-modal-cb" />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                           <span style={{ fontSize: 13, fontWeight: 500, color: isActive ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
@@ -1708,7 +1709,7 @@ function TaskDestCatalogModal({ active, onClose, onNext }) {
                       className={`d4-modal-row${isSel ? ' d4-modal-row--sel' : ''}${alreadyAdded ? ' d4-modal-row--disabled' : ''}`}
                       onClick={() => !alreadyAdded && toggleSel(int.id)}
                     >
-                      <input type="checkbox" className="wt-modal-cb" checked={isSel || alreadyAdded} readOnly disabled={alreadyAdded} />
+                      <Checkbox checked={isSel || alreadyAdded} disabled={alreadyAdded} onChange={() => !alreadyAdded && toggleSel(int.id)} className="wt-modal-cb" />
                       <div className="d4-int-icon" style={{ background: ico.bg, color: ico.color }}>{ico.label}</div>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -2154,7 +2155,7 @@ function NotifChannelCatalogModal({ active, onClose, onAdd }) {
                   className={`d4-modal-row${isSel ? ' d4-modal-row--sel' : ''}${alreadyAdded ? ' d4-modal-row--disabled' : ''}`}
                   onClick={() => !alreadyAdded && toggleSel(ch.id)}
                 >
-                  <input type="checkbox" className="wt-modal-cb" checked={isSel || alreadyAdded} readOnly disabled={alreadyAdded} />
+                  <Checkbox checked={isSel || alreadyAdded} disabled={alreadyAdded} onChange={() => !alreadyAdded && toggleSel(ch.id)} className="wt-modal-cb" />
                   <div className="d4-chan-icon">{ico}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -4028,13 +4029,7 @@ function AttachModal({ currentPackId, connectedWorkflows, connectedAgents, onAtt
           className={`wt-modal-row${isAttached ? ' wt-modal-row--disabled' : ''}${sel ? ' wt-modal-row--sel' : ''}`}
           onClick={() => !isAttached && toggle(item.id)}
         >
-          <input
-            type="checkbox"
-            className="wt-modal-cb"
-            checked={sel || isAttached}
-            disabled={isAttached}
-            onChange={() => {}}
-          />
+          <Checkbox checked={sel || isAttached} disabled={isAttached} onChange={() => toggle(item.id)} className="wt-modal-cb" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 500, color: isAttached ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
@@ -4046,23 +4041,27 @@ function AttachModal({ currentPackId, connectedWorkflows, connectedAgents, onAtt
               {isWorkflow && (
                 <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{item.nodes} nodes</span>
               )}
-              <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>·</span>
-              <span style={{ fontSize: 11, color: isAttached ? 'var(--text-tertiary)' : 'var(--accent-teal)' }}>
-                {item.status === 'active' ? 'Active' : item.status}
-              </span>
               {isAttached && (
                 <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)', background: 'var(--bg-card-elevated)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>
                   Already attached
                 </span>
               )}
             </div>
+            {hasConflict && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 5, marginTop: 4 }}>
+                <AlertTriangle size={12} style={{ color: 'var(--accent-amber)', flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                  "Hot Lead Closure Pack uses the same trigger. Both will fire if conditions match."
+                </span>
+              </div>
+            )}
           </div>
+          <Badge
+            label={item.status === 'active' ? 'Active' : item.status}
+            variant={isAttached ? 'gray' : 'teal'}
+            size="sm"
+          />
         </div>
-        {hasConflict && (
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--accent-amber)', padding: '3px 16px 6px 44px', lineHeight: 1.5 }}>
-            ⚠ "Hot Lead Closure Pack uses the same trigger. Both will fire if conditions match."
-          </div>
-        )}
       </div>
     )
   }
@@ -4131,6 +4130,40 @@ function AttachModal({ currentPackId, connectedWorkflows, connectedAgents, onAtt
 }
 
 // ─── Workflows tab ────────────────────────────────────────────────────────────
+// Tag list that caps at `max` visible tags — the rest collapse into a
+// "+N" tag that reveals the hidden labels in a tooltip on hover.
+function TagOverflow({ tags, variant = 'gray', max = 2 }) {
+  const [open, setOpen] = useState(false)
+  const visible = tags.slice(0, max)
+  const hidden  = tags.slice(max)
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+      {visible.map(t => <Badge key={t} label={t} variant={variant} size="sm" />)}
+      {hidden.length > 0 && (
+        <span
+          style={{ position: 'relative', display: 'inline-flex' }}
+          onMouseEnter={() => setOpen(true)}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <Badge label={`+${hidden.length}`} variant={variant} size="sm" />
+          {open && (
+            <div style={{
+              position: 'absolute', bottom: 'calc(100% + 6px)', left: 0, zIndex: 100,
+              background: 'var(--bg-card-elevated)', border: '1px solid var(--border-strong)',
+              borderRadius: 8, padding: '6px 10px', minWidth: 130,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)', display: 'flex', flexDirection: 'column', gap: 3,
+            }}>
+              {hidden.map(t => (
+                <span key={t} style={{ fontSize: 12, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{t}</span>
+              ))}
+            </div>
+          )}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function WorkflowsTab({ sourcePack }) {
   const initialWfIds = packWorkflowBindings[sourcePack?.id ?? ""] ?? []
   const [connectedWorkflows, setConnectedWorkflows] = useState(new Set(initialWfIds))
@@ -4256,11 +4289,7 @@ function WorkflowsTab({ sourcePack }) {
           <div style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
             {agent.runs30d?.toLocaleString() ?? 0}
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {(agent.capabilities ?? []).map(cap => (
-              <Badge key={cap} label={cap} variant="purple" size="sm" />
-            ))}
-          </div>
+          <TagOverflow tags={agent.capabilities ?? []} variant="purple" max={2} />
           <div>
             <Button variant="ghost" size="sm" onClick={() => {
               setConnectedAgents(s => { const next = new Set(s); next.delete(agent.id); return next })
@@ -4368,7 +4397,7 @@ function VersionsTab({ draft }) {
         {rows.map((v, i) => {
           const isCurrent = i === 0
           return (
-            <div key={v.ver} className={`wt-row${isCurrent ? ' ver-row--current' : ''}`} style={{ gridTemplateColumns: VER_COLS }}>
+            <div key={v.ver} className="wt-row" style={{ gridTemplateColumns: VER_COLS }}>
               {/* Version + live indicator */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{v.ver}</span>

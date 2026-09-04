@@ -2927,9 +2927,8 @@
 .pb-ov-wf-stats { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-tertiary); flex-shrink:0; margin-left:auto; }
 
 /* ── Version History tab ─────────────────────────────────────────────────────── */
-/* Current/live row — full tinted bg, no left-accent-line (Card Container
-   semantic pattern used throughout: full border/bg, never a colored stripe). */
-.ver-row--current { background: var(--card-green-bg); }
+/* Current/live row — the LIVE tag already signals status; the Table
+   component's own row styling stays as-is, no extra background tint. */
 .ver-live-chip {
   display: flex; align-items: center; gap: 4px;
   font-size: 10px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: 0.04em;
@@ -3012,7 +3011,7 @@
 .wt-modal-row:hover:not(.wt-modal-row--disabled) { border-color: var(--accent-blue-border); background: var(--accent-blue-dim); }
 .wt-modal-row--sel     { border-color: var(--accent-blue-border) !important; background: var(--accent-blue-dim) !important; }
 .wt-modal-row--disabled { opacity: 0.55; cursor: default; }
-.wt-modal-cb   { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent-blue); cursor: pointer; }
+.wt-modal-cb   { margin-top: 2px; }
 .wt-modal-foot {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 20px; border-top: 1px solid var(--border); flex-shrink: 0;

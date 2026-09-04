@@ -7,6 +7,7 @@ import {
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import HighlightIcon from '../components/HighlightIcon.jsx'
+import Checkbox from '../components/Checkbox.jsx'
 import { teamsAndQueues } from '../data/mockData.js'
 import './Triggers.css'
 import './TeamsAndQueues.css'
@@ -135,6 +136,7 @@ function TeamDrawer({ team, onSave, onClose }) {
                 return (
                   <button key={t} className={`tq-type-btn${sel ? ' tq-type-btn--sel' : ''}`} onClick={() => setType(t)}>
                     <cfg.icon size={14} /><span>{cfg.label}</span>
+                    <span className="tq-type-btn-radio">{sel && <span className="tq-type-btn-radio-dot" />}</span>
                   </button>
                 )
               })}
@@ -389,11 +391,15 @@ function TeamDrawer({ team, onSave, onClose }) {
             <div className="tq-field">
               <label className="tq-label">Assignment method</label>
               <div className="tq-assign-row">
-                {ASSIGN_OPT.map(a => (
-                  <button key={a} className={`tq-assign-btn${assignment === a ? ' tq-assign-btn--sel' : ''}`} onClick={() => setAssignment(a)}>
-                    {a === 'round-robin' ? 'Round-robin' : a === 'expertise-based' ? 'Expertise-based' : 'Least busy'}
-                  </button>
-                ))}
+                {ASSIGN_OPT.map(a => {
+                  const sel = assignment === a
+                  return (
+                    <button key={a} className={`tq-assign-btn${sel ? ' tq-assign-btn--sel' : ''}`} onClick={() => setAssignment(a)}>
+                      <span className="td-assign-radio">{sel && <span className="td-assign-radio-dot" />}</span>
+                      {a === 'round-robin' ? 'Round-robin' : a === 'expertise-based' ? 'Expertise-based' : 'Least busy'}
+                    </button>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -401,7 +407,7 @@ function TeamDrawer({ team, onSave, onClose }) {
           {/* Coverage hours */}
           <div className="tq-field">
             <label className="tq-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={hasCoverage} onChange={e => setHasCoverage(e.target.checked)} style={{ accentColor: 'var(--accent-blue)' }} />
+              <Checkbox checked={hasCoverage} onChange={setHasCoverage} />
               Set coverage hours (optional)
             </label>
             {hasCoverage && (
@@ -587,8 +593,8 @@ function TeamPreview({ team, onClose }) {
                 <div className="tqp-confirm">
                   <div className="tqp-confirm-text">Pause this team? Active items will re-queue.</div>
                   <div className="tqp-confirm-btns">
-                    <button className="tqp-confirm-yes" onClick={() => { setPaused(true); setPauseConfirm(false) }}>Pause</button>
-                    <button className="tqp-confirm-no" onClick={() => setPauseConfirm(false)}>Cancel</button>
+                    <Button variant="primary" size="sm" onClick={() => { setPaused(true); setPauseConfirm(false) }}>Pause</Button>
+                    <Button variant="secondary" size="sm" onClick={() => setPauseConfirm(false)}>Cancel</Button>
                   </div>
                 </div>
               )}
@@ -709,7 +715,7 @@ export default function TeamsAndQueues() {
           </p>
         </div>
         <div className="page-actions">
-          <Button variant="primary" size="sm" icon={Plus} onClick={openNew}>New Team</Button>
+          <Button variant="main" size="sm" icon={Plus} onClick={openNew}>New Team</Button>
         </div>
       </div>
 

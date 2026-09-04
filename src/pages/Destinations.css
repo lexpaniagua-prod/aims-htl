@@ -284,11 +284,11 @@
   flex-shrink: 0;
 }
 
-/* Template preview */
+/* Template preview — Card Container */
 .template-preview-panel {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--card-default-bg);
+  border: 1px solid var(--card-default-border);
+  border-radius: 8px;
   padding: 20px;
   position: sticky;
   top: 0;
@@ -658,4 +658,5 @@
   line-height: 1.7;
   white-space: pre-wrap;
   word-break: break-word;
+  margin-bottom: 8px;
 }

@@ -8,6 +8,7 @@ import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import Widget from '../components/Widget.jsx'
 import HighlightIcon from '../components/HighlightIcon.jsx'
+import Checkbox from '../components/Checkbox.jsx'
 import { triggerLibrary } from '../data/mockData.js'
 import './ConditionDetail.css'
 import './Triggers.css'
@@ -171,9 +172,15 @@ function ConfigTab({ initial }) {
       <div className="tl-field">
         <label className="tl-label">Studio</label>
         <div className="tl-assign-row">
-          {STUDIOS.map(s => (
-            <button key={s} className={`tl-assign-btn${studio === s ? ' tl-assign-btn--sel' : ''}`} onClick={() => setStudio(s)}>{s}</button>
-          ))}
+          {STUDIOS.map(s => {
+            const sel = studio === s
+            return (
+              <button key={s} className={`tl-assign-btn${sel ? ' tl-assign-btn--sel' : ''}`} onClick={() => setStudio(s)}>
+                <span className="tl-assign-radio">{sel && <span className="tl-assign-radio-dot" />}</span>
+                {s}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -446,7 +453,10 @@ function ConfigTab({ initial }) {
         <label className="tl-label">Status</label>
         <div className="tl-status-row">
           {[{ id: 'active', label: 'Active' }, { id: 'draft', label: 'Draft' }].map(s => (
-            <button key={s.id} className={`tl-status-btn${status === s.id ? ' tl-status-btn--sel' : ''}`} onClick={() => setStatus(s.id)}>{s.label}</button>
+            <button key={s.id} className={`tl-status-btn${status === s.id ? ' tl-status-btn--sel' : ''}`} onClick={() => setStatus(s.id)}>
+              <Checkbox checked={status === s.id} onChange={() => setStatus(s.id)} />
+              {s.label}
+            </button>
           ))}
         </div>
       </div>
@@ -616,22 +626,13 @@ export default function ConditionDetail() {
             />
           </div>
         </div>
-        <div className="cd-header-actions">
-          {isNew ? (
-            <>
-              <Button variant="secondary" size="sm" onClick={() => navigate('/settings/triggers')}>Cancel</Button>
-              <Button variant="primary" size="sm" disabled={!name.trim()} onClick={handleCreate}>
-                Create condition
-              </Button>
-            </>
-          ) : (
-            <>
-              {saved && <span className="cd-saved-note">Changes saved</span>}
-              <Button variant="secondary" size="sm">Archive</Button>
-              <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
-            </>
-          )}
-        </div>
+        {!isNew && (
+          <div className="cd-header-actions">
+            {saved && <span className="cd-saved-note">Changes saved</span>}
+            <Button variant="secondary" size="sm">Archive</Button>
+            <Button variant="primary" size="sm" onClick={handleSave}>Save changes</Button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -656,6 +657,16 @@ export default function ConditionDetail() {
       {activeTab === 'packs'    && !isNew && <PacksTab   condition={condition} />}
       {activeTab === 'history'  && !isNew && <HistoryTab />}
       {activeTab === 'activity' && !isNew && <ActivityTab />}
+
+      {/* Sticky Stepper Nav Footer — creation flow, not a navigation view */}
+      {isNew && (
+        <div className="cd-create-foot">
+          <Button variant="secondary" size="sm" onClick={() => navigate('/settings/triggers')}>Cancel</Button>
+          <Button variant="primary" size="sm" disabled={!name.trim()} onClick={handleCreate}>
+            Create condition
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

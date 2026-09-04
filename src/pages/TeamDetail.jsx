@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Pencil, Plus, X, ListTodo, Users, UserCog, Repeat, Building2, Moon, Calendar, Settings } from 'lucide-react'
+import { Pencil, Plus, X, ListTodo, Users, UserCog, Repeat, Building2, Moon, Calendar, Settings, ChevronDown } from 'lucide-react'
 import Badge from '../components/Badge.jsx'
 import Button from '../components/Button.jsx'
 import HighlightIcon from '../components/HighlightIcon.jsx'
+import Checkbox from '../components/Checkbox.jsx'
+import { Modal } from '../components/Modal.jsx'
 import { teamsAndQueues } from '../data/mockData.js'
 import './TeamsAndQueues.css'
 import './TeamDetail.css'
@@ -236,15 +238,19 @@ function MembersTab({ team }) {
       {/* Assignment method */}
       <div className="td-assign-section">
         <span className="td-assign-label">Assignment:</span>
-        {ASSIGN_OPT.map(a => (
-          <button
-            key={a}
-            className={`td-assign-btn${assignment === a ? ' td-assign-btn--sel' : ''}`}
-            onClick={() => setAssignment(a)}
-          >
-            {ASSIGN_LBL[a]}
-          </button>
-        ))}
+        {ASSIGN_OPT.map(a => {
+          const sel = assignment === a
+          return (
+            <button
+              key={a}
+              className={`td-assign-btn${sel ? ' td-assign-btn--sel' : ''}`}
+              onClick={() => setAssignment(a)}
+            >
+              <span className="td-assign-radio">{sel && <span className="td-assign-radio-dot" />}</span>
+              {ASSIGN_LBL[a]}
+            </button>
+          )
+        })}
       </div>
 
       {/* Table */}
@@ -260,6 +266,18 @@ function MembersTab({ team }) {
             </tr>
           </thead>
           <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={5}>
+                  <div className="td-mem-empty">
+                    <Users size={22} className="td-mem-empty-icon" />
+                    <div className="td-mem-empty-title">No members yet</div>
+                    <div className="td-mem-empty-sub">Add someone to this team so it can start receiving items.</div>
+                    <Button variant="secondary" size="sm" icon={Plus} onClick={() => setAddOpen(true)}>Add member</Button>
+                  </div>
+                </td>
+              </tr>
+            )}
             {filtered.map(m => (
               <tr key={m.name} className="td-mem-tr">
                 <td className="td-mem-td">
@@ -307,33 +325,41 @@ function MembersTab({ team }) {
 
       {/* Add member */}
       <div className="td-add-member-wrap">
-        {addOpen ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <input
-              className="td-add-search"
-              placeholder="Search people to add…"
-              value={addSearch}
-              onChange={e => setAddSearch(e.target.value)}
-              autoFocus
-            />
-            {addSearch && addPool.length > 0 && (
-              <div className="tq-people-drop" style={{ width: 260 }}>
-                {addPool.slice(0, 6).map(p => (
-                  <div key={p} className="tq-people-item" onClick={() => addMember(p)}>
-                    <div className="tq-avatar-sm">{initials(p)}</div>
-                    <span>{p}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div>
-              <Button variant="secondary" size="sm" onClick={() => { setAddOpen(false); setAddSearch('') }}>Cancel</Button>
-            </div>
-          </div>
-        ) : (
-          <Button variant="secondary" size="sm" icon={Plus} onClick={() => setAddOpen(true)}>Add member</Button>
-        )}
+        <Button variant="secondary" size="sm" icon={Plus} onClick={() => setAddOpen(true)}>Add member</Button>
       </div>
+
+      {/* Add member — Modal Dialog, content variant, gives the action proper emphasis */}
+      <Modal
+        open={addOpen}
+        onClose={() => { setAddOpen(false); setAddSearch('') }}
+        icon={<Users size={18} />}
+        title="Add member"
+        subtitle="Search for a person to add to this team."
+        footer={<Button variant="secondary" size="md" onClick={() => { setAddOpen(false); setAddSearch('') }}>Close</Button>}
+      >
+        <input
+          className="td-add-search"
+          placeholder="Search people to add…"
+          value={addSearch}
+          onChange={e => setAddSearch(e.target.value)}
+          autoFocus
+          style={{ width: '100%' }}
+        />
+        {addSearch && addPool.length > 0 ? (
+          <div className="tq-people-drop" style={{ width: '100%', position: 'static', marginTop: 8 }}>
+            {addPool.slice(0, 8).map(p => (
+              <div key={p} className="tq-people-item" onClick={() => addMember(p)}>
+                <div className="tq-avatar-sm">{initials(p)}</div>
+                <span>{p}</span>
+              </div>
+            ))}
+          </div>
+        ) : addSearch ? (
+          <div style={{ fontSize: 12, color: 'var(--text-tertiary)', padding: '16px 0', textAlign: 'center' }}>
+            No one matches "{addSearch}"
+          </div>
+        ) : null}
+      </Modal>
     </div>
   )
 }
@@ -356,6 +382,7 @@ function SettingsTab({ team, isNew }) {
     team.coverageHours ? team.coverageHours.split('–')[1] : '18:00'
   )
   const [coveragePool,   setCoveragePool]   = useState('')
+  const [poolMenuOpen,   setPoolMenuOpen]   = useState(false)
   const [requeueTimeout, setRequeueTimeout] = useState(15)
   const [notifyManager,  setNotifyManager]  = useState(true)
 
@@ -389,9 +416,11 @@ function SettingsTab({ team, isNew }) {
               <div className="tq-type-grid">
                 {TYPE_TABS.map(t => {
                   const c = TYPE_CFG[t]
+                  const sel = type === t
                   return (
-                    <button key={t} className={`tq-type-btn${type === t ? ' tq-type-btn--sel' : ''}`} onClick={() => setType(t)}>
+                    <button key={t} className={`tq-type-btn${sel ? ' tq-type-btn--sel' : ''}`} onClick={() => setType(t)}>
                       <c.icon size={14} /><span>{c.label}</span>
+                      <span className="tq-type-btn-radio">{sel && <span className="tq-type-btn-radio-dot" />}</span>
                     </button>
                   )
                 })}
@@ -593,12 +622,7 @@ function SettingsTab({ team, isNew }) {
         {/* Coverage hours */}
         <div className="tq-field">
           <label className="tq-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <input
-              type="checkbox"
-              checked={hasCoverage}
-              onChange={e => setHasCoverage(e.target.checked)}
-              style={{ accentColor: 'var(--accent-blue)' }}
-            />
+            <Checkbox checked={hasCoverage} onChange={setHasCoverage} />
             Coverage hours (optional)
           </label>
           {hasCoverage && (
@@ -620,18 +644,42 @@ function SettingsTab({ team, isNew }) {
         <div className="td-ooo-box">
           <div className="tq-field">
             <label className="tq-label">Coverage pool</label>
-            <select
-              className="tq-sel"
-              style={{ width: '100%', height: 36 }}
-              value={coveragePool}
-              onChange={e => setCoveragePool(e.target.value)}
-            >
-              <option value="">None — re-queue if all OOO</option>
-              <option value="team-001">Tier 1 Support Queue</option>
-              <option value="team-002">Tier 2 Support Queue</option>
-              <option value="team-004">Legal Roster</option>
-              <option value="team-006">Compliance & CCO</option>
-            </select>
+            {(() => {
+              const POOL_OPTIONS = [
+                { value: '',          label: 'None — re-queue if all OOO' },
+                { value: 'team-001',  label: 'Tier 1 Support Queue' },
+                { value: 'team-002',  label: 'Tier 2 Support Queue' },
+                { value: 'team-004',  label: 'Legal Roster' },
+                { value: 'team-006',  label: 'Compliance & CCO' },
+              ]
+              const current = POOL_OPTIONS.find(o => o.value === coveragePool) ?? POOL_OPTIONS[0]
+              return (
+                <div className="td-menu-select" style={{ width: '100%' }}>
+                  <button
+                    type="button"
+                    className="td-menu-select-trigger"
+                    onClick={() => setPoolMenuOpen(o => !o)}
+                    onBlur={() => setTimeout(() => setPoolMenuOpen(false), 120)}
+                  >
+                    <span>{current.label}</span>
+                    <ChevronDown size={14} style={{ flexShrink: 0, color: 'var(--text-tertiary)' }} />
+                  </button>
+                  {poolMenuOpen && (
+                    <div className="td-menu-select-menu">
+                      {POOL_OPTIONS.map(o => (
+                        <div
+                          key={o.value}
+                          className={`td-menu-select-item${o.value === coveragePool ? ' td-menu-select-item--active' : ''}`}
+                          onMouseDown={() => { setCoveragePool(o.value); setPoolMenuOpen(false) }}
+                        >
+                          {o.label}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
             <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
               If all members are OOO, route items to this team instead.
             </div>
